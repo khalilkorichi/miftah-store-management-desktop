@@ -9,6 +9,7 @@ import {
   DEFAULT_BUNDLES,
   DEFAULT_COUPONS,
   DEFAULT_PRICING_DATA,
+  DEFAULT_CATEGORIES,
 } from './data/initialData';
 import ProductTable from './components/ProductTable';
 import ImportSallaModal from './components/ImportSallaModal';
@@ -19,9 +20,10 @@ import PricingDashboard from './components/pricing/PricingDashboard';
 import BundleManager from './components/bundles/BundleManager';
 import { useToast } from './components/Toast';
 import Dashboard from './components/Dashboard';
+import ProductFeatures from './components/ProductFeatures';
 import {
   PackageIcon, DollarSignIcon, GiftIcon, BarChartIcon, SettingsIcon,
-  SunIcon, MoonIcon, CheckCircleIcon, HomeIcon
+  SunIcon, MoonIcon, CheckCircleIcon, HomeIcon, FileTextIcon
 } from './components/Icons';
 
 const STORAGE_KEY = 'miftah_store_data';
@@ -32,6 +34,7 @@ const TAB_LIST = [
   { id: 'products', label: 'المنتجات والأسعار', icon: PackageIcon },
   { id: 'pricing', label: 'إدارة التسعير', icon: DollarSignIcon },
   { id: 'bundles', label: 'الحزم والمجموعات', icon: GiftIcon },
+  { id: 'features', label: 'وصف المنتجات', icon: FileTextIcon },
   { id: 'reports', label: 'التقارير', icon: BarChartIcon },
   { id: 'settings', label: 'الإعدادات', icon: SettingsIcon },
 ];
@@ -40,18 +43,42 @@ function migrateData(data) {
   if (!data || !data.products) return data;
   // Check if old format (products have 'prices' directly instead of 'plans')
   const needsMigration = data.products.some((p) => p.prices && !p.plans);
-  if (!needsMigration) return data;
+  if (!needsMigration) {
+    const productsNeedFeatures = data.products.some(p => p.description === undefined || (p.plans || []).some(plan => (plan.features || []).some(f => f.order === undefined)));
+    const productsNeedCategory = data.products.some(p => !('categoryId' in p));
+    if (productsNeedFeatures || productsNeedCategory) {
+      data = { ...data, products: data.products.map(p => ({
+        ...p,
+        description: p.description || '',
+        descriptionStyles: p.descriptionStyles || {},
+        categoryId: 'categoryId' in p ? p.categoryId : null,
+        plans: (p.plans || []).map(plan => ({
+          ...plan,
+          features: (plan.features || []).map((f, i) => ({ ...f, order: f.order !== undefined ? f.order : i + 1 })),
+        })),
+      })) };
+    }
+    return data;
+  }
 
   const migratedProducts = data.products.map((product) => {
-    if (product.plans) return product;
+    if (product.plans) return {
+      ...product,
+      description: product.description || '',
+      descriptionStyles: product.descriptionStyles || {},
+      plans: product.plans.map(plan => ({ ...plan, features: plan.features || [] })),
+    };
     return {
       id: product.id,
       name: product.name,
+      description: '',
+      descriptionStyles: {},
       plans: [
         {
           id: 1,
           durationId: 'month_1',
           prices: product.prices || {},
+          features: [],
         },
       ],
     };
@@ -130,6 +157,7 @@ function App() {
   const [bundles, setBundles] = useState(savedData?.bundles || DEFAULT_BUNDLES);
   const [coupons, setCoupons] = useState(savedData?.coupons || DEFAULT_COUPONS);
   const [pricingData, setPricingData] = useState(savedData?.pricingData || DEFAULT_PRICING_DATA);
+  const [categories, setCategories] = useState(savedData?.categories || DEFAULT_CATEGORIES);
   const [customLogo, setCustomLogo] = useState(savedData?.customLogo || null);
   const [appSettings, setAppSettings] = useState(savedData?.appSettings || {
     accentColor: 'purple',
@@ -141,7 +169,7 @@ function App() {
   // Custom hook logic for hash-based routing
   const getInitialTab = () => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'reports', 'settings'];
+    const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'settings'];
     return validTabs.includes(hash) ? hash : 'dashboard';
   };
   
@@ -153,11 +181,11 @@ function App() {
 
   // Save data whenever it changes
   useEffect(() => {
-    saveData({ products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings });
+    saveData({ products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories });
     setSaveIndicator(true);
     const timer = setTimeout(() => setSaveIndicator(false), 1500);
     return () => clearTimeout(timer);
-  }, [products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings]);
+  }, [products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories]);
 
   // Apply dark mode class
   useEffect(() => {
@@ -189,7 +217,7 @@ function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'reports', 'settings'];
+      const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'settings'];
       if (validTabs.includes(hash)) {
         setPageTransition(true);
         setTimeout(() => {
@@ -282,7 +310,7 @@ function App() {
   }, []);
 
   // === Product Management ===
-  const handleAddProduct = useCallback((name, customPlans, activationMethods = [], accountType = 'none') => {
+  const handleAddProduct = useCallback((name, customPlans, activationMethods = [], accountType = 'none', storeUrl = '', categoryId = null) => {
     const newId = Math.max(0, ...products.map((p) => p.id)) + 1;
     let plans;
     if (customPlans && customPlans.length > 0) {
@@ -298,12 +326,24 @@ function App() {
       suppliers.forEach((s) => { prices[s.id] = 0; });
       plans = [{ id: 1, durationId: 'month_1', prices }];
     }
-    setProducts((prev) => [
-      ...prev,
-      { id: newId, name, plans, activationMethods, accountType },
-    ]);
+    const newProduct = { id: newId, name, plans, activationMethods, accountType, categoryId };
+    if (storeUrl) newProduct.storeUrl = storeUrl;
+    setProducts((prev) => [...prev, newProduct]);
     toast(`تمت إضافة المنتج "${name}" بنجاح`, 'success');
   }, [products, suppliers, toast]);
+
+  const handleAddCategory = useCallback((cat) => {
+    setCategories((prev) => [...prev, cat]);
+  }, []);
+
+  const handleDeleteCategory = useCallback((catId) => {
+    const inUse = products.some((p) => p.categoryId === catId);
+    if (inUse) {
+      toast('لا يمكن حذف الفئة — هي مستخدمة في منتجات حالية', 'error');
+      return;
+    }
+    setCategories((prev) => prev.filter((c) => c.id !== catId));
+  }, [products, toast]);
 
   const handleDeleteProduct = useCallback((productId) => {
     const product = products.find((p) => p.id === productId);
@@ -316,6 +356,12 @@ function App() {
       prev.map((p) => (p.id === productId ? { ...p, name: newName } : p))
     );
   }, [toast]);
+
+  const handleUpdateProductUrl = useCallback((productId, url) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, storeUrl: url } : p))
+    );
+  }, []);
 
   const handleDuplicateProduct = useCallback((productId) => {
     setProducts((prev) => {
@@ -684,10 +730,12 @@ function App() {
             durations={durations}
             exchangeRate={exchangeRate}
             activationMethods={activationMethods}
+            categories={categories}
             onUpdatePrice={handleUpdatePrice}
             onAddProduct={handleAddProduct}
             onDeleteProduct={handleDeleteProduct}
             onUpdateProductName={handleUpdateProductName}
+            onUpdateProductUrl={handleUpdateProductUrl}
             onUpdateProductAccountType={handleUpdateProductAccountType}
             onDuplicateProduct={handleDuplicateProduct}
             onAddPlan={handleAddPlan}
@@ -705,6 +753,7 @@ function App() {
             onUpdateCompetitor={handleUpdateCompetitor}
             onDeleteCompetitor={handleDeleteCompetitor}
             onImportProducts={handleImportProducts}
+            onAddCategory={handleAddCategory}
           />
           </div>
         )}
@@ -716,6 +765,7 @@ function App() {
             durations={durations}
             exchangeRate={exchangeRate}
             activationMethods={activationMethods}
+            categories={categories}
           />
           </div>
         )}
@@ -745,6 +795,17 @@ function App() {
             exchangeRate={exchangeRate}
             pricingData={pricingData}
             costs={costs}
+          />
+          </div>
+        )}
+        {activeTab === 'features' && (
+          <div role="tabpanel" id="panel-features" aria-labelledby="tab-features">
+          <ProductFeatures
+            products={products}
+            setProducts={setProducts}
+            durations={durations}
+            suppliers={suppliers}
+            exchangeRate={exchangeRate}
           />
           </div>
         )}

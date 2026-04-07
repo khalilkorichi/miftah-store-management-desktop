@@ -4,8 +4,9 @@ import html2canvas from 'html2canvas';
 import { 
   BarChartIcon, PackageIcon, BuildingIcon, ClipboardIcon, 
   CurrencyIcon, GlobeIcon, ScaleIcon, TrendingUpIcon, ZapIcon, DownloadIcon,
-  StarIcon, KeyIcon, ChevronDownIcon
+  StarIcon, KeyIcon, ChevronDownIcon, FileTextIcon, ListIcon, CheckCircleIcon
 } from './Icons';
+import { FEATURE_ICONS, FEATURE_BADGES } from '../data/productTemplates';
 
 const fmt = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPct = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -138,7 +139,64 @@ const Badge = ({ children, color = pdfColors.accent, bg }) => (
   }}>{children}</span>
 );
 
-function ReportsExport({ products, suppliers, durations, exchangeRate, activationMethods = [] }) {
+const DonutChartVisual = ({ data, size = 160, thickness = 34, label, sublabel }) => {
+  const total = data.reduce((s, d) => s + (d.value || 0), 0);
+  if (!total) return (
+    <div style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 12 }}>لا بيانات</div>
+  );
+  const r = (size - thickness) / 2;
+  const cx = size / 2, cy = size / 2;
+  const C = 2 * Math.PI * r;
+  let cumFrac = 0;
+  const segs = data.map(d => {
+    const frac = d.value / total;
+    const dashLen = frac * C;
+    const rot = cumFrac * 360 - 90;
+    cumFrac += frac;
+    return { color: d.color, dashLen, rot };
+  });
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--bg-tertiary)" strokeWidth={thickness} />
+        {segs.map((s, i) => (
+          <circle key={i} cx={cx} cy={cy} r={r}
+            fill="none" stroke={s.color} strokeWidth={thickness - 3}
+            strokeDasharray={`${s.dashLen} ${C - s.dashLen}`}
+            transform={`rotate(${s.rot}, ${cx}, ${cy})`}
+          />
+        ))}
+      </svg>
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+        {label !== undefined && <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1 }}>{label}</div>}
+        {sublabel && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{sublabel}</div>}
+      </div>
+    </div>
+  );
+};
+
+const HBarChartVisual = ({ data }) => {
+  const maxVal = Math.max(...data.map(d => d.value), 1);
+  return (
+    <div style={{ width: '100%', padding: '4px 0' }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, direction: 'rtl' }}>
+          <div style={{ width: 120, fontSize: 12, color: 'var(--text-primary)', textAlign: 'right', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.label}>
+            {d.label}
+          </div>
+          <div style={{ flex: 1, height: 22, background: 'var(--bg-tertiary)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ width: `${Math.max((d.value / maxVal) * 100, 2)}%`, height: '100%', background: d.color || 'var(--accent-blue)', borderRadius: 6, minWidth: 6 }} />
+          </div>
+          <div style={{ width: 64, fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left', flexShrink: 0, direction: 'ltr' }}>
+            {d.display || d.value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+function ReportsExport({ products, suppliers, durations, exchangeRate, activationMethods = [], categories = [] }) {
   const reportRef = useRef(null);
   const [generating, setGenerating] = useState(null);
   const [activeSection, setActiveSection] = useState('global');
@@ -305,6 +363,59 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
     }
   };
 
+  const generateAllProductPDFs = async () => {
+    setGenerating('all-products');
+    try {
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        await new Promise((r) => setTimeout(r, 300));
+        const element = reportRef.current;
+        if (!element) continue;
+        setGenerating(`all-products-${product.id}`);
+        await new Promise((r) => setTimeout(r, 250));
+        const canvas = await html2canvas(element, {
+          scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+        });
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const margin = 8;
+        const usableW = pageW - margin * 2;
+        const usableH = pageH - margin * 2;
+        const scale = usableW / canvas.width;
+        const scaledH = canvas.height * scale;
+
+        if (scaledH <= usableH) {
+          const imgData = canvas.toDataURL('image/png');
+          const xOff = (pageW - canvas.width * scale) / 2;
+          doc.addImage(imgData, 'PNG', xOff, margin, canvas.width * scale, scaledH);
+        } else {
+          const sliceHeightPx = Math.floor(usableH / scale);
+          const totalPages = Math.ceil(canvas.height / sliceHeightPx);
+          for (let page = 0; page < totalPages; page++) {
+            if (page > 0) doc.addPage();
+            const srcY = page * sliceHeightPx;
+            const srcH = Math.min(sliceHeightPx, canvas.height - srcY);
+            const sliceCanvas = document.createElement('canvas');
+            sliceCanvas.width = canvas.width;
+            sliceCanvas.height = srcH;
+            const ctx = sliceCanvas.getContext('2d');
+            ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+            const sliceData = sliceCanvas.toDataURL('image/png');
+            const drawH = srcH * scale;
+            doc.addImage(sliceData, 'PNG', margin, margin, usableW, drawH);
+          }
+        }
+        const safeName = `تقرير_${product.name}_مفتاح.pdf`.replace(/[<>:"/\\|?*]/g, '_').trim();
+        doc.save(safeName);
+      }
+    } catch (e) {
+      alert('حدث خطأ أثناء إنشاء التقارير: ' + e.message);
+    } finally {
+      setGenerating(null);
+    }
+  };
+
   // ══════════════════════════════════════════════════════════
   // 1. FULL REPORT — All products with all suppliers
   // ══════════════════════════════════════════════════════════
@@ -363,7 +474,14 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                       {planIdx === 0 && (
                         <>
                           <td style={{ ...tdStyle, fontWeight: '700', color: '#888' }} rowSpan={product.plans.length}>{pi + 1}</td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700' }} rowSpan={product.plans.length}>{formatProductName(product)}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700' }} rowSpan={product.plans.length}>
+                            <div>{formatProductName(product)}</div>
+                            {product.storeUrl && (
+                              <div style={{ fontSize: '9px', color: pdfColors.blue, fontFamily: 'monospace', marginTop: '3px', wordBreak: 'break-all', fontWeight: '500', lineHeight: '1.3' }}>
+                                {product.storeUrl}
+                              </div>
+                            )}
+                          </td>
                           <td style={{ ...tdStyle, fontSize: '10px' }} rowSpan={product.plans.length}>
                             <Badge color={product.accountType === 'team' ? pdfColors.blue : pdfColors.accent}>
                               {product.accountType === 'team' ? 'فريق' : product.accountType === 'individual' ? 'فردي' : 'عام'}
@@ -469,6 +587,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
               <InfoRow label="اسم المنتج" value={product.name} bold />
               <InfoRow label="نوع الحساب" value={product.accountType === 'team' ? 'فريق' : product.accountType === 'individual' ? 'فردي' : 'عام'} />
               <InfoRow label="عدد الخطط" value={product.plans.length} />
+              {product.storeUrl && <InfoRow label="رابط المتجر" value={product.storeUrl} color={pdfColors.blue} />}
               {assignedMethods.length > 0 && <InfoRow label="طرق التفعيل" value={assignedMethods.map(m => m.label).join('، ')} />}
             </div>
             <div style={{ background: pdfColors.light, border: `1px solid ${pdfColors.border}`, borderRadius: '10px', padding: '14px' }}>
@@ -983,10 +1102,274 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
     );
   };
 
+  const getIconEmoji = (iconId) => {
+    const icon = FEATURE_ICONS.find(i => i.id === iconId);
+    return icon ? icon.emoji : '✅';
+  };
+  const getBadgeLabel = (badgeId) => {
+    const b = FEATURE_BADGES.find(x => x.id === badgeId);
+    return b ? b.label : '';
+  };
+  const getBadgeColor = (badgeId) => {
+    const b = FEATURE_BADGES.find(x => x.id === badgeId);
+    return b ? b.color : pdfColors.accent;
+  };
+
+  const [featuresPdfTemplate, setFeaturesPdfTemplate] = useState('professional');
+  const [featuresSelectedProductId, setFeaturesSelectedProductId] = useState('');
+
+  const renderFeaturesReport = (product, template = 'professional') => {
+    if (!product) return null;
+    const showLogo = template === 'logo';
+    const isSimple = template === 'simple';
+    const headerColor = isSimple ? pdfColors.primary : pdfColors.accent;
+
+    const totalFeatures = product.plans.reduce((s, plan) => s + (plan.features || []).filter(f => !f.isSeparator).length, 0);
+    return (
+      <div style={{ fontFamily: 'Tajawal, sans-serif', direction: 'rtl', background: '#fff', color: pdfColors.primary, minWidth: '700px', maxWidth: '900px' }}>
+        <div style={{ background: `linear-gradient(135deg, ${headerColor} 0%, ${headerColor}bb 100%)`, color: '#fff', padding: '24px 32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1 style={{ fontSize: '22px', margin: '0 0 4px', fontWeight: '800' }}>
+                {showLogo && '🏪 '}تقرير مزايا المنتج — {formatProductName(product)}
+              </h1>
+              <p style={{ fontSize: '12px', margin: 0, opacity: 0.85 }}>وصف المنتج وقائمة المزايا لكل خطة</p>
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '16px', fontWeight: '800' }}>متجر مفتاح</div>
+              <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+                {new Date().toLocaleDateString('ar-SA-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: '20px 32px' }}>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+            <MetricCard label="عدد الخطط" value={fmtInt(product.plans.length)} color={pdfColors.blue} />
+            <MetricCard label="إجمالي المزايا" value={fmtInt(totalFeatures)} color={pdfColors.accent} />
+            <MetricCard label="حالة الوصف" value={product.description ? 'مكتمل' : 'ناقص'} color={product.description ? pdfColors.green : pdfColors.orange} />
+          </div>
+
+          {product.description && (
+            <div style={{ marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: '700', color: pdfColors.accent, borderBottom: `2px solid ${pdfColors.accent}20`, paddingBottom: '8px', marginBottom: '10px' }}>
+                وصف المنتج
+              </h2>
+              <p style={{ fontSize: '13px', lineHeight: '1.8', color: pdfColors.primary, background: pdfColors.light, padding: '14px 18px', borderRadius: '8px', border: `1px solid ${pdfColors.border}`, margin: 0 }}>
+                {product.description}
+              </p>
+            </div>
+          )}
+
+          {product.plans.map((plan, pi) => {
+            const features = (plan.features || []).filter(f => !f.isSeparator);
+            const bestPrice = Math.min(...Object.values(plan.prices).filter(v => v > 0)) || 0;
+            return (
+              <div key={pi} style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: `${pdfColors.blue}08`, padding: '10px 16px', borderRadius: '8px', border: `1px solid ${pdfColors.blue}20`, marginBottom: '10px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: pdfColors.blue }}>{getDurationLabel(plan.durationId)}</span>
+                  <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+                    {bestPrice > 0 && <span style={{ color: pdfColors.green, fontWeight: '600' }}>أفضل سعر: ${fmt(bestPrice)} ({fmt(bestPrice * exchangeRate)} ر.س)</span>}
+                    <span style={{ color: pdfColors.muted }}>{features.length} ميزة</span>
+                  </div>
+                </div>
+                {features.length > 0 ? (
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ ...thStyle, width: '40px' }}>#</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>الميزة</th>
+                        <th style={{ ...thStyle, width: '80px' }}>التصنيف</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {features.map((f, fi) => (
+                        <tr key={fi}>
+                          <td style={{ ...tdStyle, textAlign: 'center' }}>{getIconEmoji(f.icon)}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '500' }}>{f.text || '—'}</td>
+                          <td style={tdStyle}>
+                            {f.badge ? <Badge color={getBadgeColor(f.badge)}>{getBadgeLabel(f.badge)}</Badge> : <span style={{ color: '#ccc' }}>—</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p style={{ fontSize: '12px', color: pdfColors.muted, textAlign: 'center', padding: '16px' }}>لا توجد مزايا مُضافة لهذه الخطة</p>
+                )}
+              </div>
+            );
+          })}
+
+          {product.plans.length >= 2 && (
+            <div style={{ marginTop: '24px' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: '700', color: pdfColors.accent, borderBottom: `2px solid ${pdfColors.accent}20`, paddingBottom: '8px', marginBottom: '10px' }}>
+                مقارنة المزايا بين الخطط
+              </h2>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>الميزة</th>
+                    {product.plans.map((plan, pi) => (
+                      <th key={pi} style={thStyle}>{getDurationLabel(plan.durationId)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const allFeatureTexts = [...new Set(product.plans.flatMap(plan => (plan.features || []).filter(f => !f.isSeparator && f.text.trim()).map(f => f.text)))];
+                    return allFeatureTexts.map((text, ti) => (
+                      <tr key={ti}>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '500' }}>{text}</td>
+                        {product.plans.map((plan, pi) => {
+                          const has = (plan.features || []).some(f => f.text === text);
+                          return <td key={pi} style={{ ...tdStyle, color: has ? pdfColors.green : '#ddd', fontSize: '16px' }}>{has ? '✅' : '—'}</td>;
+                        })}
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div style={{ background: pdfColors.light, padding: '12px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `2px solid ${pdfColors.border}` }}>
+          <span style={{ fontSize: '11px', color: pdfColors.muted }}>
+            متجر مفتاح — تقرير مزايا المنتج — {new Date().toLocaleDateString('ar-SA-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </span>
+          <span style={{ fontSize: '10px', color: '#bbb' }}>miftahdigital.store</span>
+        </div>
+      </div>
+    );
+  };
+
+  const addFeaturesPdfFooter = (doc) => {
+    const pageCount = doc.getNumberOfPages();
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('متجر Miftah — miftahdigital.store', pageW / 2, pageH - 5, { align: 'center' });
+      doc.setFontSize(7);
+      doc.text(`${i} / ${pageCount}`, pageW - 10, pageH - 5, { align: 'right' });
+      doc.setDrawColor(220, 220, 220);
+      doc.line(10, pageH - 9, pageW - 10, pageH - 9);
+      doc.line(10, 3, pageW - 10, 3);
+    }
+  };
+
+  const generateFeaturesPDF = async (key, filename) => {
+    setGenerating(key);
+    try {
+      await new Promise(r => setTimeout(r, 250));
+      const element = reportRef.current;
+      if (!element) return;
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 8;
+      const footerSpace = 12;
+      const usableW = pageW - margin * 2;
+      const usableH = pageH - margin - footerSpace;
+      const scale = usableW / canvas.width;
+      const scaledH = canvas.height * scale;
+      if (scaledH <= usableH) {
+        const imgData = canvas.toDataURL('image/png');
+        const xOff = (pageW - canvas.width * scale) / 2;
+        doc.addImage(imgData, 'PNG', xOff, margin, canvas.width * scale, scaledH);
+      } else {
+        const sliceHeightPx = Math.floor(usableH / scale);
+        const totalPages = Math.ceil(canvas.height / sliceHeightPx);
+        for (let page = 0; page < totalPages; page++) {
+          if (page > 0) doc.addPage();
+          const srcY = page * sliceHeightPx;
+          const srcH = Math.min(sliceHeightPx, canvas.height - srcY);
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = srcH;
+          const ctx = sliceCanvas.getContext('2d');
+          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+          const sliceData = sliceCanvas.toDataURL('image/png');
+          const drawH = srcH * scale;
+          doc.addImage(sliceData, 'PNG', margin, margin, usableW, drawH);
+        }
+      }
+      addFeaturesPdfFooter(doc);
+      const safeName = filename.replace(/[<>:"/\\|?*]/g, '_').trim() || 'report.pdf';
+      doc.save(safeName);
+    } catch (e) {
+      alert('حدث خطأ أثناء إنشاء التقرير: ' + e.message);
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const generateAllFeaturesPDFs = async () => {
+    const productsWithFeatures = products.filter(p => p.description || p.plans.some(plan => plan.features?.length > 0));
+    if (productsWithFeatures.length === 0) return;
+    setGenerating('all-features');
+    try {
+      for (const product of productsWithFeatures) {
+        setGenerating(`features-${product.id}`);
+        await new Promise(r => setTimeout(r, 300));
+        const element = reportRef.current;
+        if (!element) continue;
+        await new Promise(r => setTimeout(r, 250));
+        const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const margin = 8;
+        const footerSpace = 12;
+        const usableW = pageW - margin * 2;
+        const usableH = pageH - margin - footerSpace;
+        const scale = usableW / canvas.width;
+        const scaledH = canvas.height * scale;
+        if (scaledH <= usableH) {
+          const imgData = canvas.toDataURL('image/png');
+          const xOff = (pageW - canvas.width * scale) / 2;
+          doc.addImage(imgData, 'PNG', xOff, margin, canvas.width * scale, scaledH);
+        } else {
+          const sliceHeightPx = Math.floor(usableH / scale);
+          const totalPages = Math.ceil(canvas.height / sliceHeightPx);
+          for (let page = 0; page < totalPages; page++) {
+            if (page > 0) doc.addPage();
+            const srcY = page * sliceHeightPx;
+            const srcH = Math.min(sliceHeightPx, canvas.height - srcY);
+            const sliceCanvas = document.createElement('canvas');
+            sliceCanvas.width = canvas.width;
+            sliceCanvas.height = srcH;
+            const ctx = sliceCanvas.getContext('2d');
+            ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+            const sliceData = sliceCanvas.toDataURL('image/png');
+            const drawH = srcH * scale;
+            doc.addImage(sliceData, 'PNG', margin, margin, usableW, drawH);
+          }
+        }
+        addFeaturesPdfFooter(doc);
+        const safeName = `مزايا_${product.name}_مفتاح.pdf`.replace(/[<>:"/\\|?*]/g, '_').trim();
+        doc.save(safeName);
+      }
+    } catch (e) {
+      alert('حدث خطأ أثناء إنشاء التقارير: ' + e.message);
+    } finally {
+      setGenerating(null);
+    }
+  };
+
   const renderHiddenContent = () => {
     if (generating === 'full')       return renderFullReport();
     if (generating === 'comparison') return renderComparisonReport();
     if (generating === 'summary')    return renderSummaryReport();
+    if (generating?.startsWith('all-products-')) {
+      const pid = parseInt(generating.replace('all-products-', ''));
+      return renderProductReport(products.find((p) => p.id === pid));
+    }
     if (generating?.startsWith('product-')) {
       const pid = parseInt(generating.replace('product-', ''));
       return renderProductReport(products.find((p) => p.id === pid));
@@ -994,6 +1377,10 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
     if (generating?.startsWith('supplier-')) {
       const sid = generating.replace('supplier-', '');
       return renderSupplierReport(sid);
+    }
+    if (generating?.startsWith('features-')) {
+      const pid = parseInt(generating.replace('features-', ''));
+      return renderFeaturesReport(products.find((p) => p.id === pid), featuresPdfTemplate);
     }
     return null;
   };
@@ -1040,6 +1427,8 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           { id: 'global',   label: <span className="flex-row gap-2 align-center"><GlobeIcon className="icon-sm" /> تقارير عامة</span> },
           { id: 'product',  label: <span className="flex-row gap-2 align-center"><PackageIcon className="icon-sm" /> تقرير منتج</span> },
           { id: 'supplier', label: <span className="flex-row gap-2 align-center"><BuildingIcon className="icon-sm" /> تقرير مورد</span> },
+          { id: 'features', label: <span className="flex-row gap-2 align-center"><FileTextIcon className="icon-sm" /> تقرير المزايا</span> },
+          { id: 'stats',    label: <span className="flex-row gap-2 align-center"><BarChartIcon className="icon-sm" /> الإحصائيات</span> },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1128,6 +1517,12 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                   <span className="flex-row gap-1 align-center"><ZapIcon className="icon-xs" /> {selectedProduct.activationMethods.length} طرق تفعيل</span>
                 )}
               </div>
+              {selectedProduct.storeUrl && (
+                <div className="ppc-url">
+                  <GlobeIcon className="icon-xs" />
+                  <span dir="ltr">{selectedProduct.storeUrl}</span>
+                </div>
+              )}
               <div className="ppc-plans">
                 {selectedProduct.plans.map((plan) => {
                   let minP = Infinity, bestName = '';
@@ -1146,6 +1541,30 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
               </div>
             </div>
           )}
+
+          <div className="bulk-export-divider">
+            <div className="bulk-export-line"></div>
+            <span className="bulk-export-text">أو</span>
+            <div className="bulk-export-line"></div>
+          </div>
+
+          <div className="bulk-export-card">
+            <div className="bulk-export-info">
+              <h4>تصدير جميع المنتجات</h4>
+              <p>تصدير تقرير لكل منتج في ملف PDF منفصل ({products.length} ملف)</p>
+            </div>
+            <button
+              className="btn-generate bulk"
+              disabled={!!generating || products.length === 0}
+              onClick={generateAllProductPDFs}
+            >
+              {generating?.startsWith('all-products') ? (
+                <><span className="spinner" /> جاري التصدير ({products.findIndex(p => `all-products-${p.id}` === generating) + 1}/{products.length})...</>
+              ) : (
+                <><DownloadIcon className="icon-sm" /> تصدير الكل ({products.length} ملف)</>
+              )}
+            </button>
+          </div>
         </div>
       )}
 
@@ -1216,7 +1635,201 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
         </div>
       )}
 
-      <div className="analytics-preview">
+      {activeSection === 'features' && (
+        <div className="individual-report-panel">
+          <div className="individual-report-header">
+            <span className="individual-icon"><FileTextIcon /></span>
+            <div>
+              <h3>تقرير مزايا المنتج</h3>
+              <p>اختر منتجاً لتصدير تقرير مزاياه مع وصفه وقائمة المزايا لكل خطة — أو صدّر جميع المنتجات دفعة واحدة</p>
+            </div>
+          </div>
+          <div className="individual-select-row">
+            <select
+              className="individual-select"
+              value={featuresSelectedProductId}
+              onChange={(e) => setFeaturesSelectedProductId(e.target.value)}
+              dir="rtl"
+            >
+              <option value="">— اختر منتجاً —</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {formatProductName(p)} — {p.description ? '✓ وصف' : '⚠️ بدون وصف'} — {p.plans.reduce((s, plan) => s + (plan.features || []).filter(f => !f.isSeparator).length, 0)} ميزة
+                </option>
+              ))}
+            </select>
+            <select
+              className="individual-select"
+              value={featuresPdfTemplate}
+              onChange={(e) => setFeaturesPdfTemplate(e.target.value)}
+              dir="rtl"
+              style={{ maxWidth: '160px' }}
+            >
+              <option value="simple">بسيط</option>
+              <option value="professional">احترافي</option>
+              <option value="logo">مع لوجو</option>
+            </select>
+            {featuresSelectedProductId && (
+              <button
+                className="btn-generate"
+                disabled={!!generating}
+                onClick={() => {
+                  const p = products.find(pr => pr.id === parseInt(featuresSelectedProductId));
+                  if (p) generateFeaturesPDF(`features-${p.id}`, `مزايا_${p.name}_مفتاح.pdf`);
+                }}
+              >
+                {generating?.startsWith('features-') ? <><span className="spinner" /> جاري الإنشاء...</> : <><DownloadIcon className="icon-sm" /> تصدير PDF</>}
+              </button>
+            )}
+            <button
+              className="btn-generate green-btn"
+              disabled={!!generating}
+              onClick={generateAllFeaturesPDFs}
+            >
+              {generating === 'all-features' ? <><span className="spinner" /> جاري التصدير...</> : <><DownloadIcon className="icon-sm" /> تصدير الكل</>}
+            </button>
+          </div>
+
+          {featuresSelectedProductId && (() => {
+            const previewProduct = products.find(p => p.id === parseInt(featuresSelectedProductId));
+            if (!previewProduct) return null;
+            return (
+              <div className="features-pdf-preview-wrapper">
+                <div className="features-pdf-preview-label">معاينة شكل التقرير</div>
+                <div className="features-pdf-preview-scroll">
+                  {renderFeaturesReport(previewProduct, featuresPdfTemplate)}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {activeSection === 'stats' && (() => {
+        const catCounts = {};
+        products.forEach(p => {
+          const cid = p.categoryId || '__none__';
+          catCounts[cid] = (catCounts[cid] || 0) + 1;
+        });
+        const catDonutData = Object.entries(catCounts).map(([cid, count]) => {
+          const cat = categories.find(c => c.id === cid);
+          return { label: cat ? `${cat.icon} ${cat.name}` : '📦 غير مصنف', value: count, color: cat ? cat.color : '#9CA3AF' };
+        }).sort((a, b) => b.value - a.value);
+
+        const accMap = { individual: 0, team: 0, none: 0 };
+        products.forEach(p => { accMap[p.accountType || 'none']++; });
+        const accDonutData = [
+          { label: '👤 فردي', value: accMap.individual, color: '#5E4FDE' },
+          { label: '👥 فريق', value: accMap.team, color: '#11BA65' },
+          { label: '📦 غير محدد', value: accMap.none, color: '#9CA3AF' },
+        ].filter(d => d.value > 0);
+
+        const planCountData = products.map(p => ({
+          label: p.name,
+          value: p.plans.length,
+          display: `${p.plans.length} خطة`,
+          color: '#1A51F4',
+        })).sort((a, b) => b.value - a.value).slice(0, 8);
+
+        const supplierAvgData = suppliers.map(s => {
+          let total = 0, cnt = 0;
+          products.forEach(p => p.plans.forEach(pl => { const pr = pl.prices[s.id] || 0; if (pr > 0) { total += pr; cnt++; } }));
+          return { label: s.name, value: cnt > 0 ? total / cnt : 0, display: cnt > 0 ? `$${fmt(total / cnt)}` : '—', color: '#F7784A' };
+        }).filter(d => d.value > 0).sort((a, b) => a.value - b.value);
+
+        const productBestPriceData = products.map(p => {
+          let best = Infinity;
+          p.plans.forEach(pl => suppliers.forEach(s => { const pr = pl.prices[s.id] || 0; if (pr > 0) best = Math.min(best, pr); }));
+          return { label: p.name, value: best < Infinity ? best : 0, display: best < Infinity ? `$${fmt(best)}` : '—', color: '#11BA65' };
+        }).filter(d => d.value > 0).sort((a, b) => b.value - a.value).slice(0, 8);
+
+        const savingsData = analytics.filter(a => a.savings > 0)
+          .sort((a, b) => b.savings - a.savings).slice(0, 8)
+          .map(a => ({ label: `${a.productName} — ${a.planDuration}`, value: a.savings, display: `$${fmt(a.savings)}`, color: '#EC4899' }));
+
+        return (
+          <div className="stats-section">
+            <div className="stats-section-header">
+              <div className="stats-section-title"><BarChartIcon className="icon-sm" /> الإحصائيات البصرية</div>
+              <div className="stats-section-subtitle">تحليلات فورية مرئية لجميع بياناتك — {products.length} منتج — {suppliers.length} مورد</div>
+            </div>
+
+            <div className="stats-donuts-row">
+              {catDonutData.length > 0 && (
+                <div className="stats-chart-card">
+                  <div className="stats-chart-title">توزيع المنتجات حسب الفئة</div>
+                  <div className="stats-donut-wrap">
+                    <DonutChartVisual data={catDonutData} size={170} thickness={36} label={products.length} sublabel="منتج" />
+                    <div className="stats-legend">
+                      {catDonutData.map((d, i) => (
+                        <div key={i} className="stats-legend-item">
+                          <span className="stats-legend-dot" style={{ background: d.color }} />
+                          <span className="stats-legend-label">{d.label}</span>
+                          <span className="stats-legend-count">{d.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {accDonutData.length > 0 && (
+                <div className="stats-chart-card">
+                  <div className="stats-chart-title">توزيع أنواع الحسابات</div>
+                  <div className="stats-donut-wrap">
+                    <DonutChartVisual data={accDonutData} size={170} thickness={36} label={products.length} sublabel="منتج" />
+                    <div className="stats-legend">
+                      {accDonutData.map((d, i) => (
+                        <div key={i} className="stats-legend-item">
+                          <span className="stats-legend-dot" style={{ background: d.color }} />
+                          <span className="stats-legend-label">{d.label}</span>
+                          <span className="stats-legend-count">{d.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {planCountData.length > 0 && (
+                <div className="stats-chart-card">
+                  <div className="stats-chart-title">عدد الخطط لكل منتج</div>
+                  <HBarChartVisual data={planCountData} />
+                </div>
+              )}
+            </div>
+
+            <div className="stats-bars-row">
+              {supplierAvgData.length > 0 && (
+                <div className="stats-chart-card stats-chart-half">
+                  <div className="stats-chart-title">متوسط سعر الشراء لكل مورد</div>
+                  <div className="stats-chart-subtitle">المتوسط ($) عبر جميع الخطط</div>
+                  <HBarChartVisual data={supplierAvgData} />
+                </div>
+              )}
+              {productBestPriceData.length > 0 && (
+                <div className="stats-chart-card stats-chart-half">
+                  <div className="stats-chart-title">أفضل سعر لكل منتج</div>
+                  <div className="stats-chart-subtitle">أدنى سعر متاح عبر جميع الموردين ($)</div>
+                  <HBarChartVisual data={productBestPriceData} />
+                </div>
+              )}
+            </div>
+
+            {savingsData.length > 0 && (
+              <div className="stats-chart-card stats-chart-full">
+                <div className="stats-chart-title">التوفير المحتمل لكل خطة</div>
+                <div className="stats-chart-subtitle">الفرق بين أغلى مورد وأرخصه ($) — أعلى 8 فرص</div>
+                <HBarChartVisual data={savingsData} />
+              </div>
+            )}
+
+            {products.length === 0 && (
+              <div className="stats-empty-msg">لا توجد بيانات كافية لعرض الإحصائيات. أضف منتجات وأسعاراً لترى الرسوم البيانية هنا.</div>
+            )}
+          </div>
+        );
+      })()}
+
+      {activeSection === 'global' && <div className="analytics-preview">
         <div className="analytics-header">
           <h3 className="flex-row align-center gap-2"><BarChartIcon className="icon-sm" /> ملخص التحليلات</h3>
           <div className="analytics-actions">
@@ -1238,46 +1851,49 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
               </tr>
             </thead>
             <tbody>
-              {groupedAnalytics.map((group, gi) => {
+              {(() => {
+                return groupedAnalytics.map((group, gi) => {
                 const isExpanded = expandedProducts[group.productName];
                 const bestPlan = group.plans.reduce((best, a) => parseFloat(a.savingsPercent) > parseFloat(best.savingsPercent) ? a : best, group.plans[0]);
                 const totalGroupSavings = group.plans.reduce((s, a) => s + a.savings, 0);
                 return (
                   <React.Fragment key={gi}>
                     <tr className={`product-group-row ${isExpanded ? 'group-expanded' : ''}`} onClick={() => toggleProduct(group.productName)}>
-                      <td className="td-product-name td-group-name">
-                        <span className={`group-chevron ${!isExpanded ? 'chevron-collapsed' : ''}`}>
-                          <ChevronDownIcon className="icon-xs" />
-                        </span>
-                        {group.productName}
-                        <span className="group-plan-count">{group.plans.length} خطة</span>
+                      <td className="td-product-name-cell">
+                        <div className="td-group-name">
+                          <span className={`group-chevron ${!isExpanded ? 'chevron-collapsed' : ''}`}>
+                            <ChevronDownIcon className="icon-xs" />
+                          </span>
+                          <span className="product-name-text">{group.productName}</span>
+                          <span className="group-plan-count">{group.plans.length} خطة</span>
+                        </div>
                       </td>
                       {!isExpanded ? (
                         <td colSpan={8} className="td-group-summary">
                           <div className="collapsed-summary-row">
-                            <div className="collapsed-summary-cell">
+                            <div className="collapsed-summary-cell cs-supplier">
                               <span className="collapsed-label">أفضل مورد</span>
-                              <span className="collapsed-value green">{bestPlan.cheapest.supplierName}</span>
+                              <span className="collapsed-value">{bestPlan.cheapest.supplierName}</span>
                             </div>
                             <div className="collapsed-summary-divider"></div>
-                            <div className="collapsed-summary-cell">
+                            <div className="collapsed-summary-cell cs-price">
                               <span className="collapsed-label">أقل سعر</span>
-                              <span className="collapsed-value blue">${fmt(bestPlan.cheapest.price)}</span>
+                              <span className="collapsed-value"><span className="cv-unit">$</span>{fmt(bestPlan.cheapest.price)}</span>
                             </div>
                             <div className="collapsed-summary-divider"></div>
-                            <div className="collapsed-summary-cell">
+                            <div className="collapsed-summary-cell cs-sar">
                               <span className="collapsed-label">بالريال</span>
-                              <span className="collapsed-value">{fmt(bestPlan.cheapest.price * exchangeRate)} ﷼</span>
+                              <span className="collapsed-value">{fmt(bestPlan.cheapest.price * exchangeRate)}<span className="cv-unit"> ﷼</span></span>
                             </div>
                             <div className="collapsed-summary-divider"></div>
-                            <div className="collapsed-summary-cell">
+                            <div className="collapsed-summary-cell cs-savings">
                               <span className="collapsed-label">إجمالي التوفير</span>
-                              <span className="collapsed-value orange">${fmt(totalGroupSavings)}</span>
+                              <span className="collapsed-value"><span className="cv-unit">$</span>{fmt(totalGroupSavings)}</span>
                             </div>
                             <div className="collapsed-summary-divider"></div>
-                            <div className="collapsed-summary-cell">
+                            <div className="collapsed-summary-cell cs-pct">
                               <span className="collapsed-label">نسبة التوفير</span>
-                              <span className="collapsed-value purple">{bestPlan.savingsPercent}%</span>
+                              <span className="collapsed-value">{bestPlan.savingsPercent}<span className="cv-unit">%</span></span>
                             </div>
                           </div>
                         </td>
@@ -1291,20 +1907,20 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                         <td><span className="plan-badge">{a.planDuration}</span></td>
                         <td className="td-warranty">{a.warrantyDays > 0 ? <span className="warranty-badge-sm">{a.warrantyDays} يوم</span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
                         <td className="td-best-supplier">{a.cheapest.supplierName !== '-' ? a.cheapest.supplierName : <span className="price-not-available">لا يوجد</span>}</td>
-                        <td className="td-price">{a.cheapest.price > 0 ? `$${fmt(a.cheapest.price)}` : <span className="price-not-available" style={{opacity: 0.5}}>-</span>}</td>
-                        <td className="td-price">{a.cheapest.price > 0 ? `${fmt(a.cheapest.price * exchangeRate)} ﷼` : <span className="price-not-available" style={{opacity: 0.5}}>-</span>}</td>
-                        <td className="td-price">{a.avgPrice > 0 ? `$${fmt(a.avgPrice)}` : <span className="price-not-available" style={{opacity: 0.5}}>-</span>}</td>
-                        <td className="td-savings">${fmt(a.savings)}</td>
-                        <td className="td-savings-pct">{a.savingsPercent}%</td>
+                        <td className="td-price">{a.cheapest.price > 0 ? <span className="price-cell"><span className="price-unit-sm">$</span>{fmt(a.cheapest.price)}</span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
+                        <td className="td-price td-sar">{a.cheapest.price > 0 ? <span className="price-cell">{fmt(a.cheapest.price * exchangeRate)}<span className="price-unit-sm"> ﷼</span></span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
+                        <td className="td-price td-avg">{a.avgPrice > 0 ? <span className="price-cell"><span className="price-unit-sm">$</span>{fmt(a.avgPrice)}</span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
+                        <td className="td-savings"><span className="savings-pill"><span className="price-unit-sm">$</span>{fmt(a.savings)}</span></td>
+                        <td className="td-savings-pct"><span className="pct-badge">{a.savingsPercent}%</span></td>
                       </tr>
                     ))}
                   </React.Fragment>
                 );
-              })}
+              });})()}
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
 
       {generating && (
         <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>

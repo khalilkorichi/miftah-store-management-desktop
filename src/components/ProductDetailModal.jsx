@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   XIcon, TagIcon, StarIcon, ShieldCheckIcon, UserIcon, UsersIcon,
-  EditIcon, PlusIcon, TrashIcon, ChevronDownIcon
+  EditIcon, PlusIcon, TrashIcon, ChevronDownIcon, LinkIcon, ExternalLinkIcon
 } from './Icons';
 
 const fmtNum = (val) => {
@@ -11,13 +11,23 @@ const fmtNum = (val) => {
 
 function ProductDetailModal({
   isOpen, product, suppliers, durations, exchangeRate, activationMethods = [],
-  onClose, onUpdatePrice, onUpdateOfficialPrice, onUpdateWarranty,
+  onClose, onUpdatePrice, onUpdateOfficialPrice, onUpdateWarranty, onUpdateProductUrl,
   onAddPlan, onDeletePlan, getDurationLabel, getAvailableDurations,
   requestConfirm
 }) {
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [addingPlan, setAddingPlan] = useState(false);
+  const [editingUrl, setEditingUrl] = useState(false);
+  const [urlValue, setUrlValue] = useState('');
+
+  const sanitizeUrl = (raw) => {
+    const trimmed = (raw || '').trim();
+    if (!trimmed) return '';
+    if (/^(javascript|data|vbscript):/i.test(trimmed)) return '';
+    if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
+    return trimmed;
+  };
   const [closing, setClosing] = useState(false);
   const overlayRef = useRef(null);
   const containerRef = useRef(null);
@@ -25,6 +35,8 @@ function ProductDetailModal({
   useEffect(() => {
     if (isOpen) {
       setClosing(false);
+      setEditingUrl(false);
+      setUrlValue('');
       requestAnimationFrame(() => {
         if (containerRef.current) {
           containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -145,6 +157,37 @@ function ProductDetailModal({
               ))}
             </div>
           )}
+
+          <div className="pdm-url-row">
+            <LinkIcon className="icon-sm" />
+            {editingUrl ? (
+              <input
+                type="url"
+                className="pdm-url-input"
+                value={urlValue}
+                onChange={(e) => setUrlValue(e.target.value)}
+                onBlur={() => { onUpdateProductUrl(product.id, sanitizeUrl(urlValue)); setEditingUrl(false); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { onUpdateProductUrl(product.id, sanitizeUrl(urlValue)); setEditingUrl(false); } if (e.key === 'Escape') setEditingUrl(false); }}
+                placeholder="https://store.example.com/product/..."
+                autoFocus
+                dir="ltr"
+              />
+            ) : product.storeUrl ? (
+              <div className="pdm-url-display">
+                <a href={product.storeUrl} target="_blank" rel="noopener noreferrer" className="pdm-url-link" dir="ltr" title={product.storeUrl}>
+                  {product.storeUrl}
+                  <ExternalLinkIcon className="icon-xs" />
+                </a>
+                <button className="pdm-url-edit-btn" onClick={() => { setEditingUrl(true); setUrlValue(product.storeUrl || ''); }} title="تعديل الرابط">
+                  <EditIcon className="icon-xs" />
+                </button>
+              </div>
+            ) : (
+              <button className="pdm-url-add-btn" onClick={() => { setEditingUrl(true); setUrlValue(''); }}>
+                إضافة رابط المتجر
+              </button>
+            )}
+          </div>
 
           <div className="pdm-stats-bar">
             {lowestPrice && (

@@ -254,25 +254,30 @@ function Dashboard({
               <ZapIcon className="icon-sm" /> إجراءات سريعة
             </h2>
             <div className="dash-quick-actions">
-              <button className="dash-quick-btn" onClick={() => onNavigate('products')}>
-                <PlusIcon className="icon-sm" />
+              <button className="dash-quick-btn dqb-blue" onClick={() => onNavigate('products')}>
+                <span className="dqb-icon"><PlusIcon className="icon-sm" /></span>
                 <span>إضافة منتج</span>
+                <ArrowLeftIcon className="icon-xs dqb-arrow" />
               </button>
-              <button className="dash-quick-btn" onClick={() => onNavigate('bundles')}>
-                <GiftIcon className="icon-sm" />
+              <button className="dash-quick-btn dqb-green" onClick={() => onNavigate('bundles')}>
+                <span className="dqb-icon"><GiftIcon className="icon-sm" /></span>
                 <span>إنشاء حزمة</span>
+                <ArrowLeftIcon className="icon-xs dqb-arrow" />
               </button>
-              <button className="dash-quick-btn" onClick={() => onNavigate('pricing')}>
-                <DollarSignIcon className="icon-sm" />
+              <button className="dash-quick-btn dqb-orange" onClick={() => onNavigate('pricing')}>
+                <span className="dqb-icon"><DollarSignIcon className="icon-sm" /></span>
                 <span>إدارة التكاليف</span>
+                <ArrowLeftIcon className="icon-xs dqb-arrow" />
               </button>
-              <button className="dash-quick-btn" onClick={() => onNavigate('reports')}>
-                <BarChartIcon className="icon-sm" />
+              <button className="dash-quick-btn dqb-purple" onClick={() => onNavigate('reports')}>
+                <span className="dqb-icon"><BarChartIcon className="icon-sm" /></span>
                 <span>تصدير تقرير</span>
+                <ArrowLeftIcon className="icon-xs dqb-arrow" />
               </button>
-              <button className="dash-quick-btn" onClick={() => onNavigate('settings')}>
-                <SettingsIcon className="icon-sm" />
+              <button className="dash-quick-btn dqb-grey" onClick={() => onNavigate('settings')}>
+                <span className="dqb-icon"><SettingsIcon className="icon-sm" /></span>
                 <span>الإعدادات</span>
+                <ArrowLeftIcon className="icon-xs dqb-arrow" />
               </button>
             </div>
           </div>

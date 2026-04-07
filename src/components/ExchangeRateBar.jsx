@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CurrencyIcon, CheckIcon, XIcon, EditIcon } from './Icons';
+import { CurrencyIcon, CheckIcon, XIcon, EditIcon, ExternalLinkIcon } from './Icons';
 
 function ExchangeRateBar({ exchangeRate, onRateChange }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -47,6 +47,16 @@ function ExchangeRateBar({ exchangeRate, onRateChange }) {
         </div>
         <div className="exchange-note">
           جميع الأسعار بالريال السعودي تُحسب تلقائياً بناءً على سعر الصرف
+          <a
+            className="exchange-rate-link"
+            href="https://share.google/tkWL6ZeqWVpuQBdWO"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="تحقق من سعر الصرف الحالي على جوجل"
+          >
+            <ExternalLinkIcon className="icon-xs" />
+            <span>سعر الصرف الآن</span>
+          </a>
         </div>
       </div>
     </div>
