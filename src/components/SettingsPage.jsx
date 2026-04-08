@@ -269,6 +269,35 @@ function SettingsPage({
           </div>
         </div>
 
+        {/* ── Timezone settings card ── */}
+        <div className="settings-card">
+          <div className="settings-card-icon-wrap settings-card-orange">
+            <ClockIcon className="icon-md" />
+          </div>
+          <h3>المناطق الزمنية</h3>
+          <p className="settings-desc">اختر المناطق الزمنية التي تظهر كساعات حية في لوحة التحكم</p>
+          <div className="settings-tz-list">
+            {(appSettings?.timezones || []).map((zone, idx) => (
+              <div key={zone.id} className="settings-tz-row">
+                <span className="settings-tz-flag">{zone.flag}</span>
+                <span className="settings-tz-label">{zone.label}</span>
+                <span className="settings-tz-code">{zone.tz}</span>
+                <button
+                  className={`settings-tz-toggle ${zone.enabled !== false ? 'active' : ''}`}
+                  onClick={() => {
+                    const updated = (appSettings.timezones || []).map((z, i) =>
+                      i === idx ? { ...z, enabled: z.enabled === false ? true : false } : z
+                    );
+                    updateSetting('timezones', updated);
+                  }}
+                >
+                  {zone.enabled !== false ? 'مفعّل' : 'مخفي'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="settings-card">
           <div className="settings-card-icon-wrap settings-card-accent">
             <PaletteIcon className="icon-md" />
