@@ -4696,17 +4696,18 @@ body {
 .fpm-plan-row {
   display: grid;
   grid-template-columns:
-    70px          /* الخطة        */
-    minmax(90px,1fr)  /* سعر المورد   */
-    minmax(100px,1fr) /* السعر الرسمي */
-    minmax(90px,1fr)  /* إجمالي التكلفة */
-    minmax(200px,2.5fr) /* آلية التسعير */
-    minmax(105px,1fr) /* السعر المقترح */
-    minmax(75px,0.8fr) /* هامش الربح   */
-    minmax(95px,1fr)  /* تقييم السعر  */
-    minmax(125px,1fr) /* السعر النهائي */
-    minmax(95px,1fr)  /* الحالة        */
-    60px;             /* حفظ           */
+    70px               /* الخطة          */
+    minmax(90px,1fr)   /* سعر المورد      */
+    minmax(100px,1fr)  /* السعر الرسمي    */
+    minmax(90px,1fr)   /* إجمالي التكلفة  */
+    minmax(120px,1.5fr) /* آلية التسعير   */
+    minmax(100px,1fr)  /* المعامل         */
+    minmax(105px,1fr)  /* السعر المقترح   */
+    minmax(75px,0.8fr) /* هامش الربح      */
+    minmax(95px,1fr)   /* تقييم السعر     */
+    minmax(125px,1fr)  /* السعر النهائي   */
+    minmax(95px,1fr)   /* الحالة          */
+    60px;              /* حفظ             */
   gap: 0 10px;
   align-items: center;
 }
@@ -4748,7 +4749,8 @@ body {
   white-space: nowrap;
 }
 .fpm-plan-col-duration { justify-content: center; }
-.fpm-plan-col-mech { overflow: hidden; }
+.fpm-plan-col-mech { }
+.fpm-plan-col-params { }
 .fpm-plan-col-suggested { }
 .fpm-plan-col-actions { gap: 5px; justify-content: flex-start; }
 .fpm-empty-dash { font-size: 13px; color: var(--text-muted); }
