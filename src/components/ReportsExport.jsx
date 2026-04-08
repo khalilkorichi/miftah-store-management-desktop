@@ -12,6 +12,43 @@ const fmt = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2,
 const fmtPct = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const fmtInt = (v) => Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
+/* ── Pricing helpers (mirrored from FinalPricesManager, no JSX) ── */
+function rpComputeTotalCost(baseSAR, costs) {
+  let fixed = 0, percents = 0;
+  costs.filter(c => c.active).forEach(c => {
+    if (c.type === 'fixed') fixed += c.value;
+    else if (c.type === 'percentage') percents += c.value / 100;
+  });
+  const marginDec = 0.20;
+  const denom = 1 - marginDec - percents;
+  const suggested = denom > 0 ? (baseSAR + fixed) / denom : 0;
+  return baseSAR + fixed + (suggested * percents);
+}
+function rpComputeSuggested(baseSAR, costs) {
+  let fixed = 0, percents = 0;
+  costs.filter(c => c.active).forEach(c => {
+    if (c.type === 'fixed') fixed += c.value;
+    else if (c.type === 'percentage') percents += c.value / 100;
+  });
+  const marginDec = 0.20;
+  const denom = 1 - marginDec - percents;
+  return denom > 0 ? (baseSAR + fixed) / denom : 0;
+}
+function rpGetStatusLabel(finalPrice, totalCost, suggested) {
+  if (!finalPrice || finalPrice <= 0) return null;
+  if (finalPrice < totalCost)       return 'تحت التكلفة';
+  if (finalPrice < suggested)       return 'يحتاج رفع';
+  if (finalPrice > suggested * 1.5) return 'مرتفع جداً';
+  return 'مثالي';
+}
+function rpStatusColor(label) {
+  if (!label) return '#9CA3AF';
+  if (label === 'تحت التكلفة') return '#F94B60';
+  if (label === 'يحتاج رفع')  return '#E68A00';
+  if (label === 'مرتفع جداً') return '#4B9CF9';
+  return '#3ECF8E';
+}
+
 const pdfColors = {
   primary: '#1a1a3e',
   accent: '#5E4FDE',
@@ -196,13 +233,14 @@ const HBarChartVisual = ({ data }) => {
   );
 };
 
-function ReportsExport({ products, suppliers, durations, exchangeRate, activationMethods = [], categories = [] }) {
+function ReportsExport({ products, suppliers, durations, exchangeRate, activationMethods = [], categories = [], finalPrices = {}, costs = [], pricingData = {} }) {
   const reportRef = useRef(null);
   const [generating, setGenerating] = useState(null);
   const [activeSection, setActiveSection] = useState('global');
   const [selectedProductId, setSelectedProductId] = useState('');
   const [selectedSupplierId, setSelectedSupplierId] = useState('all');
   const [expandedProducts, setExpandedProducts] = useState({});
+  const [finalPricesProductId, setFinalPricesProductId] = useState('');
 
   const toggleProduct = (productName) => {
     setExpandedProducts(prev => ({ ...prev, [productName]: !prev[productName] }));
@@ -1395,10 +1433,169 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
     }
   };
 
+  /* ── Final Prices PDF Report ── */
+  const renderFinalPricesReport = (productFilter) => {
+    const targetProducts = productFilter ? [productFilter] : products;
+    const totalPlansCount = targetProducts.reduce((s, p) => s + p.plans.length, 0);
+    let setPricesCount = 0;
+    let marginSum = 0, marginCount = 0;
+
+    const rows = [];
+    targetProducts.forEach(prod => {
+      prod.plans.forEach(plan => {
+        const key = `${prod.id}_${plan.id}`;
+        const savedConfig = pricingData[prod.id] || {};
+        const supplierId = savedConfig.primarySupplierId || (() => {
+          let minP = Infinity, bestId = null;
+          suppliers.forEach(s => { const p = plan.prices[s.id] || 0; if (p > 0 && p < minP) { minP = p; bestId = s.id; } });
+          return bestId;
+        })();
+        const baseSAR = supplierId ? (plan.prices[supplierId] || 0) * exchangeRate : 0;
+        const totalCost = rpComputeTotalCost(baseSAR, costs);
+        const suggested  = rpComputeSuggested(baseSAR, costs);
+        const finalPrice = finalPrices[key];
+        const officialSAR = (plan.officialPriceUsd || 0) * exchangeRate;
+        const isSet = finalPrice !== undefined && finalPrice > 0;
+        const margin = isSet ? ((finalPrice - totalCost) / finalPrice) * 100 : null;
+        const statusLabel = isSet ? rpGetStatusLabel(finalPrice, totalCost, suggested) : null;
+        const diffOfficial = isSet && officialSAR > 0 ? finalPrice - officialSAR : null;
+        if (isSet) { setPricesCount++; if (margin !== null) { marginSum += margin; marginCount++; } }
+        rows.push({
+          productName: formatProductName(prod),
+          planLabel: getDurationLabel(plan.durationId),
+          baseSAR, totalCost, suggested, finalPrice, officialSAR, margin, statusLabel, diffOfficial, isSet,
+        });
+      });
+    });
+
+    const avgMargin = marginCount > 0 ? marginSum / marginCount : 0;
+    const completeProducts = targetProducts.filter(prod =>
+      prod.plans.every(plan => finalPrices[`${prod.id}_${plan.id}`] !== undefined && finalPrices[`${prod.id}_${plan.id}`] > 0)
+    ).length;
+
+    const groupedRows = [];
+    let curGroup = null;
+    rows.forEach(r => {
+      if (!curGroup || curGroup.productName !== r.productName) {
+        curGroup = { productName: r.productName, rows: [] };
+        groupedRows.push(curGroup);
+      }
+      curGroup.rows.push(r);
+    });
+
+    return (
+      <div style={{ fontFamily: 'Tajawal, sans-serif', direction: 'rtl', background: '#fff', color: pdfColors.primary, minWidth: '900px' }}>
+        <div style={{ background: `linear-gradient(135deg, ${pdfColors.accent} 0%, ${pdfColors.accent}bb 100%)`, color: '#fff', padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ fontSize: '22px', margin: '0 0 4px 0', fontWeight: '800' }}>
+              💰 تقرير الأسعار النهائية{productFilter ? ` — ${formatProductName(productFilter)}` : ''}
+            </h1>
+            <p style={{ fontSize: '12px', margin: 0, opacity: 0.85 }}>
+              {setPricesCount} خطة مسعّرة من {totalPlansCount} — سعر الصرف: 1$ = {exchangeRate} ﷼
+            </p>
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: '18px', fontWeight: '800' }}>متجر مفتاح 🗝️</div>
+            <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+              {new Date().toLocaleDateString('ar-SA-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 32px', background: '#fff', borderBottom: `2px solid ${pdfColors.border}`, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <MetricCard label="خطط مسعّرة" value={`${setPricesCount}/${totalPlansCount}`} color={pdfColors.accent} />
+          <MetricCard label="متوسط هامش الربح" value={`${fmtPct(avgMargin)}%`} color={avgMargin >= 0 ? pdfColors.green : pdfColors.red} />
+          <MetricCard label="منتجات مكتملة" value={`${completeProducts}/${targetProducts.length}`} color={pdfColors.blue} />
+          <MetricCard label="خطط غير مسعّرة" value={totalPlansCount - setPricesCount} color={totalPlansCount - setPricesCount > 0 ? pdfColors.orange : pdfColors.green} />
+        </div>
+
+        <div style={{ padding: '16px 28px' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: '700', color: pdfColors.accent, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `2px solid ${pdfColors.accent}20`, paddingBottom: '8px' }}>
+            <CurrencyIcon style={{ width: 18, height: 18 }} /> جدول الأسعار النهائية التفصيلي
+          </h2>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: `1px solid ${pdfColors.border}` }}>
+            <thead>
+              <tr>
+                <th style={{ ...thStyle, textAlign: 'right', background: '#f5f5ff', minWidth: '110px' }}>المنتج</th>
+                <th style={{ ...thStyle, background: '#f5f5ff' }}>الخطة</th>
+                <th style={{ ...thStyle, background: '#f5f5ff' }}>سعر المورد</th>
+                <th style={{ ...thStyle, background: '#f5f5ff' }}>التكلفة الإجمالية</th>
+                <th style={{ ...thStyle, background: '#f5f5ff' }}>السعر المقترح</th>
+                <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff', minWidth: '100px' }}>سعر البيع النهائي</th>
+                <th style={{ ...thStyle, background: pdfColors.blue, color: '#fff', minWidth: '90px' }}>السعر الرسمي</th>
+                <th style={{ ...thStyle, background: '#f5f5ff' }}>الهامش</th>
+                <th style={{ ...thStyle, background: '#f5f5ff' }}>التقييم</th>
+                <th style={{ ...thStyle, background: '#f5f5ff' }}>الفرق عن الرسمي</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupedRows.map((group, gi) =>
+                group.rows.map((row, ri) => (
+                  <tr key={`${gi}-${ri}`} style={{ background: gi % 2 === 0 ? '#f8f8ff' : '#fff' }}>
+                    {ri === 0 && (
+                      <td rowSpan={group.rows.length} style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', fontSize: '12px', verticalAlign: 'middle', borderRight: `3px solid ${pdfColors.accent}` }}>
+                        {group.productName}
+                        <div style={{ fontSize: '9px', color: pdfColors.muted, fontWeight: '500', marginTop: '2px' }}>{group.rows.length} خطة</div>
+                      </td>
+                    )}
+                    <td style={tdStyle}><span style={{ background: `${pdfColors.accent}15`, color: pdfColors.accent, padding: '2px 8px', borderRadius: '8px', fontWeight: '600' }}>{row.planLabel}</span></td>
+                    <td style={tdStyle}>{row.baseSAR > 0 ? `${fmt(row.baseSAR)} ر.س` : <span style={{ color: '#bbb' }}>—</span>}</td>
+                    <td style={tdStyle}>{row.totalCost > 0 ? `${fmt(row.totalCost)} ر.س` : <span style={{ color: '#bbb' }}>—</span>}</td>
+                    <td style={tdStyle}>{row.suggested > 0 ? `${fmt(row.suggested)} ر.س` : <span style={{ color: '#bbb' }}>—</span>}</td>
+                    <td style={{ ...tdStyle, fontWeight: '800', fontSize: '13px', background: row.isSet ? `${pdfColors.accent}12` : 'transparent', color: row.isSet ? pdfColors.accent : '#bbb' }}>
+                      {row.isSet ? `${fmt(row.finalPrice)} ر.س` : '—'}
+                    </td>
+                    <td style={{ ...tdStyle, fontStyle: 'italic', color: pdfColors.blue }}>
+                      {row.officialSAR > 0 ? (
+                        <div>
+                          <div style={{ fontWeight: '600' }}>{fmt(row.officialSAR)} ر.س</div>
+                          <div style={{ fontSize: '9px', color: pdfColors.muted, fontStyle: 'normal' }}>مقارنة</div>
+                        </div>
+                      ) : <span style={{ color: '#bbb', fontStyle: 'normal' }}>—</span>}
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: '700', color: row.margin !== null ? (row.margin >= 0 ? pdfColors.green : pdfColors.red) : '#bbb' }}>
+                      {row.margin !== null ? `${fmtPct(row.margin)}%` : '—'}
+                    </td>
+                    <td style={{ ...tdStyle }}>
+                      {row.statusLabel ? (
+                        <span style={{ background: `${rpStatusColor(row.statusLabel)}18`, color: rpStatusColor(row.statusLabel), padding: '2px 8px', borderRadius: '8px', fontWeight: '600', fontSize: '10px' }}>
+                          {row.statusLabel}
+                        </span>
+                      ) : <span style={{ color: '#bbb', fontSize: '10px' }}>غير محدد</span>}
+                    </td>
+                    <td style={{ ...tdStyle, fontWeight: '600' }}>
+                      {row.diffOfficial !== null ? (
+                        <span style={{ color: row.diffOfficial > 0 ? pdfColors.green : row.diffOfficial < 0 ? pdfColors.red : '#888' }}>
+                          {row.diffOfficial > 0 ? '+' : ''}{fmt(row.diffOfficial)} ر.س
+                        </span>
+                      ) : <span style={{ color: '#bbb' }}>—</span>}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+
+          {rows.some(r => !r.isSet) && (
+            <div style={{ marginTop: '14px', padding: '10px 16px', background: '#FFF9EC', border: `1px solid ${pdfColors.orange}30`, borderRadius: '8px', fontSize: '11px', color: pdfColors.orange, fontWeight: '600' }}>
+              ⚠️ {rows.filter(r => !r.isSet).length} خطة لم تُسعَّر بعد — يرجى تحديد أسعار البيع لها من صفحة إدارة التسعير &rarr; الأسعار النهائية
+            </div>
+          )}
+        </div>
+        <ReportFooter />
+      </div>
+    );
+  };
+
   const renderHiddenContent = () => {
     if (generating === 'full')       return renderFullReport();
     if (generating === 'comparison') return renderComparisonReport();
     if (generating === 'summary')    return renderSummaryReport();
+    if (generating === 'final-prices-all') return renderFinalPricesReport(null);
+    if (generating?.startsWith('final-prices-prod-')) {
+      const pid = parseInt(generating.replace('final-prices-prod-', ''));
+      return renderFinalPricesReport(products.find(p => p.id === pid) || null);
+    }
     if (generating?.startsWith('all-products-')) {
       const pid = parseInt(generating.replace('all-products-', ''));
       return renderProductReport(products.find((p) => p.id === pid));
@@ -1460,8 +1657,9 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           { id: 'global',   label: <span className="flex-row gap-2 align-center"><GlobeIcon className="icon-sm" /> تقارير عامة</span> },
           { id: 'product',  label: <span className="flex-row gap-2 align-center"><PackageIcon className="icon-sm" /> تقرير منتج</span> },
           { id: 'supplier', label: <span className="flex-row gap-2 align-center"><BuildingIcon className="icon-sm" /> تقرير مورد</span> },
-          { id: 'features', label: <span className="flex-row gap-2 align-center"><FileTextIcon className="icon-sm" /> تقرير المزايا</span> },
-          { id: 'stats',    label: <span className="flex-row gap-2 align-center"><BarChartIcon className="icon-sm" /> الإحصائيات</span> },
+          { id: 'features',     label: <span className="flex-row gap-2 align-center"><FileTextIcon className="icon-sm" /> تقرير المزايا</span> },
+          { id: 'final-prices', label: <span className="flex-row gap-2 align-center"><CurrencyIcon className="icon-sm" /> الأسعار النهائية</span> },
+          { id: 'stats',        label: <span className="flex-row gap-2 align-center"><BarChartIcon className="icon-sm" /> الإحصائيات</span> },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1737,6 +1935,162 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           })()}
         </div>
       )}
+
+      {activeSection === 'final-prices' && (() => {
+        const totalFpPlans = products.reduce((s, p) => s + p.plans.length, 0);
+        const setPrices = Object.keys(finalPrices).filter(k => finalPrices[k] > 0).length;
+        const completeProds = products.filter(p => p.plans.every(pl => finalPrices[`${p.id}_${pl.id}`] > 0)).length;
+        let mgSum = 0, mgCnt = 0;
+        products.forEach(prod => {
+          prod.plans.forEach(plan => {
+            const key = `${prod.id}_${plan.id}`;
+            const fp = finalPrices[key];
+            if (!fp) return;
+            const savedConfig = pricingData[prod.id] || {};
+            const supplierId = savedConfig.primarySupplierId || (() => {
+              let minP = Infinity, bestId = null;
+              suppliers.forEach(s => { const p = plan.prices[s.id] || 0; if (p > 0 && p < minP) { minP = p; bestId = s.id; } });
+              return bestId;
+            })();
+            const baseSAR = supplierId ? (plan.prices[supplierId] || 0) * exchangeRate : 0;
+            const tc = rpComputeTotalCost(baseSAR, costs);
+            if (fp > 0) { mgSum += ((fp - tc) / fp) * 100; mgCnt++; }
+          });
+        });
+        const avgMargin = mgCnt > 0 ? mgSum / mgCnt : 0;
+        const selectedFpProduct = products.find(p => p.id === parseInt(finalPricesProductId));
+
+        return (
+          <div className="individual-report-panel">
+            <div className="individual-report-header">
+              <span className="individual-icon"><CurrencyIcon /></span>
+              <div>
+                <h3>تقرير الأسعار النهائية</h3>
+                <p>أسعار البيع المحفوظة من جدول التسعير النهائي مع السعر الرسمي للمقارنة — قابل للتصدير كملف PDF</p>
+              </div>
+            </div>
+
+            <div className="stats-grid" style={{ marginBottom: '16px' }}>
+              <div className="stat-card stat-purple">
+                <div className="stat-icon"><CurrencyIcon /></div>
+                <div className="stat-value">{setPrices}/{totalFpPlans}</div>
+                <div className="stat-label">خطط مسعّرة</div>
+              </div>
+              <div className={`stat-card ${avgMargin >= 0 ? 'stat-green' : 'stat-orange'}`}>
+                <div className="stat-icon"><TrendingUpIcon /></div>
+                <div className="stat-value">{fmtPct(avgMargin)}%</div>
+                <div className="stat-label">متوسط هامش الربح</div>
+              </div>
+              <div className="stat-card stat-blue">
+                <div className="stat-icon"><CheckCircleIcon /></div>
+                <div className="stat-value">{completeProds}/{products.length}</div>
+                <div className="stat-label">منتجات مكتملة</div>
+              </div>
+              <div className={`stat-card ${totalFpPlans - setPrices > 0 ? 'stat-orange' : 'stat-green'}`}>
+                <div className="stat-icon"><ClipboardIcon /></div>
+                <div className="stat-value">{totalFpPlans - setPrices}</div>
+                <div className="stat-label">خطط غير مسعّرة</div>
+              </div>
+            </div>
+
+            {setPrices === 0 && (
+              <div style={{ padding: '14px 18px', background: '#FFF9EC', border: '1px solid #E68A0030', borderRadius: '10px', marginBottom: '16px', fontSize: '13px', color: '#B86800', fontWeight: '600' }}>
+                ⚠️ لا توجد أسعار نهائية محفوظة بعد. انتقل إلى صفحة <strong>إدارة التسعير ← الأسعار النهائية</strong>، أدخل أسعار البيع واضغط "حفظ"، ثم عُد هنا لتصدير التقرير.
+              </div>
+            )}
+
+            <div className="individual-select-row">
+              <select className="individual-select" value={finalPricesProductId} onChange={e => setFinalPricesProductId(e.target.value)} dir="rtl">
+                <option value="">— جميع المنتجات —</option>
+                {products.map(p => {
+                  const pSet = p.plans.filter(pl => finalPrices[`${p.id}_${pl.id}`] > 0).length;
+                  return <option key={p.id} value={p.id}>{formatProductName(p)} ({pSet}/{p.plans.length} مسعّر)</option>;
+                })}
+              </select>
+              <button
+                className="btn-generate"
+                disabled={!!generating || setPrices === 0}
+                onClick={() => {
+                  if (finalPricesProductId) {
+                    generatePDF(`final-prices-prod-${finalPricesProductId}`, `أسعار_نهائية_${selectedFpProduct?.name || 'منتج'}_مفتاح.pdf`, true);
+                  } else {
+                    generatePDF('final-prices-all', 'أسعار_نهائية_كاملة_مفتاح.pdf', true);
+                  }
+                }}
+              >
+                {generating?.startsWith('final-prices') ? <><span className="spinner" /> جاري الإنشاء...</> : <><DownloadIcon className="icon-sm" /> تصدير PDF</>}
+              </button>
+            </div>
+
+            {setPrices > 0 && (
+              <div className="table-wrapper" style={{ marginTop: '16px' }}>
+                <table className="analytics-table grouped-table">
+                  <thead>
+                    <tr>
+                      <th className="th-product">المنتج</th>
+                      <th>الخطة</th>
+                      <th>سعر المورد</th>
+                      <th>التكلفة</th>
+                      <th style={{ background: 'var(--accent-purple, #5E4FDE)', color: '#fff' }}>سعر البيع النهائي</th>
+                      <th style={{ background: 'var(--accent-blue)', color: '#fff' }}>السعر الرسمي</th>
+                      <th>الهامش</th>
+                      <th>التقييم</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const targetProds = selectedFpProduct ? [selectedFpProduct] : products;
+                      return targetProds.flatMap((prod, pi) =>
+                        prod.plans.map((plan, ri) => {
+                          const key = `${prod.id}_${plan.id}`;
+                          const savedConfig = pricingData[prod.id] || {};
+                          const supplierId = savedConfig.primarySupplierId || (() => {
+                            let minP = Infinity, bestId = null;
+                            suppliers.forEach(s => { const p = plan.prices[s.id] || 0; if (p > 0 && p < minP) { minP = p; bestId = s.id; } });
+                            return bestId;
+                          })();
+                          const baseSAR = supplierId ? (plan.prices[supplierId] || 0) * exchangeRate : 0;
+                          const tc = rpComputeTotalCost(baseSAR, costs);
+                          const sg = rpComputeSuggested(baseSAR, costs);
+                          const fp = finalPrices[key];
+                          const officialSAR = (plan.officialPriceUsd || 0) * exchangeRate;
+                          const isSet = fp !== undefined && fp > 0;
+                          const margin = isSet ? ((fp - tc) / fp) * 100 : null;
+                          const statusLabel = isSet ? rpGetStatusLabel(fp, tc, sg) : null;
+                          return (
+                            <tr key={key} style={{ background: pi % 2 === 0 ? 'var(--bg-secondary)' : 'transparent' }}>
+                              {ri === 0 && (
+                                <td rowSpan={prod.plans.length} className="td-product-name-cell" style={{ fontWeight: '700', verticalAlign: 'middle' }}>
+                                  {formatProductName(prod)}
+                                </td>
+                              )}
+                              <td><span className="plan-badge">{getDurationLabel(plan.durationId)}</span></td>
+                              <td className="td-price td-sar">{baseSAR > 0 ? <span className="price-cell">{fmt(baseSAR)}<span className="price-unit-sm"> ر.س</span></span> : <span className="price-not-available">—</span>}</td>
+                              <td className="td-price">{tc > 0 ? <span className="price-cell">{fmt(tc)}<span className="price-unit-sm"> ر.س</span></span> : <span className="price-not-available">—</span>}</td>
+                              <td style={{ fontWeight: '800', color: isSet ? 'var(--accent-purple, #5E4FDE)' : 'var(--text-muted)', textAlign: 'center' }}>
+                                {isSet ? <><span className="price-cell">{fmt(fp)}</span><span className="price-unit-sm"> ر.س</span></> : <span className="price-not-available">بعد الحفظ</span>}
+                              </td>
+                              <td style={{ fontStyle: 'italic', color: 'var(--accent-blue)', textAlign: 'center' }}>
+                                {officialSAR > 0 ? <span className="price-cell">{fmt(officialSAR)}<span className="price-unit-sm"> ر.س</span></span> : <span className="price-not-available">—</span>}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {margin !== null ? <span className={`po-margin-badge ${margin >= 0 ? 'positive' : 'negative'}`}>{fmtPct(margin)}%</span> : <span className="price-not-available">—</span>}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {statusLabel ? <span className={`po-status-badge po-status-${statusLabel === 'مثالي' ? 'success' : statusLabel === 'يحتاج رفع' ? 'warning' : statusLabel === 'تحت التكلفة' ? 'danger' : 'info'}`}>{statusLabel}</span> : <span className="price-not-available">—</span>}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      );
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {activeSection === 'stats' && (() => {
         const catCounts = {};
