@@ -4691,12 +4691,29 @@ body {
 }
 .fpm-accordion-open .fpm-accordion-body { display: block; }
 
+/* ── Shared grid template ── */
+.fpm-plans-header,
+.fpm-plan-row {
+  display: grid;
+  grid-template-columns:
+    70px          /* الخطة        */
+    minmax(90px,1fr)  /* سعر المورد   */
+    minmax(100px,1fr) /* السعر الرسمي */
+    minmax(90px,1fr)  /* إجمالي التكلفة */
+    minmax(200px,2.5fr) /* آلية التسعير */
+    minmax(105px,1fr) /* السعر المقترح */
+    minmax(75px,0.8fr) /* هامش الربح   */
+    minmax(95px,1fr)  /* تقييم السعر  */
+    minmax(125px,1fr) /* السعر النهائي */
+    minmax(95px,1fr)  /* الحالة        */
+    60px;             /* حفظ           */
+  gap: 0 10px;
+  align-items: center;
+}
+
 /* ── Plans header row ── */
 .fpm-plans-header {
-  display: grid;
-  grid-template-columns: 90px 110px 120px 110px 1fr 110px 90px 110px 140px 120px 90px;
-  gap: 0;
-  padding: 8px 18px;
+  padding: 8px 20px;
   background: var(--bg-input);
   border-bottom: 1px solid var(--border-color);
 }
@@ -4705,18 +4722,15 @@ body {
   font-weight: 700;
   color: var(--text-muted);
   text-align: right;
+  white-space: nowrap;
 }
-.fpm-ph-mech { /* already handled by 1fr */ }
+.fpm-ph-mech { /* text-align default */ }
 
 /* ── Individual plan row ── */
 .fpm-plan-row {
-  display: grid;
-  grid-template-columns: 90px 110px 120px 110px 1fr 110px 90px 110px 140px 120px 90px;
-  gap: 0;
-  padding: 10px 18px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--border-color);
   transition: background 0.12s;
-  align-items: center;
 }
 .fpm-plan-row:last-child { border-bottom: none; }
 .fpm-plan-row:hover { background: var(--bg-hover); }
@@ -4724,9 +4738,8 @@ body {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding-left: 8px;
+  min-width: 0;
 }
-.fpm-plan-col:first-child { padding-left: 0; }
 .fpm-plan-val {
   font-size: 12px;
   font-weight: 700;
@@ -4735,8 +4748,8 @@ body {
   white-space: nowrap;
 }
 .fpm-plan-col-duration { justify-content: center; }
-.fpm-plan-col-mech { padding-left: 8px; }
-.fpm-plan-col-suggested { padding-left: 8px; }
+.fpm-plan-col-mech { overflow: hidden; }
+.fpm-plan-col-suggested { }
 .fpm-plan-col-actions { gap: 5px; justify-content: flex-start; }
 .fpm-empty-dash { font-size: 13px; color: var(--text-muted); }
 .fpm-official-wrap { display: flex; flex-direction: column; gap: 2px; }
