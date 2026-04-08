@@ -1,10 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   PackageIcon, UsersIcon, GiftIcon, DollarSignIcon, BarChartIcon,
   TrendingUpIcon, TrendingDownIcon, AlertTriangleIcon, CheckCircleIcon,
   PlusIcon, TagIcon, StarIcon, ActivityIcon, PercentIcon,
-  SettingsIcon, LayersIcon, ArrowLeftIcon, ZapIcon, AwardIcon
+  SettingsIcon, LayersIcon, ArrowLeftIcon, ZapIcon, AwardIcon,
+  ExternalLinkIcon, GlobeIcon
 } from './Icons';
+
+const MOTIVATIONAL_QUOTES = [
+  { text: 'بارك الله لك في سعيك ورزقك', emoji: '✨' },
+  { text: 'الرزق بيد الله، والسعي واجبك', emoji: '💪' },
+  { text: 'كل يوم بداية جديدة لبناء تجارة أفضل', emoji: '🌟' },
+  { text: 'النجاح ثمرة الصبر والمثابرة', emoji: '🏆' },
+  { text: 'اجعل كل صفقة خطوة نحو أحلامك', emoji: '🎯' },
+  { text: 'من جدّ وجد، ومن زرع حصد', emoji: '🌱' },
+  { text: 'التاجر الناجح يبني ثقة زبائنه قبل أرباحه', emoji: '💎' },
+  { text: 'استثمر في جودة منتجاتك وستجني ثمار ذلك', emoji: '📈' },
+  { text: 'كل عميل راضٍ هو إعلان مجاني لمتجرك', emoji: '🌈' },
+  { text: 'التفوق في خدمة العملاء هو ميزتك التنافسية الأولى', emoji: '🤝' },
+  { text: 'ابدأ صغيراً، فكّر بشكل كبير، تحرّك بسرعة', emoji: '🚀' },
+  { text: 'ما أُعطي أحد خيراً من عمل يأكل منه', emoji: '☀️' },
+];
 
 const fmt = (val) => {
   if (val === null || val === undefined) return '0';
@@ -18,8 +34,12 @@ const fmtPct = (val) => {
 function Dashboard({
   products, suppliers, durations, exchangeRate, bundles,
   costs, pricingData, coupons, activationMethods,
-  onNavigate
+  onNavigate, appSettings
 }) {
+  const todayQuote = useMemo(() => {
+    const idx = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+    return MOTIVATIONAL_QUOTES[idx];
+  }, []);
   const totalProducts = products.length;
   const totalSuppliers = suppliers.length;
   const totalBundles = bundles.length;
@@ -117,8 +137,17 @@ function Dashboard({
   const visibleAlerts = showAllAlerts ? alertItems : alertItems.slice(0, 5);
   const visibleProducts = showAllProducts ? productsWithPricing : productsWithPricing.slice(0, 6);
 
+  const storeUrl = appSettings?.storeUrl;
+
   return (
     <div className="dashboard-page">
+      {/* Motivational Quote Banner */}
+      <div className="dash-quote-banner">
+        <span className="dash-quote-emoji">{todayQuote.emoji}</span>
+        <span className="dash-quote-text">{todayQuote.text}</span>
+        <span className="dash-quote-emoji">{todayQuote.emoji}</span>
+      </div>
+
       <div className="dashboard-header">
         <div className="dashboard-header-text">
           <h1 className="dashboard-title">
@@ -126,6 +155,18 @@ function Dashboard({
           </h1>
           <p className="dashboard-subtitle">نظرة عامة على متجرك الرقمي</p>
         </div>
+        {storeUrl && (
+          <a
+            href={storeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="dash-store-btn"
+          >
+            <GlobeIcon className="icon-sm" />
+            <span>زيارة المتجر</span>
+            <ExternalLinkIcon className="icon-xs" />
+          </a>
+        )}
       </div>
 
       <div className="dashboard-stats-grid">
@@ -279,6 +320,19 @@ function Dashboard({
                 <span>الإعدادات</span>
                 <ArrowLeftIcon className="icon-xs dqb-arrow" />
               </button>
+              {storeUrl && (
+                <a
+                  href={storeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dash-quick-btn dqb-teal"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <span className="dqb-icon"><GlobeIcon className="icon-sm" /></span>
+                  <span>زيارة المتجر</span>
+                  <ExternalLinkIcon className="icon-xs dqb-arrow" />
+                </a>
+              )}
             </div>
           </div>
 
