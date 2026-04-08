@@ -1804,9 +1804,6 @@ body {
 .dash-hero-card {
   position: relative;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
   background: linear-gradient(135deg,
     rgba(94,79,222,0.12) 0%,
     rgba(59,130,246,0.08) 40%,
@@ -1843,86 +1840,107 @@ body {
   opacity: 0.25;
 }
 
-/* ── Hero inner grid — 3 rows ── */
-
-/* ── Row 1: Date pill (right) | Clocks + Store btn (left) ── */
-.dash-hero-row-top {
+/* ═══════════════════════════════════════
+   Hero 2-column layout
+   RIGHT = main content | LEFT = side panel
+   ═══════════════════════════════════════ */
+.dash-hero-layout {
   position: relative;
   z-index: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  min-height: 150px;
 }
 
-/* Left group inside row-top: clocks + store button inline */
-.dash-hero-top-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-/* ── Row 2: Full-width title block ── */
-.dash-hero-title-block {
-  position: relative;
-  z-index: 1;
+/* RIGHT column — main text content (grows to fill space) */
+.dash-hero-main-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  justify-content: center;
+  gap: 7px;
+  padding-inline-end: 32px;
+  border-inline-end: 1px solid rgba(255,255,255,0.08);
 }
 
-/* ── Row 3: Subtitle + quote ── */
-.dash-hero-row-bottom {
-  position: relative;
-  z-index: 1;
+/* LEFT column — side panel (fixed width) */
+.dash-hero-side-panel {
+  flex-shrink: 0;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-inline-start: 24px;
+}
+
+/* Top of side panel: date + clocks stacked */
+.dash-hero-side-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Bottom of side panel: store button pinned to bottom-left */
+.dash-hero-side-bottom {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* ── Date pill ── */
+.dash-hero-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  padding: 0;
+  background: none;
+  border: none;
+  width: fit-content;
+}
+
+/* ── Stacked clocks (vertical) ── */
+.dash-clocks-col {
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
 
-/* Date pill */
-.dash-hero-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--border-color);
-  padding: 5px 12px;
-  border-radius: 20px;
-  width: fit-content;
-}
-
-/* Greeting */
+/* ── Greeting text ── */
 .dash-hero-greeting {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--accent-purple);
-  opacity: 0.85;
-  line-height: 1.4;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0;
+  opacity: 0.9;
 }
 
-/* Main title */
+/* ── Main title ── */
 .dash-hero-title-main {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 900;
   color: var(--text-primary);
-  line-height: 1.15;
+  line-height: 1.1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
+  letter-spacing: -0.5px;
 }
 
-/* Subtitle */
+/* ── Subtitle ── */
 .dash-hero-subtitle {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--text-muted);
   margin: 0;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 /* Quote strip — simplified, no colored border */
@@ -2038,24 +2056,25 @@ body {
 
 /* Store button */
 .dash-hero-store-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 13px 26px;
-  border-radius: 28px;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #5e4fde 0%, #4338ca 100%);
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   text-decoration: none;
   border: none;
   cursor: pointer;
   transition: all 0.25s ease;
   box-shadow:
-    0 4px 18px rgba(94,79,222,0.45),
+    0 4px 14px rgba(94,79,222,0.4),
     inset 0 1px 0 rgba(255,255,255,0.18);
   white-space: nowrap;
-  flex-shrink: 0;
   letter-spacing: 0.015em;
 }
 .dash-hero-store-btn:hover {
