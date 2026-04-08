@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { BarChartIcon, DollarSignIcon, SettingsIcon, TagIcon } from '../Icons';
+import { BarChartIcon, DollarSignIcon, SettingsIcon, TagIcon, CheckCircleIcon } from '../Icons';
 import CostManager from './CostManager';
 import PricingMechanisms from './PricingMechanisms';
 import CouponsManager from './CouponsManager';
 import PricingOverview from './PricingOverview';
+import FinalPricesManager from './FinalPricesManager';
 
 function PricingDashboard({
   products,
@@ -15,7 +16,9 @@ function PricingDashboard({
   pricingData,
   setPricingData,
   coupons,
-  setCoupons
+  setCoupons,
+  finalPrices,
+  onSetFinalPrices,
 }) {
   const [activeSubTab, setActiveSubTab] = useState('overview');
 
@@ -24,11 +27,11 @@ function PricingDashboard({
     { id: 'costs', icon: <DollarSignIcon className="icon-sm" />, label: 'إدارة التكاليف', desc: 'التكاليف الثابتة والمتغيرة' },
     { id: 'mechanisms', icon: <SettingsIcon className="icon-sm" />, label: 'آليات التسعير', desc: 'محرك التسعير الذكي' },
     { id: 'coupons', icon: <TagIcon className="icon-sm" />, label: 'الكوبونات', desc: 'إدارة الخصومات' },
+    { id: 'finalprices', icon: <CheckCircleIcon className="icon-sm" />, label: 'الأسعار النهائية', desc: 'الأسعار المعتمدة للمنتجات' },
   ];
 
   return (
     <div className="pricing-dashboard-v2">
-      {/* Page Header */}
       <div className="pd-page-header">
         <div className="pd-header-content">
           <div className="pd-header-icon-wrap pd-header-icon-pricing flex-row align-center justify-center">
@@ -41,7 +44,6 @@ function PricingDashboard({
         </div>
       </div>
 
-      {/* Navigation Tabs */}
       <div className="pd-nav-bar">
         {tabs.map(tab => (
           <button
@@ -59,15 +61,15 @@ function PricingDashboard({
         ))}
       </div>
 
-      {/* Content Area */}
       <div className="pd-content-area">
         {activeSubTab === 'overview' && (
-          <PricingOverview 
+          <PricingOverview
             products={products}
             suppliers={suppliers}
             costs={costs}
             exchangeRate={exchangeRate}
             pricingData={pricingData}
+            finalPrices={finalPrices}
           />
         )}
         {activeSubTab === 'costs' && (
@@ -92,6 +94,18 @@ function PricingDashboard({
             costs={costs}
             exchangeRate={exchangeRate}
             pricingData={pricingData}
+          />
+        )}
+        {activeSubTab === 'finalprices' && (
+          <FinalPricesManager
+            products={products}
+            suppliers={suppliers}
+            durations={durations}
+            costs={costs}
+            pricingData={pricingData}
+            exchangeRate={exchangeRate}
+            finalPrices={finalPrices}
+            onSetFinalPrices={onSetFinalPrices}
           />
         )}
       </div>
