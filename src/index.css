@@ -623,9 +623,16 @@ body {
 }
 
 .toolbar-search {
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 200px;
-  max-width: 360px;
+  flex: 1;
+}
+
+/* inner wrapper for input + icons */
+.search-input-wrap {
+  position: relative;
   flex: 1;
 }
 
@@ -684,15 +691,14 @@ body {
   background: none;
   border: 1px solid var(--border-color);
   color: var(--text-muted);
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  margin-right: 6px;
   flex-shrink: 0;
 }
 .btn-filter-toggle:hover,
@@ -4235,17 +4241,65 @@ body {
 .pdm-supplier-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  padding: 2px 0;
+}
+/* Row 1: name + link btn */
+.pdm-supplier-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 .pdm-supplier-name {
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
+  flex: 1;
+}
+/* Row 2: avg + method btn */
+.pdm-supplier-avg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 .pdm-supplier-avg {
   font-size: 10px;
   color: var(--text-muted);
   font-family: 'SF Mono', 'Fira Code', monospace;
+}
+/* Small icon-only button for link / method */
+.pdm-sup-icon-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.pdm-sup-icon-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: rgba(94,79,222,.07);
+}
+.pdm-sup-icon-btn.has-link {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: rgba(94,79,222,.06);
+}
+.pdm-sup-icon-btn.has-methods {
+  border-color: #d97706;
+  color: #d97706;
+  background: rgba(245,158,11,.06);
 }
 
 .pdm-supplier-row:hover td {

@@ -393,13 +393,15 @@ function ProductTable({
           </button>
         </div>
         <div className="toolbar-search">
-          <SearchIcon className="search-icon icon-sm" />
-          <input type="text" className="search-bar" placeholder="بحث عن منتج..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-          {searchQuery && (
-            <button className="search-clear" onClick={() => setSearchQuery('')}>
-              <XIcon className="icon-xs" />
-            </button>
-          )}
+          <div className="search-input-wrap">
+            <SearchIcon className="search-icon icon-sm" />
+            <input type="text" className="search-bar" placeholder="بحث عن منتج..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            {searchQuery && (
+              <button className="search-clear" onClick={() => setSearchQuery('')}>
+                <XIcon className="icon-xs" />
+              </button>
+            )}
+          </div>
           <button
             className={`btn-filter-toggle ${showFilters ? 'active' : ''} ${activeFiltersCount > 0 ? 'has-filters' : ''}`}
             onClick={() => setShowFilters(v => !v)}
