@@ -2242,41 +2242,41 @@ body {
   transform: translateX(-2px);
 }
 
-/* ── خطر: أحمر — يباع بخسارة ── */
+/* ── خطر: أحمر قانٍ — يباع بخسارة (توقف فوري) ── */
 .alert-danger {
-  background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.2);
-  border-inline-end-color: #ef4444;
+  background: rgba(220, 38, 38, 0.09);
+  border-color: rgba(220, 38, 38, 0.25);
+  border-inline-end-color: #dc2626;
 }
-.alert-danger:hover { background: rgba(239, 68, 68, 0.13); }
-.alert-danger  .dash-alert-icon-wrap { background: rgba(239, 68, 68, 0.18); color: #ef4444; }
+.alert-danger:hover { background: rgba(220, 38, 38, 0.15); }
+.alert-danger  .dash-alert-icon-wrap { background: rgba(220, 38, 38, 0.2); color: #ef4444; }
 .alert-danger  .dash-alert-product   { color: #f87171; }
-.alert-danger  .dash-alert-desc      { color: rgba(248, 113, 113, 0.7); }
+.alert-danger  .dash-alert-desc      { color: rgba(252, 165, 165, 0.75); }
 .alert-danger  .dash-alert-arrow     { color: #ef4444; }
 
-/* ── تحذير: برتقالي — هامش منخفض ── */
+/* ── تحذير: أصفر عنبري — هامش منخفض (انتبه) ── */
 .alert-warning {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.2);
-  border-inline-end-color: #f59e0b;
+  background: rgba(202, 138, 4, 0.09);
+  border-color: rgba(202, 138, 4, 0.25);
+  border-inline-end-color: #ca8a04;
 }
-.alert-warning:hover { background: rgba(245, 158, 11, 0.13); }
-.alert-warning .dash-alert-icon-wrap { background: rgba(245, 158, 11, 0.18); color: #f59e0b; }
-.alert-warning .dash-alert-product   { color: #fbbf24; }
-.alert-warning .dash-alert-desc      { color: rgba(251, 191, 36, 0.7); }
-.alert-warning .dash-alert-arrow     { color: #f59e0b; }
+.alert-warning:hover { background: rgba(202, 138, 4, 0.15); }
+.alert-warning .dash-alert-icon-wrap { background: rgba(202, 138, 4, 0.2); color: #eab308; }
+.alert-warning .dash-alert-product   { color: #facc15; }
+.alert-warning .dash-alert-desc      { color: rgba(253, 224, 71, 0.7); }
+.alert-warning .dash-alert-arrow     { color: #eab308; }
 
-/* ── يحتاج تسعير: أزرق — غير مسعّر ── */
+/* ── يحتاج تسعير: برتقالي — غير مسعّر (إجراء مطلوب) ── */
 .alert-info {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: rgba(59, 130, 246, 0.2);
-  border-inline-end-color: #3b82f6;
+  background: rgba(234, 88, 12, 0.09);
+  border-color: rgba(234, 88, 12, 0.25);
+  border-inline-end-color: #ea580c;
 }
-.alert-info:hover { background: rgba(59, 130, 246, 0.13); }
-.alert-info    .dash-alert-icon-wrap { background: rgba(59, 130, 246, 0.18); color: #3b82f6; }
-.alert-info    .dash-alert-product   { color: #60a5fa; }
-.alert-info    .dash-alert-desc      { color: rgba(96, 165, 250, 0.7); }
-.alert-info    .dash-alert-arrow     { color: #3b82f6; }
+.alert-info:hover { background: rgba(234, 88, 12, 0.15); }
+.alert-info    .dash-alert-icon-wrap { background: rgba(234, 88, 12, 0.2); color: #f97316; }
+.alert-info    .dash-alert-product   { color: #fb923c; }
+.alert-info    .dash-alert-desc      { color: rgba(253, 186, 116, 0.75); }
+.alert-info    .dash-alert-arrow     { color: #f97316; }
 
 .dash-alert-icon-wrap {
   flex-shrink: 0;
@@ -2318,9 +2318,9 @@ body {
   border-radius: 20px;
   letter-spacing: 0.02em;
 }
-.badge-danger  { background: rgba(239, 68, 68, 0.18);  color: #f87171; }
-.badge-warning { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
-.badge-info    { background: rgba(59, 130, 246, 0.18); color: #60a5fa; }
+.badge-danger  { background: rgba(220, 38, 38, 0.2);  color: #f87171; }
+.badge-warning { background: rgba(202, 138, 4, 0.2);  color: #facc15; }
+.badge-info    { background: rgba(234, 88, 12, 0.2);  color: #fb923c; }
 
 .dash-alert-arrow {
   flex-shrink: 0;
