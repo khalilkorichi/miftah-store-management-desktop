@@ -241,6 +241,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
   const [selectedSupplierId, setSelectedSupplierId] = useState('all');
   const [expandedProducts, setExpandedProducts] = useState({});
   const [finalPricesProductId, setFinalPricesProductId] = useState('');
+  const [fpExpandedIds, setFpExpandedIds] = useState(() => new Set(products.slice(0, 1).map(p => p.id)));
 
   const toggleProduct = (productName) => {
     setExpandedProducts(prev => ({ ...prev, [productName]: !prev[productName] }));
@@ -2030,10 +2031,19 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                     const setPricesCount = prod.plans.filter(pl => finalPrices[`${prod.id}_${pl.id}`] > 0).length;
                     const allSet = setPricesCount === prod.plans.length && prod.plans.length > 0;
                     const noneSet = setPricesCount === 0;
+                    const isExpanded = fpExpandedIds.has(prod.id);
+                    const toggleFp = () => setFpExpandedIds(prev => {
+                      const next = new Set(prev);
+                      next.has(prod.id) ? next.delete(prod.id) : next.add(prod.id);
+                      return next;
+                    });
                     return (
-                      <div key={prod.id} className="fpm-accordion-item fpm-accordion-open">
-                        <div className="fpm-accordion-header" style={{ cursor: 'default' }}>
+                      <div key={prod.id} className={`fpm-accordion-item ${isExpanded ? 'fpm-accordion-open' : ''}`}>
+                        <button className="fpm-accordion-header" onClick={toggleFp} type="button">
                           <div className="fpm-acc-left">
+                            <div className={`fpm-acc-chevron ${isExpanded ? 'open' : ''}`}>
+                              <ChevronDownIcon className="icon-sm" />
+                            </div>
                             <div className="fpm-acc-product-info">
                               <span className="fpm-acc-product-name">{formatProductName(prod)}</span>
                               <div className="fpm-acc-meta">
@@ -2044,7 +2054,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </button>
 
                         <div className="fpm-accordion-body">
                           <div className="fpm-plans-header fp-report-grid">
