@@ -4525,6 +4525,224 @@ body {
 }
 .fpm-use-btn:hover { opacity: 0.8; }
 
+/* ── FinalPricesManager: header actions ── */
+.fpm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.fpm-ghost-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.fpm-ghost-btn:hover {
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+  background: rgba(90,80,220,0.07);
+}
+
+/* ── Progress bar ── */
+.fpm-progress-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.fpm-progress-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.fpm-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-green));
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+.fpm-progress-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-green);
+  white-space: nowrap;
+  min-width: 36px;
+  text-align: left;
+}
+
+/* ── Accordion list ── */
+.fpm-accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fpm-accordion-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.fpm-accordion-item:hover {
+  border-color: rgba(90,80,220,0.25);
+}
+.fpm-accordion-open {
+  border-color: rgba(90,80,220,0.4) !important;
+  box-shadow: 0 0 0 3px rgba(90,80,220,0.07);
+}
+
+/* ── Accordion header button ── */
+.fpm-accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: right;
+  font-family: var(--font-family);
+  transition: background 0.15s;
+  gap: 12px;
+}
+.fpm-accordion-header:hover { background: var(--bg-hover); }
+.fpm-accordion-open .fpm-accordion-header { background: rgba(90,80,220,0.05); }
+.fpm-acc-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.fpm-acc-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: transform 0.25s ease, color 0.2s;
+  flex-shrink: 0;
+}
+.fpm-acc-chevron.open {
+  transform: rotate(180deg);
+  color: var(--accent-purple);
+}
+.fpm-acc-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.fpm-acc-product-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fpm-acc-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fpm-acc-plans-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+.fpm-acc-status-pill {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 2px 9px;
+}
+.fpm-acc-status-done    { background: rgba(17,186,101,0.12); color: var(--accent-green); }
+.fpm-acc-status-partial { background: rgba(245,163,74,0.12); color: #f5a34a; }
+.fpm-acc-status-none    { background: var(--bg-input); color: var(--text-muted); }
+.fpm-acc-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.fpm-acc-cost-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Accordion body (collapsible) ── */
+.fpm-accordion-body {
+  display: none;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  padding: 0 0 8px;
+}
+.fpm-accordion-open .fpm-accordion-body { display: block; }
+
+/* ── Plans header row ── */
+.fpm-plans-header {
+  display: grid;
+  grid-template-columns: 90px 110px 110px 1fr 90px 110px 140px 120px 90px;
+  gap: 0;
+  padding: 8px 18px;
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border-color);
+}
+.fpm-plans-col-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: right;
+}
+.fpm-ph-mech { /* already handled by 1fr */ }
+
+/* ── Individual plan row ── */
+.fpm-plan-row {
+  display: grid;
+  grid-template-columns: 90px 110px 110px 1fr 90px 110px 140px 120px 90px;
+  gap: 0;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.12s;
+  align-items: center;
+}
+.fpm-plan-row:last-child { border-bottom: none; }
+.fpm-plan-row:hover { background: var(--bg-hover); }
+.fpm-plan-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 8px;
+}
+.fpm-plan-col:first-child { padding-left: 0; }
+.fpm-plan-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.fpm-plan-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  direction: ltr;
+  text-align: right;
+}
+.fpm-plan-col-duration { justify-content: center; }
+.fpm-plan-col-mech { flex-direction: column; gap: 4px; padding-left: 8px; }
+.fpm-plan-col-actions { flex-direction: row; gap: 5px; align-items: center; justify-content: flex-start; }
+.fpm-empty-dash { font-size: 13px; color: var(--text-muted); }
+
 /* PricingOverview alert + guide */
 .po-alert-banner {
   display: flex;
