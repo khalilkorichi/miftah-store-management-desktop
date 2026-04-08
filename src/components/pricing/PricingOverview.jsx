@@ -5,14 +5,12 @@ import {
   SettingsIcon, DollarSignIcon, TagIcon, CheckIcon, InfoIcon
 } from '../Icons';
 
-const fmt    = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPct = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData, finalPrices }) {
+function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData, finalPrices, onGoToFinalPrices }) {
 
-  /* ── helpers ── */
-  const getBaseSAR = (prod, planIndex = 0) => {
-    const plan = prod.plans?.[planIndex];
+  const getBaseSAR = (prod) => {
+    const plan = prod.plans?.[0];
     if (!plan) return 0;
     const savedConfig = pricingData[prod.id] || {};
     const supplierId  = savedConfig.primarySupplierId || suppliers[0]?.id;
@@ -22,7 +20,7 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
   const calcTotalCost = (baseSAR) => {
     let fixed = 0, percents = 0;
     costs.filter(c => c.active).forEach(c => {
-      if (c.type === 'fixed')      fixed    += c.value;
+      if (c.type === 'fixed')           fixed    += c.value;
       else if (c.type === 'percentage') percents += c.value / 100;
     });
     const marginDec = 0.20;
@@ -31,7 +29,7 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
     return baseSAR + fixed + (suggested * percents);
   };
 
-  /* ── per-product stats ── */
+  /* per-product stats */
   const productStats = products.map(prod => {
     const plans      = prod.plans || [];
     const totalPlans = plans.length;
@@ -59,27 +57,22 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
     return { id: prod.id, name: prod.name, totalPlans, setPrices, avgMargin, belowCost, status };
   });
 
-  /* ── aggregate KPIs ── */
-  const totalProducts   = products.length;
-  const completeCount   = productStats.filter(p => p.status === 'complete').length;
-  const partialCount    = productStats.filter(p => p.status === 'partial').length;
-  const noneCount       = productStats.filter(p => p.status === 'none').length;
-  const belowCostProds  = productStats.filter(p => p.belowCost);
-  const allPlans        = productStats.reduce((s, p) => s + p.totalPlans, 0);
-  const allSetPlans     = productStats.reduce((s, p) => s + p.setPrices, 0);
-  const coveragePct     = allPlans > 0 ? (allSetPlans / allPlans) * 100 : 0;
-  const marginsArr      = productStats.filter(p => p.avgMargin !== null).map(p => p.avgMargin);
-  const avgMarginAll    = marginsArr.length > 0 ? marginsArr.reduce((a, b) => a + b, 0) / marginsArr.length : 0;
+  /* aggregate KPIs */
+  const totalProducts  = products.length;
+  const belowCostProds = productStats.filter(p => p.belowCost);
+  const allPlans       = productStats.reduce((s, p) => s + p.totalPlans, 0);
+  const allSetPlans    = productStats.reduce((s, p) => s + p.setPrices, 0);
+  const allUnsetPlans  = allPlans - allSetPlans;
+  const coveragePct    = allPlans > 0 ? (allSetPlans / allPlans) * 100 : 0;
+  const marginsArr     = productStats.filter(p => p.avgMargin !== null).map(p => p.avgMargin);
+  const avgMarginAll   = marginsArr.length > 0 ? marginsArr.reduce((a, b) => a + b, 0) / marginsArr.length : 0;
 
-  /* ── progress bar widths ── */
-  const pctComplete = totalProducts > 0 ? (completeCount / totalProducts) * 100 : 0;
-  const pctPartial  = totalProducts > 0 ? (partialCount  / totalProducts) * 100 : 0;
-  const pctNone     = totalProducts > 0 ? (noneCount     / totalProducts) * 100 : 0;
+  /* progress bar widths — plan-level: set vs unset */
+  const barSetPct   = allPlans > 0 ? (allSetPlans  / allPlans) * 100 : 0;
+  const barUnsetPct = allPlans > 0 ? (allUnsetPlans / allPlans) * 100 : 100;
 
-  /* ── insights: top 3 / bottom 3 by margin ── */
-  const ranked = productStats
-    .filter(p => p.avgMargin !== null)
-    .sort((a, b) => b.avgMargin - a.avgMargin);
+  /* insights */
+  const ranked  = productStats.filter(p => p.avgMargin !== null).sort((a, b) => b.avgMargin - a.avgMargin);
   const top3    = ranked.slice(0, 3);
   const bottom3 = ranked.slice(-3).reverse();
 
@@ -88,7 +81,7 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
   return (
     <div className="po-container">
 
-      {/* ══ KPI Cards ══ */}
+      {/* KPI Cards */}
       <div className="po-kpi-grid">
         <div className="po-kpi-card po-kpi-blue">
           <div className="po-kpi-icon"><PackageIcon className="icon-lg" /></div>
@@ -137,32 +130,28 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
         </div>
       </div>
 
-      {/* ══ Coverage Progress Bar ══ */}
+      {/* Coverage Progress Bar — plan-level */}
       <div className="po-progress-card">
         <div className="po-progress-header">
-          <span className="po-progress-title">تقدم التسعير</span>
+          <span className="po-progress-title">تقدم التسعير — على مستوى الخطط</span>
           <div className="po-progress-legend">
             <span className="po-leg-dot po-leg-green" />
-            <span className="po-leg-txt">مكتمل ({completeCount})</span>
-            <span className="po-leg-dot po-leg-amber" />
-            <span className="po-leg-txt">جزئي ({partialCount})</span>
+            <span className="po-leg-txt">مُسعَّرة ({allSetPlans})</span>
             <span className="po-leg-dot po-leg-muted" />
-            <span className="po-leg-txt">لم يُسعَّر ({noneCount})</span>
+            <span className="po-leg-txt">لم تُسعَّر ({allUnsetPlans})</span>
           </div>
         </div>
         <div className="po-progress-bar-track">
-          {pctComplete > 0 && <div className="po-progress-seg po-seg-green"  style={{ width: `${pctComplete}%` }} title={`مكتمل ${fmtPct(pctComplete)}%`} />}
-          {pctPartial  > 0 && <div className="po-progress-seg po-seg-amber"  style={{ width: `${pctPartial}%`  }} title={`جزئي ${fmtPct(pctPartial)}%`} />}
-          {pctNone     > 0 && <div className="po-progress-seg po-seg-muted"  style={{ width: `${pctNone}%`    }} title={`غير مُسعَّر ${fmtPct(pctNone)}%`} />}
+          {barSetPct   > 0 && <div className="po-progress-seg po-seg-green" style={{ width: `${barSetPct}%`   }} title={`مُسعَّرة ${fmtPct(barSetPct)}%`} />}
+          {barUnsetPct > 0 && <div className="po-progress-seg po-seg-muted" style={{ width: `${barUnsetPct}%` }} title={`لم تُسعَّر ${fmtPct(barUnsetPct)}%`} />}
         </div>
         <div className="po-progress-counts">
-          <span className="po-pct-label po-pct-green">{fmtPct(pctComplete)}% مكتمل</span>
-          {pctPartial > 0 && <span className="po-pct-label po-pct-amber">{fmtPct(pctPartial)}% جزئي</span>}
-          <span className="po-pct-label po-pct-muted">{fmtPct(pctNone)}% لم يُسعَّر</span>
+          <span className="po-pct-label po-pct-green">{fmtPct(barSetPct)}% مُسعَّرة</span>
+          <span className="po-pct-label po-pct-muted">{fmtPct(barUnsetPct)}% لم تُسعَّر</span>
         </div>
       </div>
 
-      {/* ══ Alert Banner ══ */}
+      {/* Alert Banner */}
       {belowCostProds.length > 0 && (
         <div className="po-alert-banner po-alert-danger">
           <div className="po-alert-icon"><TrendingDownIcon className="icon-sm" /></div>
@@ -170,11 +159,13 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
             <span className="po-alert-title">تحذير: {belowCostProds.length} {belowCostProds.length === 1 ? 'منتج' : 'منتجات'} بأسعار تحت التكلفة</span>
             <span className="po-alert-names">{belowCostProds.map(p => p.name).join(' · ')}</span>
           </div>
-          <span className="po-alert-hint">راجعها في تبويبة الأسعار النهائية ←</span>
+          <button className="po-alert-nav-btn" onClick={onGoToFinalPrices}>
+            انتقل إلى الأسعار النهائية ←
+          </button>
         </div>
       )}
 
-      {/* ══ Product Status Grid ══ */}
+      {/* Product Status Grid */}
       <div className="po-section">
         <div className="po-section-header">
           <PackageIcon className="icon-sm" />
@@ -220,7 +211,7 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
         </div>
       </div>
 
-      {/* ══ Pricing Insights ══ */}
+      {/* Pricing Insights */}
       {ranked.length > 0 && (
         <div className="po-insights-row">
           <div className="po-insight-panel po-insight-top">
@@ -257,7 +248,7 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
         </div>
       )}
 
-      {/* ══ Empty State ══ */}
+      {/* Empty State */}
       {allEmpty && (
         <div className="po-empty-steps">
           <div className="po-empty-title">
