@@ -154,17 +154,23 @@ function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, set
             params={rowMech}
             onChange={fields => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], ...fields } }))}
           />
-          <div className="fpm-suggested-wrap">
-            <span className="fpm-suggested-val">{suggested > 0 ? `${fmt(suggested)} ر.س` : '—'}</span>
-            {suggested > 0 && (
-              <button
-                className="fpm-use-btn"
-                title="استخدم هذا السعر كسعر نهائي"
-                onClick={() => setLocalPrices(prev => ({ ...prev, [planKey]: fmt(suggested) }))}
-              >←</button>
-            )}
-          </div>
         </div>
+      </div>
+
+      {/* Suggested price — standalone column */}
+      <div className="fpm-plan-col fpm-plan-col-suggested">
+        {suggested > 0 ? (
+          <div className="fpm-suggested-wrap">
+            <span className="fpm-suggested-val">{fmt(suggested)} ر.س</span>
+            <button
+              className="fpm-use-btn"
+              title="استخدم هذا السعر كسعر نهائي"
+              onClick={() => setLocalPrices(prev => ({ ...prev, [planKey]: fmt(suggested) }))}
+            >←</button>
+          </div>
+        ) : (
+          <span className="fpm-empty-dash">—</span>
+        )}
       </div>
 
       {/* Margin */}
@@ -279,7 +285,8 @@ function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, e
           <span className="fpm-plans-col-head">سعر المورد</span>
           <span className="fpm-plans-col-head">السعر الرسمي</span>
           <span className="fpm-plans-col-head">إجمالي التكلفة</span>
-          <span className="fpm-plans-col-head fpm-ph-mech">آلية التسعير + المقترح</span>
+          <span className="fpm-plans-col-head fpm-ph-mech">آلية التسعير</span>
+          <span className="fpm-plans-col-head">السعر المقترح</span>
           <span className="fpm-plans-col-head">هامش الربح</span>
           <span className="fpm-plans-col-head">تقييم السعر</span>
           <span className="fpm-plans-col-head">السعر النهائي</span>
