@@ -185,32 +185,32 @@ function Dashboard({
         <div className="dash-hero-orb dash-hero-orb-1" />
         <div className="dash-hero-orb dash-hero-orb-2" />
         <div className="dash-hero-orb dash-hero-orb-3" />
-        <div className="dash-hero-content">
-          <div className="dash-hero-left">
-            {enabledTimezones.length > 0 && (
-              <div className="dash-clocks-row">
-                {enabledTimezones.map((zone) => (
-                  <div key={zone.id} className="dash-clock-pill">
-                    <span className="dash-clock-flag">{zone.flag}</span>
-                    <span className="dash-clock-label">{zone.label}</span>
-                    <span className="dash-clock-time">{formatClock(zone.tz)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="dash-hero-date">
-              <CalendarIcon className="icon-xs" />
-              <span>{arabicDate}</span>
+        {/* Row 1 — Date pill + live clocks */}
+        <div className="dash-hero-row-top">
+          <div className="dash-hero-date">
+            <CalendarIcon className="icon-xs" />
+            <span>{arabicDate}</span>
+          </div>
+          {enabledTimezones.length > 0 && (
+            <div className="dash-clocks-row">
+              {enabledTimezones.map((zone) => (
+                <div key={zone.id} className="dash-clock-pill">
+                  <span className="dash-clock-flag">{zone.flag}</span>
+                  <span className="dash-clock-label">{zone.label}</span>
+                  <span className="dash-clock-time">{formatClock(zone.tz)}</span>
+                </div>
+              ))}
             </div>
-            <h1 className="dash-hero-title">
-              <span className="dash-hero-greeting">{greeting}،</span>
-              <span className="dash-hero-title-main"><ActivityIcon className="icon-md" /> لوحة التحكم</span>
+          )}
+        </div>
+
+        {/* Row 2 — Title block + Store button */}
+        <div className="dash-hero-row-main">
+          <div className="dash-hero-title-block">
+            <span className="dash-hero-greeting">{greeting}،</span>
+            <h1 className="dash-hero-title-main">
+              <ActivityIcon className="icon-md" /> لوحة التحكم
             </h1>
-            <p className="dash-hero-subtitle">نظرة عامة على متجرك الرقمي</p>
-            <div className="dash-hero-quote">
-              <span className="dash-hero-quote-emoji">{todayQuote.emoji}</span>
-              <span>{todayQuote.text}</span>
-            </div>
           </div>
           {storeUrl && (
             <a
@@ -224,6 +224,15 @@ function Dashboard({
               <ExternalLinkIcon className="icon-xs dash-hero-ext-icon" />
             </a>
           )}
+        </div>
+
+        {/* Row 3 — Subtitle + Quote */}
+        <div className="dash-hero-row-bottom">
+          <p className="dash-hero-subtitle">نظرة عامة على متجرك الرقمي</p>
+          <div className="dash-hero-quote">
+            <span className="dash-hero-quote-emoji">{todayQuote.emoji}</span>
+            <span>{todayQuote.text}</span>
+          </div>
         </div>
       </div>
 
