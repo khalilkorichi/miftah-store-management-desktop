@@ -23,7 +23,7 @@ import Dashboard from './components/Dashboard';
 import ProductFeatures from './components/ProductFeatures';
 import {
   PackageIcon, DollarSignIcon, GiftIcon, BarChartIcon, SettingsIcon,
-  SunIcon, MoonIcon, CheckCircleIcon, HomeIcon, FileTextIcon
+  SunIcon, MoonIcon, CheckCircleIcon, HomeIcon, FileTextIcon, ExternalLinkIcon
 } from './components/Icons';
 
 const STORAGE_KEY = 'miftah_store_data';
@@ -173,6 +173,11 @@ function App() {
     fontSize: 'medium',
     compactMode: false,
     borderRadius: 'rounded',
+    storeUrl: 'https://miftahdigital.store/',
+    timezones: [
+      { id: 'dz', label: 'الجزائر', tz: 'Africa/Algiers', flag: '🇩🇿', enabled: true },
+      { id: 'sa', label: 'السعودية', tz: 'Asia/Riyadh', flag: '🇸🇦', enabled: true },
+    ],
   });
   
   // Custom hook logic for hash-based routing
@@ -753,6 +758,18 @@ function App() {
                 <CheckCircleIcon className="icon-sm" /> تم الحفظ
               </span>
             )}
+            {appSettings.storeUrl && (
+              <a
+                href={appSettings.storeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="header-store-link"
+                title="زيارة المتجر"
+              >
+                <ExternalLinkIcon className="icon-sm" />
+                <span className="header-store-link-text">زيارة المتجر</span>
+              </a>
+            )}
             <button
               className="theme-toggle"
               onClick={() => setDarkMode(!darkMode)}
@@ -819,6 +836,7 @@ function App() {
             coupons={coupons}
             activationMethods={activationMethods}
             onNavigate={handleTabChange}
+            appSettings={appSettings}
           />
           </div>
         )}
