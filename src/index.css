@@ -1804,6 +1804,9 @@ body {
 .dash-hero-card {
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   background: linear-gradient(135deg,
     rgba(94,79,222,0.12) 0%,
     rgba(59,130,246,0.08) 40%,
@@ -1840,67 +1843,85 @@ body {
   opacity: 0.25;
 }
 
-/* Hero layout */
-.dash-hero-content {
+/* ── Hero inner grid — 3 rows ── */
+
+/* Row 1: Date pill + clocks — space-between */
+.dash-hero-row-top {
   position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.dash-hero-left {
+/* Row 2: Title block (right) + Store button (left) */
+.dash-hero-row-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Row 3: Subtitle + quote (right-aligned, natural flow) */
+.dash-hero-row-bottom {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-/* Date row */
-.dash-hero-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  background: rgba(94,79,222,0.08);
-  border: 1px solid rgba(94,79,222,0.15);
-  padding: 4px 10px;
-  border-radius: 20px;
-  width: fit-content;
-}
-
 /* Title block */
-.dash-hero-title {
-  margin: 4px 0 0;
+.dash-hero-title-block {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
+/* Date pill */
+.dash-hero-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-color);
+  padding: 5px 12px;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+/* Greeting */
 .dash-hero-greeting {
   font-size: 13px;
   font-weight: 700;
   color: var(--accent-purple);
-  opacity: 0.9;
+  opacity: 0.85;
   line-height: 1.4;
 }
+
+/* Main title */
 .dash-hero-title-main {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 900;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: 1.15;
   display: flex;
   align-items: center;
   gap: 10px;
+  margin: 0;
 }
 
 /* Subtitle */
 .dash-hero-subtitle {
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--text-muted);
   margin: 0;
 }
