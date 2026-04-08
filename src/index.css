@@ -4704,9 +4704,9 @@ body {
     minmax(100px,1fr)  /* المعامل         */
     minmax(105px,1fr)  /* السعر المقترح   */
     minmax(75px,0.8fr) /* هامش الربح      */
-    minmax(95px,1fr)   /* تقييم السعر     */
     minmax(125px,1fr)  /* السعر النهائي   */
     minmax(95px,1fr)   /* الحالة          */
+    minmax(95px,1fr)   /* تقييم السعر     */
     60px;              /* حفظ             */
   gap: 0 10px;
   align-items: center;
@@ -4767,6 +4767,13 @@ body {
 .fpm-plan-col-final     { }
 .fpm-plan-col-actions   { justify-content: center; gap: 5px; }
 .fpm-empty-dash { font-size: 13px; color: var(--text-muted); }
+.fpm-status-pending {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
 .fpm-official-wrap { display: flex; flex-direction: column; gap: 2px; }
 .fpm-official-val { color: var(--accent-blue) !important; }
 .fpm-official-diff {
