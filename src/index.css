@@ -4693,7 +4693,7 @@ body {
 /* ── Plans header row ── */
 .fpm-plans-header {
   display: grid;
-  grid-template-columns: 90px 110px 110px 1fr 90px 110px 140px 120px 90px;
+  grid-template-columns: 90px 110px 120px 110px 1fr 90px 110px 140px 120px 90px;
   gap: 0;
   padding: 8px 18px;
   background: var(--bg-input);
@@ -4710,7 +4710,7 @@ body {
 /* ── Individual plan row ── */
 .fpm-plan-row {
   display: grid;
-  grid-template-columns: 90px 110px 110px 1fr 90px 110px 140px 120px 90px;
+  grid-template-columns: 90px 110px 120px 110px 1fr 90px 110px 140px 120px 90px;
   gap: 0;
   padding: 10px 18px;
   border-bottom: 1px solid var(--border-color);
@@ -4742,6 +4742,19 @@ body {
 .fpm-plan-col-mech { flex-direction: column; gap: 4px; padding-left: 8px; }
 .fpm-plan-col-actions { flex-direction: row; gap: 5px; align-items: center; justify-content: flex-start; }
 .fpm-empty-dash { font-size: 13px; color: var(--text-muted); }
+.fpm-official-wrap { display: flex; flex-direction: column; gap: 2px; }
+.fpm-official-val { color: var(--accent-blue) !important; }
+.fpm-official-diff {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 5px;
+  width: fit-content;
+  direction: ltr;
+}
+.fpm-official-diff.above { background: rgba(17,186,101,0.12); color: var(--accent-green); }
+.fpm-official-diff.below { background: rgba(249,75,96,0.12);  color: var(--accent-red); }
+.fpm-official-diff.equal { background: var(--bg-input); color: var(--text-muted); }
 
 /* PricingOverview alert + guide */
 .po-alert-banner {
