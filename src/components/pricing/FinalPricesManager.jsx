@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircleIcon, SaveIcon, AlertTriangleIcon, TrendingDownIcon, TrendingUpIcon, ClipboardIcon, ChevronDownIcon } from '../Icons';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  CheckCircleIcon, SaveIcon, AlertTriangleIcon,
+  TrendingDownIcon, TrendingUpIcon, ChevronDownIcon,
+  XIcon, InfoIcon, ZapIcon
+} from '../Icons';
 
-const fmt = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt    = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPct = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 const MECHANISM_OPTIONS = [
-  { id: 'costplus',  label: 'التكلفة + هامش',       icon: '📊' },
-  { id: 'value',     label: 'التسعير بالقيمة',       icon: '💎' },
-  { id: 'psych99',   label: 'نفسي (.99)',            icon: '🧠' },
-  { id: 'psych9',    label: 'نفسي (ينتهي بـ9)',      icon: '🧠' },
+  { id: 'costplus', label: 'التكلفة + هامش',  icon: '📊' },
+  { id: 'value',    label: 'التسعير بالقيمة', icon: '💎' },
+  { id: 'psych99',  label: 'نفسي (.99)',       icon: '🧠' },
+  { id: 'psych9',   label: 'نفسي (ينتهي بـ9)', icon: '🧠' },
 ];
 
 function computeSuggested(mechanism, baseSAR, costs, params) {
@@ -17,13 +21,13 @@ function computeSuggested(mechanism, baseSAR, costs, params) {
     if (c.type === 'fixed') fixedCosts += c.value;
     else if (c.type === 'percentage') percentCosts += c.value / 100;
   });
-  const marginDec = (parseFloat(params.margin) || 20) / 100;
+  const marginDec  = (parseFloat(params.margin) || 20) / 100;
   const denominator = 1 - marginDec - percentCosts;
-  const costPlus = denominator > 0 ? (baseSAR + fixedCosts) / denominator : 0;
+  const costPlus    = denominator > 0 ? (baseSAR + fixedCosts) / denominator : 0;
   if (mechanism === 'costplus') return costPlus;
-  if (mechanism === 'value') return (parseFloat(params.perceivedValue) || 100) * ((parseFloat(params.valueRatio) || 20) / 100);
-  if (mechanism === 'psych99') return Math.floor(costPlus) + 0.99;
-  if (mechanism === 'psych9')  return Math.floor(costPlus / 10) * 10 + 9;
+  if (mechanism === 'value')    return (parseFloat(params.perceivedValue) || 100) * ((parseFloat(params.valueRatio) || 20) / 100);
+  if (mechanism === 'psych99')  return Math.floor(costPlus) + 0.99;
+  if (mechanism === 'psych9')   return Math.floor(costPlus / 10) * 10 + 9;
   return costPlus;
 }
 
@@ -33,18 +37,218 @@ function computeTotalCost(baseSAR, costs) {
     if (c.type === 'fixed') fixed += c.value;
     else if (c.type === 'percentage') percents += c.value / 100;
   });
-  const marginDec = 0.20;
+  const marginDec   = 0.20;
   const denominator = 1 - marginDec - percents;
-  const suggested = denominator > 0 ? (baseSAR + fixed) / denominator : 0;
+  const suggested   = denominator > 0 ? (baseSAR + fixed) / denominator : 0;
   return baseSAR + fixed + (suggested * percents);
 }
 
 function getPricingStatus(finalPrice, totalCost, suggested) {
   if (!finalPrice || finalPrice <= 0) return null;
-  if (finalPrice < totalCost)         return { label: 'تحت التكلفة',  type: 'danger',  icon: <TrendingDownIcon  className="icon-xs" /> };
-  if (finalPrice < suggested)         return { label: 'يحتاج رفع',   type: 'warning', icon: <AlertTriangleIcon className="icon-xs" /> };
-  if (finalPrice > suggested * 1.5)   return { label: 'مرتفع جداً',  type: 'info',    icon: <TrendingUpIcon    className="icon-xs" /> };
-  return                                     { label: 'مثالي',         type: 'success', icon: <CheckCircleIcon   className="icon-xs" /> };
+  if (finalPrice < totalCost)       return { label: 'تحت التكلفة', type: 'danger',  icon: <TrendingDownIcon  className="icon-xs" /> };
+  if (finalPrice < suggested)       return { label: 'يحتاج رفع',  type: 'warning', icon: <AlertTriangleIcon className="icon-xs" /> };
+  if (finalPrice > suggested * 1.5) return { label: 'مرتفع جداً', type: 'info',    icon: <TrendingUpIcon    className="icon-xs" /> };
+  return                                   { label: 'مثالي',        type: 'success', icon: <CheckCircleIcon   className="icon-xs" /> };
+}
+
+function getPricingExplanation(baseSAR, costs, rowMech, officialSAR, finalPrice, totalCost, suggested) {
+  const activeCosts  = costs.filter(c => c.active);
+  let fixedTotal = 0, percentTotal = 0;
+  activeCosts.forEach(c => {
+    if (c.type === 'fixed') fixedTotal += c.value;
+    else if (c.type === 'percentage') percentTotal += c.value / 100;
+  });
+  const percentAmountOnSuggested = suggested > 0 ? suggested * percentTotal : 0;
+
+  const margin20Denom = 1 - 0.20 - percentTotal;
+  const idealPrice    = margin20Denom > 0 ? (baseSAR + fixedTotal) / margin20Denom : 0;
+  const minPrice      = totalCost;
+  const maxPrice      = suggested * 1.5;
+  const profitMargin  = finalPrice > 0 ? ((finalPrice - totalCost) / finalPrice) * 100 : 0;
+
+  let reasonTitle = '';
+  let reasonDetail = '';
+  let reasonType   = 'success';
+
+  if (!finalPrice || finalPrice <= 0) {
+    reasonTitle  = 'لم يتم تحديد سعر نهائي بعد';
+    reasonDetail = 'أدخل السعر النهائي في حقل السعر النهائي واضغط حفظ لتفعيل التقييم.';
+    reasonType   = 'muted';
+  } else if (finalPrice < totalCost) {
+    reasonTitle  = 'السعر أقل من إجمالي التكلفة';
+    reasonDetail = `السعر النهائي ${fmt(finalPrice)} ر.س أقل من إجمالي التكلفة ${fmt(totalCost)} ر.س بفارق ${fmt(totalCost - finalPrice)} ر.س، مما يعني أنك ستبيع بخسارة.`;
+    reasonType   = 'danger';
+  } else if (finalPrice < suggested) {
+    reasonTitle  = 'السعر أقل من السعر المقترح';
+    reasonDetail = `السعر النهائي ${fmt(finalPrice)} ر.س يغطي التكلفة لكنه أقل من السعر المقترح ${fmt(suggested)} ر.س بفارق ${fmt(suggested - finalPrice)} ر.س. هامش ربحك الحالي ${fmtPct(profitMargin)}% أقل من المستهدف.`;
+    reasonType   = 'warning';
+  } else if (finalPrice > suggested * 1.5) {
+    reasonTitle  = 'السعر مرتفع جداً مقارنة بالمقترح';
+    reasonDetail = `السعر النهائي ${fmt(finalPrice)} ر.س يتجاوز الحد الأعلى المنطقي ${fmt(suggested * 1.5)} ر.س (1.5× المقترح). قد يؤثر ذلك على تنافسية المنتج.`;
+    reasonType   = 'info';
+  } else {
+    reasonTitle  = 'السعر في النطاق المثالي';
+    reasonDetail = `السعر النهائي ${fmt(finalPrice)} ر.س يقع بين السعر المقترح ${fmt(suggested)} ر.س والحد الأعلى ${fmt(suggested * 1.5)} ر.س. هامش الربح ${fmtPct(profitMargin)}%.`;
+    reasonType   = 'success';
+  }
+
+  const suggestions = [];
+  if (minPrice > 0) suggestions.push({
+    label: 'الحد الأدنى (تغطية التكلفة)',
+    value: minPrice,
+    note: 'أدنى سعر يغطي جميع التكاليف دون ربح',
+    type: 'neutral',
+  });
+  if (idealPrice > 0) suggestions.push({
+    label: 'السعر المثالي (هامش 20%)',
+    value: idealPrice,
+    note: 'السعر الأمثل لتحقيق هامش ربح 20% بعد كل التكاليف',
+    type: 'good',
+  });
+  if (maxPrice > 0) suggestions.push({
+    label: 'الحد الأعلى المنطقي (×1.5)',
+    value: maxPrice,
+    note: 'تجاوز هذا السعر قد يضعف تنافسية المنتج',
+    type: 'caution',
+  });
+
+  return {
+    reasonTitle,
+    reasonDetail,
+    reasonType,
+    stats: {
+      baseSAR,
+      fixedTotal,
+      percentTotal: percentTotal * 100,
+      percentAmountOnSuggested,
+      totalCost,
+      suggested,
+      finalPrice,
+      profitMargin,
+      officialSAR,
+      activeCostsCount: activeCosts.length,
+    },
+    suggestions,
+  };
+}
+
+/* ── Pricing Status Popup (modal) ── */
+function PricingStatusPopup({ data, onClose }) {
+  const overlayRef = useRef(null);
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const { reasonTitle, reasonDetail, reasonType, stats, suggestions } = data;
+
+  const typeColorMap = {
+    danger: 'var(--accent-red, #f94b60)',
+    warning: 'var(--accent-orange, #e68a00)',
+    info: 'var(--accent-blue, #4b9cf9)',
+    success: 'var(--accent-green, #3ecf8e)',
+    muted: 'var(--text-secondary)',
+  };
+  const accentColor = typeColorMap[reasonType] || typeColorMap.muted;
+
+  return (
+    <div
+      className="psp-overlay"
+      ref={overlayRef}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+    >
+      <div className="psp-modal" dir="rtl">
+        {/* Header */}
+        <div className="psp-header" style={{ borderColor: accentColor }}>
+          <div className="psp-header-title">
+            <InfoIcon className="icon-sm" style={{ color: accentColor }} />
+            <span>تحليل التقييم</span>
+          </div>
+          <button className="psp-close-btn" onClick={onClose} title="إغلاق">
+            <XIcon className="icon-sm" />
+          </button>
+        </div>
+
+        <div className="psp-body">
+          {/* Section 1 — Why */}
+          <div className="psp-section">
+            <div className="psp-section-label">سبب التقييم</div>
+            <div className="psp-reason-card" style={{ borderColor: accentColor, background: `${accentColor}12` }}>
+              <span className="psp-reason-title" style={{ color: accentColor }}>{reasonTitle}</span>
+              <span className="psp-reason-detail">{reasonDetail}</span>
+            </div>
+          </div>
+
+          {/* Section 2 — Stats */}
+          <div className="psp-section">
+            <div className="psp-section-label">إحصاءات الخطة</div>
+            <div className="psp-stats-grid">
+              <div className="psp-stat-row">
+                <span className="psp-stat-lbl">سعر المورد</span>
+                <span className="psp-stat-val">{stats.baseSAR > 0 ? `${fmt(stats.baseSAR)} ر.س` : '—'}</span>
+              </div>
+              <div className="psp-stat-row">
+                <span className="psp-stat-lbl">التكاليف الثابتة</span>
+                <span className="psp-stat-val">{stats.fixedTotal > 0 ? `${fmt(stats.fixedTotal)} ر.س` : 'لا يوجد'}</span>
+              </div>
+              <div className="psp-stat-row">
+                <span className="psp-stat-lbl">التكاليف النسبية</span>
+                <span className="psp-stat-val">
+                  {stats.percentTotal > 0
+                    ? `${fmtPct(stats.percentTotal)}% (≈ ${fmt(stats.percentAmountOnSuggested)} ر.س)`
+                    : 'لا يوجد'}
+                </span>
+              </div>
+              <div className="psp-stat-row psp-stat-row-highlight">
+                <span className="psp-stat-lbl">إجمالي التكلفة</span>
+                <span className="psp-stat-val psp-stat-bold">{stats.totalCost > 0 ? `${fmt(stats.totalCost)} ر.س` : '—'}</span>
+              </div>
+              <div className="psp-stat-row">
+                <span className="psp-stat-lbl">السعر المقترح</span>
+                <span className="psp-stat-val">{stats.suggested > 0 ? `${fmt(stats.suggested)} ر.س` : '—'}</span>
+              </div>
+              <div className="psp-stat-row psp-stat-row-highlight">
+                <span className="psp-stat-lbl">السعر النهائي</span>
+                <span className="psp-stat-val psp-stat-bold" style={{ color: accentColor }}>
+                  {stats.finalPrice > 0 ? `${fmt(stats.finalPrice)} ر.س` : '—'}
+                </span>
+              </div>
+              <div className="psp-stat-row">
+                <span className="psp-stat-lbl">هامش الربح الحالي</span>
+                <span className={`psp-stat-val psp-stat-bold ${stats.profitMargin < 0 ? 'psp-red' : stats.profitMargin < 15 ? 'psp-amber' : 'psp-green'}`}>
+                  {stats.finalPrice > 0 ? `${fmtPct(stats.profitMargin)}%` : '—'}
+                </span>
+              </div>
+              {stats.officialSAR > 0 && (
+                <div className="psp-stat-row psp-stat-comparison">
+                  <span className="psp-stat-lbl">السعر الرسمي <span className="psp-comparison-tag">مقارنة فقط</span></span>
+                  <span className="psp-stat-val psp-stat-muted">{fmt(stats.officialSAR)} ر.س</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 3 — Suggestions */}
+          <div className="psp-section">
+            <div className="psp-section-label">مقترحات</div>
+            <div className="psp-suggestions-list">
+              {suggestions.map((s, i) => (
+                <div key={i} className={`psp-suggestion psp-sug-${s.type}`}>
+                  <div className="psp-sug-header">
+                    <ZapIcon className="icon-xs psp-sug-icon" />
+                    <span className="psp-sug-label">{s.label}</span>
+                    <span className="psp-sug-value">{fmt(s.value)} ر.س</span>
+                  </div>
+                  <span className="psp-sug-note">{s.note}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ── Mechanism param inline inputs ── */
@@ -77,20 +281,22 @@ function MechanismParamInputs({ mechanism, params, onChange }) {
   );
 }
 
-/* ══════════════════════════════════════════════
-   PLAN SUB-ROW
-══════════════════════════════════════════════ */
-function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, setRowMechs, localPrices, setLocalPrices, finalPrices, onSetFinalPrices, exchangeRate }) {
-  const totalCost     = computeTotalCost(baseSAR, costs);
-  const suggested     = computeSuggested(rowMech.mechanism, baseSAR, costs, rowMech);
-  const officialSAR   = (plan.officialPriceUsd || 0) * exchangeRate;
-  const finalVal      = parseFloat(localPrices[planKey]);
-  const savedFinal    = finalPrices[planKey];
-  const isSet         = savedFinal !== undefined;
+/* ── Plan Sub-Row ── */
+function PlanRow({
+  planKey, plan, getDurationLabel, baseSAR, costs,
+  rowMech, setRowMechs, localPrices, setLocalPrices,
+  finalPrices, onSetFinalPrices, exchangeRate,
+  openPopupKey, setOpenPopupKey,
+}) {
+  const totalCost      = computeTotalCost(baseSAR, costs);
+  const suggested      = computeSuggested(rowMech.mechanism, baseSAR, costs, rowMech);
+  const officialSAR    = (plan.officialPriceUsd || 0) * exchangeRate;
+  const finalVal       = parseFloat(localPrices[planKey]);
+  const savedFinal     = finalPrices[planKey];
+  const isSet          = savedFinal !== undefined;
   const priceForMargin = isSet ? savedFinal : (isNaN(finalVal) ? 0 : finalVal);
   const profitMargin   = priceForMargin > 0 ? ((priceForMargin - totalCost) / priceForMargin) * 100 : 0;
   const pricingStatus  = getPricingStatus(priceForMargin, totalCost, suggested);
-  // Difference between final/suggested and official price
   const diffFromOfficial = officialSAR > 0 && priceForMargin > 0 ? priceForMargin - officialSAR : null;
 
   const handleSave = () => {
@@ -104,131 +310,158 @@ function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, set
     setLocalPrices(prev => ({ ...prev, [planKey]: '' }));
   };
 
+  const handleStatusClick = () => {
+    setOpenPopupKey(prev => prev === planKey ? null : planKey);
+  };
+
+  const popupData = openPopupKey === planKey
+    ? getPricingExplanation(baseSAR, costs, rowMech, officialSAR, priceForMargin, totalCost, suggested)
+    : null;
+
   return (
-    <div className="fpm-plan-row">
-      {/* Duration badge */}
-      <div className="fpm-plan-col fpm-plan-col-duration">
-        <span className="fpm-plan-badge">{getDurationLabel(plan.durationId)}</span>
-      </div>
+    <>
+      <div className="fpm-plan-row">
+        {/* Duration */}
+        <div className="fpm-plan-col fpm-plan-col-duration">
+          <span className="fpm-plan-badge">{getDurationLabel(plan.durationId)}</span>
+        </div>
 
-      {/* Supplier price */}
-      <div className="fpm-plan-col fpm-plan-col-price">
-        <span className="fpm-plan-val">{baseSAR > 0 ? `${fmt(baseSAR)} ر.س` : '—'}</span>
-      </div>
+        {/* Supplier price */}
+        <div className="fpm-plan-col fpm-plan-col-price">
+          <span className="fpm-plan-val">{baseSAR > 0 ? `${fmt(baseSAR)} ر.س` : '—'}</span>
+        </div>
 
-      {/* Official price */}
-      <div className="fpm-plan-col fpm-plan-col-price">
-        {officialSAR > 0 ? (
-          <div className="fpm-official-wrap">
-            <span className="fpm-plan-val fpm-official-val">{fmt(officialSAR)} ر.س</span>
-            {diffFromOfficial !== null && (
-              <span className={`fpm-official-diff ${diffFromOfficial > 0 ? 'above' : diffFromOfficial < 0 ? 'below' : 'equal'}`}>
-                {diffFromOfficial > 0 ? `+${fmt(diffFromOfficial)}` : fmt(diffFromOfficial)}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="fpm-empty-dash">—</span>
-        )}
-      </div>
+        {/* Official price — comparison only */}
+        <div className="fpm-plan-col fpm-plan-col-price">
+          {officialSAR > 0 ? (
+            <div className="fpm-official-wrap">
+              <span className="fpm-plan-val fpm-official-val">{fmt(officialSAR)} ر.س</span>
+              {diffFromOfficial !== null && (
+                <span className={`fpm-official-diff ${diffFromOfficial > 0 ? 'above' : diffFromOfficial < 0 ? 'below' : 'equal'}`}>
+                  {diffFromOfficial > 0 ? `+${fmt(diffFromOfficial)}` : fmt(diffFromOfficial)}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="fpm-empty-dash">—</span>
+          )}
+        </div>
 
-      {/* Total cost */}
-      <div className="fpm-plan-col fpm-plan-col-price">
-        <span className="fpm-plan-val">{totalCost > 0 ? `${fmt(totalCost)} ر.س` : '—'}</span>
-      </div>
+        {/* Total cost */}
+        <div className="fpm-plan-col fpm-plan-col-price">
+          <span className="fpm-plan-val">{totalCost > 0 ? `${fmt(totalCost)} ر.س` : '—'}</span>
+        </div>
 
-      {/* Mechanism selector only */}
-      <div className="fpm-plan-col fpm-plan-col-mech">
-        <select
-          className="fpm-mech-select"
-          value={rowMech.mechanism}
-          onChange={e => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], mechanism: e.target.value } }))}
-        >
-          {MECHANISM_OPTIONS.map(opt => (
-            <option key={opt.id} value={opt.id}>{opt.icon} {opt.label}</option>
-          ))}
-        </select>
-      </div>
+        {/* Mechanism selector */}
+        <div className="fpm-plan-col fpm-plan-col-mech">
+          <select
+            className="fpm-mech-select"
+            value={rowMech.mechanism}
+            onChange={e => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], mechanism: e.target.value } }))}
+          >
+            {MECHANISM_OPTIONS.map(opt => (
+              <option key={opt.id} value={opt.id}>{opt.icon} {opt.label}</option>
+            ))}
+          </select>
+        </div>
 
-      {/* Mechanism param inputs — standalone column */}
-      <div className="fpm-plan-col fpm-plan-col-params">
-        <MechanismParamInputs
-          mechanism={rowMech.mechanism}
-          params={rowMech}
-          onChange={fields => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], ...fields } }))}
-        />
-      </div>
+        {/* Mechanism params */}
+        <div className="fpm-plan-col fpm-plan-col-params">
+          <MechanismParamInputs
+            mechanism={rowMech.mechanism}
+            params={rowMech}
+            onChange={fields => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], ...fields } }))}
+          />
+        </div>
 
-      {/* Suggested price — standalone column */}
-      <div className="fpm-plan-col fpm-plan-col-suggested">
-        {suggested > 0 ? (
-          <div className="fpm-suggested-wrap">
-            <span className="fpm-suggested-val">{fmt(suggested)} ر.س</span>
+        {/* Suggested price */}
+        <div className="fpm-plan-col fpm-plan-col-suggested">
+          {suggested > 0 ? (
+            <div className="fpm-suggested-wrap">
+              <span className="fpm-suggested-val">{fmt(suggested)} ر.س</span>
+              <button
+                className="fpm-use-btn"
+                title="استخدم هذا السعر كسعر نهائي"
+                onClick={() => setLocalPrices(prev => ({ ...prev, [planKey]: fmt(suggested) }))}
+              >←</button>
+            </div>
+          ) : (
+            <span className="fpm-empty-dash">—</span>
+          )}
+        </div>
+
+        {/* Margin */}
+        <div className="fpm-plan-col fpm-plan-col-margin">
+          {priceForMargin > 0
+            ? <span className={`po-margin-badge ${profitMargin >= 0 ? 'positive' : 'negative'}`}>{fmtPct(profitMargin)}%</span>
+            : <span className="fpm-empty-dash">—</span>
+          }
+        </div>
+
+        {/* Status — clickable */}
+        <div className="fpm-plan-col fpm-plan-col-status">
+          {pricingStatus ? (
             <button
-              className="fpm-use-btn"
-              title="استخدم هذا السعر كسعر نهائي"
-              onClick={() => setLocalPrices(prev => ({ ...prev, [planKey]: fmt(suggested) }))}
-            >←</button>
-          </div>
-        ) : (
-          <span className="fpm-empty-dash">—</span>
-        )}
-      </div>
-
-      {/* Margin */}
-      <div className="fpm-plan-col fpm-plan-col-margin">
-        {priceForMargin > 0
-          ? <span className={`po-margin-badge ${profitMargin >= 0 ? 'positive' : 'negative'}`}>{fmtPct(profitMargin)}%</span>
-          : <span className="fpm-empty-dash">—</span>
-        }
-      </div>
-
-      {/* Status */}
-      <div className="fpm-plan-col fpm-plan-col-status">
-        {pricingStatus
-          ? <span className={`po-status-badge po-status-${pricingStatus.type} flex-row align-center gap-1`}>
+              className={`po-status-badge po-status-${pricingStatus.type} fpm-status-clickable flex-row align-center gap-1`}
+              onClick={handleStatusClick}
+              title="انقر لعرض تفاصيل التقييم"
+            >
               <span style={{ display: 'flex' }}>{pricingStatus.icon}</span>
               {pricingStatus.label}
-            </span>
-          : <span className="fpm-empty-dash">—</span>
-        }
-      </div>
+              <span className="fpm-status-hint">؟</span>
+            </button>
+          ) : (
+            <span className="fpm-empty-dash">—</span>
+          )}
+        </div>
 
-      {/* Final price input */}
-      <div className="fpm-plan-col fpm-plan-col-final">
-        <div className="fpm-price-input-wrap">
-          <input
-            className="fpm-price-input"
-            type="number" min="0" step="0.01" placeholder="0.00"
-            value={localPrices[planKey] ?? (isSet ? savedFinal : '')}
-            onChange={e => setLocalPrices(prev => ({ ...prev, [planKey]: e.target.value }))}
-            onKeyDown={e => e.key === 'Enter' && handleSave()}
-          />
-          <span className="fpm-currency">ر.س</span>
+        {/* Final price input */}
+        <div className="fpm-plan-col fpm-plan-col-final">
+          <div className="fpm-price-input-wrap">
+            <input
+              className="fpm-price-input"
+              type="number" min="0" step="0.01" placeholder="0.00"
+              value={localPrices[planKey] ?? (isSet ? savedFinal : '')}
+              onChange={e => setLocalPrices(prev => ({ ...prev, [planKey]: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && handleSave()}
+            />
+            <span className="fpm-currency">ر.س</span>
+          </div>
+        </div>
+
+        {/* Set status */}
+        <div className="fpm-plan-col fpm-plan-col-setstate">
+          {isSet
+            ? <span className="fpm-status-set"><CheckCircleIcon className="icon-xs" />{fmt(savedFinal)} ر.س</span>
+            : <span className="fpm-status-unset">لم يُحدَّد</span>
+          }
+        </div>
+
+        {/* Save / Clear */}
+        <div className="fpm-plan-col fpm-plan-col-actions">
+          <button className="fpm-save-row-btn" onClick={handleSave}>حفظ</button>
+          {isSet && <button className="fpm-clear-btn" onClick={handleClear} title="مسح">×</button>}
         </div>
       </div>
 
-      {/* Set status */}
-      <div className="fpm-plan-col fpm-plan-col-setstate">
-        {isSet
-          ? <span className="fpm-status-set"><CheckCircleIcon className="icon-xs" />{fmt(savedFinal)} ر.س</span>
-          : <span className="fpm-status-unset">لم يُحدَّد</span>
-        }
-      </div>
-
-      {/* Save / Clear */}
-      <div className="fpm-plan-col fpm-plan-col-actions">
-        <button className="fpm-save-row-btn" onClick={handleSave}>حفظ</button>
-        {isSet && <button className="fpm-clear-btn" onClick={handleClear} title="مسح">×</button>}
-      </div>
-    </div>
+      {/* Popup rendered when this row is open */}
+      {popupData && (
+        <PricingStatusPopup
+          data={popupData}
+          onClose={() => setOpenPopupKey(null)}
+        />
+      )}
+    </>
   );
 }
 
-/* ══════════════════════════════════════════════
-   PRODUCT ACCORDION ROW
-══════════════════════════════════════════════ */
-function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, exchangeRate, finalPrices, onSetFinalPrices, rowMechs, setRowMechs, localPrices, setLocalPrices, isExpanded, onToggle }) {
+/* ── Product Accordion Row ── */
+function ProductAccordionRow({
+  prod, durations, suppliers, costs, pricingData, exchangeRate,
+  finalPrices, onSetFinalPrices, rowMechs, setRowMechs,
+  localPrices, setLocalPrices, isExpanded, onToggle,
+  openPopupKey, setOpenPopupKey,
+}) {
   const plans = prod.plans || [];
 
   const getDurationLabel = (id) => {
@@ -238,18 +471,16 @@ function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, e
 
   const getSupplierBasePrice = (plan) => {
     const savedConfig = pricingData[prod.id] || {};
-    const supplierId = savedConfig.primarySupplierId || suppliers[0]?.id;
+    const supplierId  = savedConfig.primarySupplierId || suppliers[0]?.id;
     return (plan.prices[supplierId] || 0) * exchangeRate;
   };
 
-  // Summary stats for the product header row
   const setPricesCount = plans.filter(pl => finalPrices[`${prod.id}_${pl.id}`] !== undefined).length;
-  const allSet = setPricesCount === plans.length && plans.length > 0;
+  const allSet  = setPricesCount === plans.length && plans.length > 0;
   const noneSet = setPricesCount === 0;
 
   return (
     <div className={`fpm-accordion-item ${isExpanded ? 'fpm-accordion-open' : ''}`}>
-      {/* ── Product header row ── */}
       <button className="fpm-accordion-header" onClick={onToggle} type="button">
         <div className="fpm-acc-left">
           <div className={`fpm-acc-chevron ${isExpanded ? 'open' : ''}`}>
@@ -271,16 +502,15 @@ function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, e
         </div>
         <div className="fpm-acc-right">
           {plans.length > 0 && (() => {
-            const baseSAR = getSupplierBasePrice(plans[0]);
+            const baseSAR   = getSupplierBasePrice(plans[0]);
             const totalCost = computeTotalCost(baseSAR, costs);
-            return totalCost > 0 ? (
-              <span className="fpm-acc-cost-hint">تكلفة أدنى خطة: {fmt(totalCost)} ر.س</span>
-            ) : null;
+            return totalCost > 0
+              ? <span className="fpm-acc-cost-hint">تكلفة أدنى خطة: {fmt(totalCost)} ر.س</span>
+              : null;
           })()}
         </div>
       </button>
 
-      {/* ── Plans sub-rows ── */}
       <div className="fpm-accordion-body">
         <div className="fpm-plans-header">
           <span className="fpm-plans-col-head fpm-ph-duration">الخطة</span>
@@ -291,7 +521,7 @@ function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, e
           <span className="fpm-plans-col-head">المعامل</span>
           <span className="fpm-plans-col-head">السعر المقترح</span>
           <span className="fpm-plans-col-head">هامش الربح</span>
-          <span className="fpm-plans-col-head">تقييم السعر</span>
+          <span className="fpm-plans-col-head">تقييم السعر ؟</span>
           <span className="fpm-plans-col-head">السعر النهائي</span>
           <span className="fpm-plans-col-head">الحالة</span>
           <span className="fpm-plans-col-head">حفظ</span>
@@ -315,6 +545,8 @@ function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, e
               finalPrices={finalPrices}
               onSetFinalPrices={onSetFinalPrices}
               exchangeRate={exchangeRate}
+              openPopupKey={openPopupKey}
+              setOpenPopupKey={setOpenPopupKey}
             />
           );
         })}
@@ -323,9 +555,7 @@ function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, e
   );
 }
 
-/* ══════════════════════════════════════════════
-   MAIN COMPONENT
-══════════════════════════════════════════════ */
+/* ── Main Component ── */
 function FinalPricesManager({ products, suppliers, durations, costs, pricingData, exchangeRate, finalPrices, onSetFinalPrices }) {
   const [expandedIds, setExpandedIds] = useState(() => new Set(products.slice(0, 1).map(p => p.id)));
   const [rowMechs, setRowMechs] = useState(() => {
@@ -335,7 +565,8 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
     }));
     return init;
   });
-  const [localPrices, setLocalPrices] = useState({});
+  const [localPrices, setLocalPrices]   = useState({});
+  const [openPopupKey, setOpenPopupKey] = useState(null);
 
   useEffect(() => {
     const init = {}, mechInit = {};
@@ -349,15 +580,8 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
     if (Object.keys(mechInit).length > 0) setRowMechs(prev => ({ ...prev, ...mechInit }));
   }, [products]);
 
-  const toggleProduct = (id) => {
-    setExpandedIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const handleExpandAll  = () => setExpandedIds(new Set(products.map(p => p.id)));
+  const toggleProduct     = (id) => setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const handleExpandAll   = () => setExpandedIds(new Set(products.map(p => p.id)));
   const handleCollapseAll = () => setExpandedIds(new Set());
 
   const handleSaveAll = () => {
@@ -375,7 +599,6 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
 
   return (
     <div className="fpm-container">
-      {/* Header */}
       <div className="fpm-header">
         <div>
           <div className="fpm-title">تفاصيل التسعير والأسعار النهائية</div>
@@ -394,7 +617,6 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="fpm-progress-bar-wrap">
         <div className="fpm-progress-bar-track">
           <div className="fpm-progress-bar-fill" style={{ width: `${coveragePct}%` }} />
@@ -402,7 +624,6 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
         <span className="fpm-progress-label">{coveragePct}%</span>
       </div>
 
-      {/* Accordion list */}
       <div className="fpm-accordion-list">
         {products.map(prod => (
           <ProductAccordionRow
@@ -421,6 +642,8 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
             setLocalPrices={setLocalPrices}
             isExpanded={expandedIds.has(prod.id)}
             onToggle={() => toggleProduct(prod.id)}
+            openPopupKey={openPopupKey}
+            setOpenPopupKey={setOpenPopupKey}
           />
         ))}
       </div>
