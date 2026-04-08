@@ -514,17 +514,17 @@ function ProductAccordionRow({
       <div className="fpm-accordion-body">
         <div className="fpm-plans-header">
           <span className="fpm-plans-col-head fpm-ph-duration">الخطة</span>
-          <span className="fpm-plans-col-head">سعر المورد</span>
-          <span className="fpm-plans-col-head">السعر الرسمي</span>
-          <span className="fpm-plans-col-head">إجمالي التكلفة</span>
+          <span className="fpm-plans-col-head fpm-ph-price">سعر المورد</span>
+          <span className="fpm-plans-col-head fpm-ph-price">السعر الرسمي</span>
+          <span className="fpm-plans-col-head fpm-ph-price">إجمالي التكلفة</span>
           <span className="fpm-plans-col-head fpm-ph-mech">آلية التسعير</span>
           <span className="fpm-plans-col-head">المعامل</span>
           <span className="fpm-plans-col-head">السعر المقترح</span>
-          <span className="fpm-plans-col-head">هامش الربح</span>
-          <span className="fpm-plans-col-head">تقييم السعر ؟</span>
+          <span className="fpm-plans-col-head fpm-ph-margin">هامش الربح</span>
+          <span className="fpm-plans-col-head fpm-ph-status">تقييم السعر</span>
           <span className="fpm-plans-col-head">السعر النهائي</span>
-          <span className="fpm-plans-col-head">الحالة</span>
-          <span className="fpm-plans-col-head">حفظ</span>
+          <span className="fpm-plans-col-head fpm-ph-setstate">الحالة</span>
+          <span className="fpm-plans-col-head fpm-ph-actions">حفظ</span>
         </div>
         {plans.map(plan => {
           const planKey = `${prod.id}_${plan.id}`;
