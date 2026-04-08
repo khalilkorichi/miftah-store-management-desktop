@@ -113,13 +113,11 @@ function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, set
 
       {/* Supplier price */}
       <div className="fpm-plan-col fpm-plan-col-price">
-        <span className="fpm-plan-label">سعر المورد</span>
         <span className="fpm-plan-val">{baseSAR > 0 ? `${fmt(baseSAR)} ر.س` : '—'}</span>
       </div>
 
       {/* Official price */}
       <div className="fpm-plan-col fpm-plan-col-price">
-        <span className="fpm-plan-label">السعر الرسمي</span>
         {officialSAR > 0 ? (
           <div className="fpm-official-wrap">
             <span className="fpm-plan-val fpm-official-val">{fmt(officialSAR)} ر.س</span>
@@ -136,13 +134,11 @@ function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, set
 
       {/* Total cost */}
       <div className="fpm-plan-col fpm-plan-col-price">
-        <span className="fpm-plan-label">إجمالي التكلفة</span>
         <span className="fpm-plan-val">{totalCost > 0 ? `${fmt(totalCost)} ر.س` : '—'}</span>
       </div>
 
       {/* Mechanism + suggested price */}
       <div className="fpm-plan-col fpm-plan-col-mech">
-        <span className="fpm-plan-label">آلية التسعير</span>
         <div className="fpm-mech-row">
           <select
             className="fpm-mech-select"
@@ -173,7 +169,6 @@ function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, set
 
       {/* Margin */}
       <div className="fpm-plan-col fpm-plan-col-margin">
-        <span className="fpm-plan-label">هامش الربح</span>
         {priceForMargin > 0
           ? <span className={`po-margin-badge ${profitMargin >= 0 ? 'positive' : 'negative'}`}>{fmtPct(profitMargin)}%</span>
           : <span className="fpm-empty-dash">—</span>
@@ -182,7 +177,6 @@ function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, set
 
       {/* Status */}
       <div className="fpm-plan-col fpm-plan-col-status">
-        <span className="fpm-plan-label">تقييم السعر</span>
         {pricingStatus
           ? <span className={`po-status-badge po-status-${pricingStatus.type} flex-row align-center gap-1`}>
               <span style={{ display: 'flex' }}>{pricingStatus.icon}</span>
@@ -194,7 +188,6 @@ function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, set
 
       {/* Final price input */}
       <div className="fpm-plan-col fpm-plan-col-final">
-        <span className="fpm-plan-label">السعر النهائي</span>
         <div className="fpm-price-input-wrap">
           <input
             className="fpm-price-input"
