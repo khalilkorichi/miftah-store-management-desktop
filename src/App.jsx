@@ -168,7 +168,7 @@ function App() {
   const [categories, setCategories] = useState(savedData?.categories || DEFAULT_CATEGORIES);
   const [finalPrices, setFinalPrices] = useState(savedData?.finalPrices || {});
   const [customLogo, setCustomLogo] = useState(savedData?.customLogo || null);
-  const [appSettings, setAppSettings] = useState(savedData?.appSettings || {
+  const [appSettings, setAppSettings] = useState({
     accentColor: 'purple',
     fontSize: 'medium',
     compactMode: false,
@@ -178,6 +178,7 @@ function App() {
       { id: 'dz', label: 'الجزائر', tz: 'Africa/Algiers', flag: '🇩🇿', enabled: true },
       { id: 'sa', label: 'السعودية', tz: 'Asia/Riyadh', flag: '🇸🇦', enabled: true },
     ],
+    ...(savedData?.appSettings || {}),
   });
   
   // Custom hook logic for hash-based routing
