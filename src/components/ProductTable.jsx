@@ -299,7 +299,7 @@ function ProductCard({
 
 function ProductTable({
   products, suppliers, durations, exchangeRate, activationMethods = [],
-  categories = [], onAddCategory,
+  categories = [], onAddCategory, onUpdateProductCategory,
   onUpdatePrice, onAddProduct, onDeleteProduct, onDuplicateProduct,
   onUpdateProductName, onUpdateProductUrl, onUpdateProductAccountType, onAddPlan, onDeletePlan,
   onUpdatePlanDuration, onUpdateSupplier, onDeleteSupplier, onAddSupplier,
@@ -581,6 +581,9 @@ function ProductTable({
         requestConfirm={requestConfirm}
         onUpdateSupplierActivationMethod={onUpdateSupplierActivationMethod}
         onUpdateSupplierPlanLink={onUpdateSupplierPlanLink}
+        categories={categories}
+        onAddCategory={onAddCategory}
+        onUpdateCategory={onUpdateProductCategory}
       />
     </div>
   );
