@@ -47,12 +47,18 @@ function migrateData(data) {
     const productsNeedFeatures = data.products.some(p => p.description === undefined || (p.plans || []).some(plan => (plan.features || []).some(f => f.order === undefined)));
     const productsNeedCategory = data.products.some(p => !('categoryId' in p));
     const productsNeedSupplierWarranty = data.products.some(p => (p.plans || []).some(plan => !plan.supplierWarranty));
-    if (productsNeedFeatures || productsNeedCategory || productsNeedSupplierWarranty) {
+    const productsNeedV3 = data.products.some(p =>
+      !('parentId' in p) || !('supplierActivationMethods' in p) || !('supplierLinks' in p)
+    );
+    if (productsNeedFeatures || productsNeedCategory || productsNeedSupplierWarranty || productsNeedV3) {
       data = { ...data, products: data.products.map(p => ({
         ...p,
         description: p.description || '',
         descriptionStyles: p.descriptionStyles || {},
         categoryId: 'categoryId' in p ? p.categoryId : null,
+        parentId: 'parentId' in p ? p.parentId : null,
+        supplierActivationMethods: p.supplierActivationMethods || {},
+        supplierLinks: p.supplierLinks || {},
         plans: (p.plans || []).map(plan => ({
           ...plan,
           supplierWarranty: plan.supplierWarranty || {},
@@ -160,6 +166,7 @@ function App() {
   const [coupons, setCoupons] = useState(savedData?.coupons || DEFAULT_COUPONS);
   const [pricingData, setPricingData] = useState(savedData?.pricingData || DEFAULT_PRICING_DATA);
   const [categories, setCategories] = useState(savedData?.categories || DEFAULT_CATEGORIES);
+  const [finalPrices, setFinalPrices] = useState(savedData?.finalPrices || {});
   const [customLogo, setCustomLogo] = useState(savedData?.customLogo || null);
   const [appSettings, setAppSettings] = useState(savedData?.appSettings || {
     accentColor: 'purple',
@@ -183,11 +190,11 @@ function App() {
 
   // Save data whenever it changes
   useEffect(() => {
-    saveData({ products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories });
+    saveData({ products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices });
     setSaveIndicator(true);
     const timer = setTimeout(() => setSaveIndicator(false), 1500);
     return () => clearTimeout(timer);
-  }, [products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories]);
+  }, [products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices]);
 
   // Apply dark mode class
   useEffect(() => {
@@ -328,7 +335,7 @@ function App() {
       suppliers.forEach((s) => { prices[s.id] = 0; });
       plans = [{ id: 1, durationId: 'month_1', prices }];
     }
-    const newProduct = { id: newId, name, plans, activationMethods, accountType, categoryId };
+    const newProduct = { id: newId, name, plans, activationMethods, supplierActivationMethods: {}, supplierLinks: {}, accountType, categoryId, parentId: null };
     if (storeUrl) newProduct.storeUrl = storeUrl;
     setProducts((prev) => [...prev, newProduct]);
     toast(`تمت إضافة المنتج "${name}" بنجاح`, 'success');
@@ -346,6 +353,14 @@ function App() {
     }
     setCategories((prev) => prev.filter((c) => c.id !== catId));
   }, [products, toast]);
+
+  const handleUpdateProductCategory = useCallback((productId, categoryId) => {
+    setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, categoryId } : p));
+  }, []);
+
+  const handleSetFinalPrices = useCallback((prices) => {
+    setFinalPrices(prices);
+  }, []);
 
   const handleDeleteProduct = useCallback((productId) => {
     const product = products.find((p) => p.id === productId);
@@ -409,7 +424,7 @@ function App() {
         suppliers.forEach((s) => { prices[s.id] = 0; });
         return {
           ...p,
-          plans: [...p.plans, { id: newPlanId, durationId, prices }],
+          plans: [...p.plans, { id: newPlanId, durationId, prices, supplierWarranty: {}, supplierLinks: {} }],
         };
       })
     );
@@ -567,6 +582,61 @@ function App() {
     );
   }, []);
 
+  // === Supplier Activation Methods ===
+  const handleUpdateSupplierActivationMethod = useCallback((productId, supplierId, methodId, add) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        const current = (p.supplierActivationMethods || {})[supplierId] || [];
+        const updated = add
+          ? current.includes(methodId) ? current : [...current, methodId]
+          : current.filter((m) => m !== methodId);
+        return { ...p, supplierActivationMethods: { ...(p.supplierActivationMethods || {}), [supplierId]: updated } };
+      })
+    );
+  }, []);
+
+  // === Branch Management ===
+  const handleAddBranch = useCallback((parentId) => {
+    setProducts((prev) => {
+      const parent = prev.find((p) => p.id === parentId);
+      if (!parent) return prev;
+      const newId = Math.max(0, ...prev.map((p) => p.id)) + 1;
+      const branchPlans = parent.plans.map((plan, i) => ({
+        ...JSON.parse(JSON.stringify(plan)),
+        id: i + 1,
+        prices: Object.fromEntries(suppliers.map((s) => [s.id, 0])),
+        supplierWarranty: {},
+        supplierLinks: {},
+      }));
+      const branch = {
+        id: newId,
+        name: `${parent.name} — فرع`,
+        description: '',
+        descriptionStyles: {},
+        plans: branchPlans,
+        activationMethods: [...(parent.activationMethods || [])],
+        supplierActivationMethods: {},
+        accountType: parent.accountType || 'none',
+        categoryId: parent.categoryId || null,
+        storeUrl: '',
+        parentId,
+      };
+      toast(`تم إنشاء فرع جديد من "${parent.name}"`, 'success');
+      return [...prev, branch];
+    });
+  }, [suppliers, toast]);
+
+  // === Supplier Product Links (per-supplier link for this product) ===
+  const handleUpdateSupplierPlanLink = useCallback((productId, supplierId, url) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        return { ...p, supplierLinks: { ...(p.supplierLinks || {}), [supplierId]: url } };
+      })
+    );
+  }, []);
+
   // === Competitors Management ===
   const handleAddCompetitor = useCallback((productId, name, url) => {
     setProducts((prev) =>
@@ -610,12 +680,18 @@ function App() {
 
   const handleDeleteActivationMethodType = useCallback((methodId) => {
     setActivationMethods((prev) => prev.filter((m) => m.id !== methodId));
-    // Also remove from all products
     setProducts((prev) =>
-      prev.map((p) => ({
-        ...p,
-        activationMethods: (p.activationMethods || []).filter((m) => m !== methodId),
-      }))
+      prev.map((p) => {
+        const updatedSAM = {};
+        Object.entries(p.supplierActivationMethods || {}).forEach(([sid, methods]) => {
+          updatedSAM[sid] = methods.filter((m) => m !== methodId);
+        });
+        return {
+          ...p,
+          activationMethods: (p.activationMethods || []).filter((m) => m !== methodId),
+          supplierActivationMethods: updatedSAM,
+        };
+      })
     );
   }, []);
 
@@ -779,6 +855,10 @@ function App() {
             onDeleteCompetitor={handleDeleteCompetitor}
             onImportProducts={handleImportProducts}
             onAddCategory={handleAddCategory}
+            onUpdateProductCategory={handleUpdateProductCategory}
+            onUpdateSupplierActivationMethod={handleUpdateSupplierActivationMethod}
+            onAddBranch={handleAddBranch}
+            onUpdateSupplierPlanLink={handleUpdateSupplierPlanLink}
           />
           </div>
         )}
@@ -807,6 +887,8 @@ function App() {
             setPricingData={setPricingData}
             coupons={coupons}
             setCoupons={setCoupons}
+            finalPrices={finalPrices}
+            onSetFinalPrices={handleSetFinalPrices}
           />
           </div>
         )}
