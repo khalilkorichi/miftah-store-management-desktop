@@ -4767,6 +4767,42 @@ body {
 .fpm-plan-col-final     { }
 .fpm-plan-col-actions   { justify-content: center; gap: 5px; }
 .fpm-empty-dash { font-size: 13px; color: var(--text-muted); }
+
+/* ── Final Prices Report — 7-column grid (report preview, read-only) ── */
+.fp-report-plans-header,
+.fp-report-plan-row {
+  display: grid;
+  grid-template-columns:
+    70px                /* الخطة            */
+    minmax(95px,1fr)    /* سعر المورد        */
+    minmax(105px,1fr)   /* السعر الرسمي      */
+    minmax(95px,1fr)    /* التكلفة           */
+    minmax(120px,1.4fr) /* سعر البيع النهائي */
+    minmax(80px,0.9fr)  /* هامش الربح        */
+    minmax(90px,1fr);   /* التقييم           */
+  gap: 0 10px;
+  align-items: center;
+}
+.fp-report-plans-header {
+  padding: 8px 20px;
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border-color);
+}
+.fp-report-plan-row {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.12s;
+}
+.fp-report-plan-row:last-child { border-bottom: none; }
+.fp-report-plan-row:hover { background: var(--bg-hover); }
+.fp-report-ph-final { color: var(--accent-purple) !important; font-weight: 800 !important; }
+.fp-report-val-final {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--accent-purple);
+  direction: ltr;
+  white-space: nowrap;
+}
 .fpm-status-pending {
   font-size: 11px;
   color: var(--text-muted);
