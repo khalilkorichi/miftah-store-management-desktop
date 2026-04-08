@@ -43,6 +43,18 @@ function computeTotalCost(baseSAR, costs) {
   return baseSAR + fixed + (suggested * percents);
 }
 
+function computeFixedCosts(costs) {
+  let fixed = 0;
+  costs.filter(c => c.active && c.type === 'fixed').forEach(c => { fixed += c.value; });
+  return fixed;
+}
+
+function computePercentCosts(costs) {
+  let pct = 0;
+  costs.filter(c => c.active && c.type === 'percentage').forEach(c => { pct += c.value; });
+  return pct;
+}
+
 function getPricingStatus(finalPrice, totalCost, suggested) {
   if (!finalPrice || finalPrice <= 0) return null;
   if (finalPrice < totalCost)       return { label: 'تحت التكلفة', type: 'danger',  icon: <TrendingDownIcon  className="icon-xs" /> };
@@ -286,7 +298,7 @@ function PlanRow({
   planKey, plan, getDurationLabel, baseSAR, costs,
   rowMech, setRowMechs, localPrices, setLocalPrices,
   finalPrices, onSetFinalPrices, exchangeRate,
-  openPopupKey, setOpenPopupKey,
+  onOpenPopup,
 }) {
   const totalCost      = computeTotalCost(baseSAR, costs);
   const suggested      = computeSuggested(rowMech.mechanism, baseSAR, costs, rowMech);
@@ -294,9 +306,9 @@ function PlanRow({
   const finalVal       = parseFloat(localPrices[planKey]);
   const savedFinal     = finalPrices[planKey];
   const isSet          = savedFinal !== undefined;
-  const priceForMargin = isSet ? savedFinal : (isNaN(finalVal) ? 0 : finalVal);
+  const priceForMargin = isSet && savedFinal > 0 ? savedFinal : 0;
   const profitMargin   = priceForMargin > 0 ? ((priceForMargin - totalCost) / priceForMargin) * 100 : 0;
-  const pricingStatus  = getPricingStatus(priceForMargin, totalCost, suggested);
+  const pricingStatus  = isSet && priceForMargin > 0 ? getPricingStatus(priceForMargin, totalCost, suggested) : null;
   const diffFromOfficial = officialSAR > 0 && priceForMargin > 0 ? priceForMargin - officialSAR : null;
 
   const handleSave = () => {
@@ -311,147 +323,138 @@ function PlanRow({
   };
 
   const handleStatusClick = () => {
-    setOpenPopupKey(prev => prev === planKey ? null : planKey);
+    if (!pricingStatus) return;
+    const explanation = getPricingExplanation(baseSAR, costs, rowMech, officialSAR, priceForMargin, totalCost, suggested);
+    onOpenPopup(explanation);
   };
 
-  const popupData = openPopupKey === planKey
-    ? getPricingExplanation(baseSAR, costs, rowMech, officialSAR, priceForMargin, totalCost, suggested)
-    : null;
-
   return (
-    <>
-      <div className="fpm-plan-row">
-        {/* Duration */}
-        <div className="fpm-plan-col fpm-plan-col-duration">
-          <span className="fpm-plan-badge">{getDurationLabel(plan.durationId)}</span>
-        </div>
+    <div className="fpm-plan-row">
+      {/* Duration */}
+      <div className="fpm-plan-col fpm-plan-col-duration">
+        <span className="fpm-plan-badge">{getDurationLabel(plan.durationId)}</span>
+      </div>
 
-        {/* Supplier price */}
-        <div className="fpm-plan-col fpm-plan-col-price">
-          <span className="fpm-plan-val">{baseSAR > 0 ? `${fmt(baseSAR)} ر.س` : '—'}</span>
-        </div>
+      {/* Supplier price */}
+      <div className="fpm-plan-col fpm-plan-col-price">
+        <span className="fpm-plan-val">{baseSAR > 0 ? `${fmt(baseSAR)} ر.س` : '—'}</span>
+      </div>
 
-        {/* Official price — comparison only */}
-        <div className="fpm-plan-col fpm-plan-col-price">
-          {officialSAR > 0 ? (
-            <div className="fpm-official-wrap">
-              <span className="fpm-plan-val fpm-official-val">{fmt(officialSAR)} ر.س</span>
-              {diffFromOfficial !== null && (
-                <span className={`fpm-official-diff ${diffFromOfficial > 0 ? 'above' : diffFromOfficial < 0 ? 'below' : 'equal'}`}>
-                  {diffFromOfficial > 0 ? `+${fmt(diffFromOfficial)}` : fmt(diffFromOfficial)}
-                </span>
-              )}
-            </div>
-          ) : (
-            <span className="fpm-empty-dash">—</span>
-          )}
-        </div>
-
-        {/* Total cost */}
-        <div className="fpm-plan-col fpm-plan-col-price">
-          <span className="fpm-plan-val">{totalCost > 0 ? `${fmt(totalCost)} ر.س` : '—'}</span>
-        </div>
-
-        {/* Mechanism selector */}
-        <div className="fpm-plan-col fpm-plan-col-mech">
-          <select
-            className="fpm-mech-select"
-            value={rowMech.mechanism}
-            onChange={e => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], mechanism: e.target.value } }))}
-          >
-            {MECHANISM_OPTIONS.map(opt => (
-              <option key={opt.id} value={opt.id}>{opt.icon} {opt.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Mechanism params */}
-        <div className="fpm-plan-col fpm-plan-col-params">
-          <MechanismParamInputs
-            mechanism={rowMech.mechanism}
-            params={rowMech}
-            onChange={fields => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], ...fields } }))}
-          />
-        </div>
-
-        {/* Suggested price */}
-        <div className="fpm-plan-col fpm-plan-col-suggested">
-          {suggested > 0 ? (
-            <div className="fpm-suggested-wrap">
-              <span className="fpm-suggested-val">{fmt(suggested)} ر.س</span>
-              <button
-                className="fpm-use-btn"
-                title="استخدم هذا السعر كسعر نهائي"
-                onClick={() => setLocalPrices(prev => ({ ...prev, [planKey]: fmt(suggested) }))}
-              >←</button>
-            </div>
-          ) : (
-            <span className="fpm-empty-dash">—</span>
-          )}
-        </div>
-
-        {/* Margin */}
-        <div className="fpm-plan-col fpm-plan-col-margin">
-          {priceForMargin > 0
-            ? <span className={`po-margin-badge ${profitMargin >= 0 ? 'positive' : 'negative'}`}>{fmtPct(profitMargin)}%</span>
-            : <span className="fpm-empty-dash">—</span>
-          }
-        </div>
-
-        {/* Status — clickable */}
-        <div className="fpm-plan-col fpm-plan-col-status">
-          {pricingStatus ? (
-            <button
-              className={`po-status-badge po-status-${pricingStatus.type} fpm-status-clickable flex-row align-center gap-1`}
-              onClick={handleStatusClick}
-              title="انقر لعرض تفاصيل التقييم"
-            >
-              <span style={{ display: 'flex' }}>{pricingStatus.icon}</span>
-              {pricingStatus.label}
-              <span className="fpm-status-hint">؟</span>
-            </button>
-          ) : (
-            <span className="fpm-empty-dash">—</span>
-          )}
-        </div>
-
-        {/* Final price input */}
-        <div className="fpm-plan-col fpm-plan-col-final">
-          <div className="fpm-price-input-wrap">
-            <input
-              className="fpm-price-input"
-              type="number" min="0" step="0.01" placeholder="0.00"
-              value={localPrices[planKey] ?? (isSet ? savedFinal : '')}
-              onChange={e => setLocalPrices(prev => ({ ...prev, [planKey]: e.target.value }))}
-              onKeyDown={e => e.key === 'Enter' && handleSave()}
-            />
-            <span className="fpm-currency">ر.س</span>
+      {/* Official price — comparison only */}
+      <div className="fpm-plan-col fpm-plan-col-price">
+        {officialSAR > 0 ? (
+          <div className="fpm-official-wrap">
+            <span className="fpm-plan-val fpm-official-val">{fmt(officialSAR)} ر.س</span>
+            {diffFromOfficial !== null && (
+              <span className={`fpm-official-diff ${diffFromOfficial > 0 ? 'above' : diffFromOfficial < 0 ? 'below' : 'equal'}`}>
+                {diffFromOfficial > 0 ? `+${fmt(diffFromOfficial)}` : fmt(diffFromOfficial)}
+              </span>
+            )}
           </div>
-        </div>
+        ) : (
+          <span className="fpm-empty-dash">—</span>
+        )}
+      </div>
 
-        {/* Set status */}
-        <div className="fpm-plan-col fpm-plan-col-setstate">
-          {isSet
-            ? <span className="fpm-status-set"><CheckCircleIcon className="icon-xs" />{fmt(savedFinal)} ر.س</span>
-            : <span className="fpm-status-unset">لم يُحدَّد</span>
-          }
-        </div>
+      {/* Total cost */}
+      <div className="fpm-plan-col fpm-plan-col-price">
+        <span className="fpm-plan-val">{totalCost > 0 ? `${fmt(totalCost)} ر.س` : '—'}</span>
+      </div>
 
-        {/* Save / Clear */}
-        <div className="fpm-plan-col fpm-plan-col-actions">
-          <button className="fpm-save-row-btn" onClick={handleSave}>حفظ</button>
-          {isSet && <button className="fpm-clear-btn" onClick={handleClear} title="مسح">×</button>}
+      {/* Mechanism selector */}
+      <div className="fpm-plan-col fpm-plan-col-mech">
+        <select
+          className="fpm-mech-select"
+          value={rowMech.mechanism}
+          onChange={e => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], mechanism: e.target.value } }))}
+        >
+          {MECHANISM_OPTIONS.map(opt => (
+            <option key={opt.id} value={opt.id}>{opt.icon} {opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Mechanism params */}
+      <div className="fpm-plan-col fpm-plan-col-params">
+        <MechanismParamInputs
+          mechanism={rowMech.mechanism}
+          params={rowMech}
+          onChange={fields => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], ...fields } }))}
+        />
+      </div>
+
+      {/* Suggested price */}
+      <div className="fpm-plan-col fpm-plan-col-suggested">
+        {suggested > 0 ? (
+          <div className="fpm-suggested-wrap">
+            <span className="fpm-suggested-val">{fmt(suggested)} ر.س</span>
+            <button
+              className="fpm-use-btn"
+              title="استخدم هذا السعر كسعر نهائي"
+              onClick={() => setLocalPrices(prev => ({ ...prev, [planKey]: fmt(suggested) }))}
+            >←</button>
+          </div>
+        ) : (
+          <span className="fpm-empty-dash">—</span>
+        )}
+      </div>
+
+      {/* Margin */}
+      <div className="fpm-plan-col fpm-plan-col-margin">
+        {priceForMargin > 0
+          ? <span className={`po-margin-badge ${profitMargin >= 0 ? 'positive' : 'negative'}`}>{fmtPct(profitMargin)}%</span>
+          : <span className="fpm-empty-dash">—</span>
+        }
+      </div>
+
+      {/* Final price input */}
+      <div className="fpm-plan-col fpm-plan-col-final">
+        <div className="fpm-price-input-wrap">
+          <input
+            className="fpm-price-input"
+            type="number" min="0" step="0.01" placeholder="0.00"
+            value={localPrices[planKey] ?? (isSet ? savedFinal : '')}
+            onChange={e => setLocalPrices(prev => ({ ...prev, [planKey]: e.target.value }))}
+            onKeyDown={e => e.key === 'Enter' && handleSave()}
+          />
+          <span className="fpm-currency">ر.س</span>
         </div>
       </div>
 
-      {/* Popup rendered when this row is open */}
-      {popupData && (
-        <PricingStatusPopup
-          data={popupData}
-          onClose={() => setOpenPopupKey(null)}
-        />
-      )}
-    </>
+      {/* Set status */}
+      <div className="fpm-plan-col fpm-plan-col-setstate">
+        {isSet
+          ? <span className="fpm-status-set"><CheckCircleIcon className="icon-xs" />{fmt(savedFinal)} ر.س</span>
+          : <span className="fpm-status-unset">لم يُحدَّد</span>
+        }
+      </div>
+
+      {/* Status — clickable, shown only after price is saved */}
+      <div className="fpm-plan-col fpm-plan-col-status">
+        {pricingStatus ? (
+          <button
+            className={`po-status-badge po-status-${pricingStatus.type} fpm-status-clickable flex-row align-center gap-1`}
+            onClick={handleStatusClick}
+            title="انقر لعرض تفاصيل التقييم"
+            type="button"
+          >
+            <span style={{ display: 'flex' }}>{pricingStatus.icon}</span>
+            {pricingStatus.label}
+            <span className="fpm-status-hint">؟</span>
+          </button>
+        ) : (
+          <span className="fpm-empty-dash fpm-status-pending" title={!isSet ? 'احفظ السعر أولاً لتفعيل التقييم' : ''}>
+            {!isSet ? 'بعد الحفظ' : '—'}
+          </span>
+        )}
+      </div>
+
+      {/* Save / Clear */}
+      <div className="fpm-plan-col fpm-plan-col-actions">
+        <button className="fpm-save-row-btn" onClick={handleSave}>حفظ</button>
+        {isSet && <button className="fpm-clear-btn" onClick={handleClear} title="مسح">×</button>}
+      </div>
+    </div>
   );
 }
 
@@ -460,7 +463,7 @@ function ProductAccordionRow({
   prod, durations, suppliers, costs, pricingData, exchangeRate,
   finalPrices, onSetFinalPrices, rowMechs, setRowMechs,
   localPrices, setLocalPrices, isExpanded, onToggle,
-  openPopupKey, setOpenPopupKey,
+  onOpenPopup,
 }) {
   const plans = prod.plans || [];
 
@@ -521,9 +524,9 @@ function ProductAccordionRow({
           <span className="fpm-plans-col-head">المعامل</span>
           <span className="fpm-plans-col-head">السعر المقترح</span>
           <span className="fpm-plans-col-head fpm-ph-margin">هامش الربح</span>
-          <span className="fpm-plans-col-head fpm-ph-status">تقييم السعر</span>
           <span className="fpm-plans-col-head">السعر النهائي</span>
           <span className="fpm-plans-col-head fpm-ph-setstate">الحالة</span>
+          <span className="fpm-plans-col-head fpm-ph-status">تقييم السعر</span>
           <span className="fpm-plans-col-head fpm-ph-actions">حفظ</span>
         </div>
         {plans.map(plan => {
@@ -545,8 +548,7 @@ function ProductAccordionRow({
               finalPrices={finalPrices}
               onSetFinalPrices={onSetFinalPrices}
               exchangeRate={exchangeRate}
-              openPopupKey={openPopupKey}
-              setOpenPopupKey={setOpenPopupKey}
+              onOpenPopup={onOpenPopup}
             />
           );
         })}
@@ -565,8 +567,8 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
     }));
     return init;
   });
-  const [localPrices, setLocalPrices]   = useState({});
-  const [openPopupKey, setOpenPopupKey] = useState(null);
+  const [localPrices, setLocalPrices] = useState({});
+  const [popupData, setPopupData]     = useState(null);
 
   useEffect(() => {
     const init = {}, mechInit = {};
@@ -642,11 +644,15 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
             setLocalPrices={setLocalPrices}
             isExpanded={expandedIds.has(prod.id)}
             onToggle={() => toggleProduct(prod.id)}
-            openPopupKey={openPopupKey}
-            setOpenPopupKey={setOpenPopupKey}
+            onOpenPopup={setPopupData}
           />
         ))}
       </div>
+
+      {/* Single top-level pricing status popup */}
+      {popupData && (
+        <PricingStatusPopup data={popupData} onClose={() => setPopupData(null)} />
+      )}
     </div>
   );
 }
