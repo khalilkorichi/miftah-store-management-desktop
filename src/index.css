@@ -4292,11 +4292,55 @@ body {
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
 }
-.fpm-tr:last-child .fpm-td { border-bottom: none; }
-.fpm-tr:hover { background: var(--bg-hover); }
-.fpm-product-name {
-  font-weight: 700;
+.fpm-tr { transition: background 0.12s; }
+.fpm-tr:hover .fpm-td { background: var(--bg-hover); }
+.fpm-group-first .fpm-td {
+  border-top: 2px solid var(--border-color);
+}
+.fpm-group-last .fpm-td {
+  border-bottom: 2px solid var(--border-color);
+}
+.fpm-td-product {
+  min-width: 150px;
+  max-width: 180px;
+  vertical-align: middle;
+}
+.fpm-product-name-cell {
+  background: var(--bg-input) !important;
+}
+.fpm-tr:hover .fpm-product-name-cell {
+  background: var(--bg-hover) !important;
+}
+.fpm-product-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.fpm-product-name-text {
+  font-weight: 800;
   font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+.fpm-product-plans-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1px 6px;
+  width: fit-content;
+}
+.fpm-product-cont-cell {
+  background: transparent;
+}
+.fpm-product-cont-line {
+  width: 2px;
+  height: 100%;
+  min-height: 20px;
+  background: var(--border-color);
+  border-radius: 2px;
+  margin: 0 auto;
 }
 .fpm-plan-badge {
   display: inline-flex;
