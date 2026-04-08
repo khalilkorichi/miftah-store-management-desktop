@@ -4719,13 +4719,21 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 .fpm-plans-col-head {
+  display: flex;
+  align-items: center;
   font-size: 11px;
   font-weight: 700;
   color: var(--text-muted);
-  text-align: right;
   white-space: nowrap;
+  overflow: hidden;
 }
-.fpm-ph-mech { /* text-align default */ }
+/* Per-column header alignment — mirrors data cells exactly */
+.fpm-ph-duration  { justify-content: center; }
+.fpm-ph-price     { justify-content: center; }
+.fpm-ph-margin    { justify-content: center; }
+.fpm-ph-status    { justify-content: center; }
+.fpm-ph-setstate  { justify-content: center; }
+.fpm-ph-actions   { justify-content: center; }
 
 /* ── Individual plan row ── */
 .fpm-plan-row {
@@ -4740,6 +4748,7 @@ body {
   flex-direction: row;
   align-items: center;
   min-width: 0;
+  overflow: hidden;
 }
 .fpm-plan-val {
   font-size: 12px;
@@ -4748,11 +4757,17 @@ body {
   direction: ltr;
   white-space: nowrap;
 }
-.fpm-plan-col-duration { justify-content: center; }
-.fpm-plan-col-mech { }
-.fpm-plan-col-params { }
+/* Per-column data cell alignment */
+.fpm-plan-col-duration  { justify-content: center; }
+.fpm-plan-col-price     { justify-content: center; }
+.fpm-plan-col-margin    { justify-content: center; }
+.fpm-plan-col-status    { justify-content: center; }
+.fpm-plan-col-setstate  { justify-content: center; }
+.fpm-plan-col-mech      { }
+.fpm-plan-col-params    { }
 .fpm-plan-col-suggested { }
-.fpm-plan-col-actions { gap: 5px; justify-content: flex-start; }
+.fpm-plan-col-final     { }
+.fpm-plan-col-actions   { justify-content: center; gap: 5px; }
 .fpm-empty-dash { font-size: 13px; color: var(--text-muted); }
 .fpm-official-wrap { display: flex; flex-direction: column; gap: 2px; }
 .fpm-official-val { color: var(--accent-blue) !important; }
