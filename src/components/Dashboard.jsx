@@ -292,7 +292,7 @@ function Dashboard({
                   const parts = alert.text.split(' - ');
                   const productName = parts[0];
                   const desc = parts.slice(1).join(' - ');
-                  const typeLabel = alert.type === 'danger' ? 'خطر' : alert.type === 'warning' ? 'تحذير' : 'معلومة';
+                  const typeLabel = alert.type === 'danger' ? 'خطر' : alert.type === 'warning' ? 'تحذير' : 'يحتاج تسعير';
                   return (
                     <div key={idx} className={`dash-alert-item alert-${alert.type}`} onClick={() => onNavigate(alert.action)}>
                       <span className="dash-alert-icon-wrap">{alert.icon}</span>
