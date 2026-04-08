@@ -4725,7 +4725,6 @@ body {
   font-weight: 700;
   color: var(--text-muted);
   white-space: nowrap;
-  overflow: hidden;
 }
 /* Per-column header alignment — mirrors data cells exactly */
 .fpm-ph-duration  { justify-content: center; }
@@ -4748,7 +4747,6 @@ body {
   flex-direction: row;
   align-items: center;
   min-width: 0;
-  overflow: hidden;
 }
 .fpm-plan-val {
   font-size: 12px;
