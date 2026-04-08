@@ -4443,11 +4443,11 @@ body {
 .fpm-mech-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 5px;
+  flex-wrap: nowrap;
 }
 .fpm-mech-select {
-  padding: 4px 8px;
+  padding: 4px 6px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
   background: var(--bg-input);
@@ -4457,7 +4457,8 @@ body {
   font-weight: 600;
   cursor: pointer;
   outline: none;
-  min-width: 130px;
+  min-width: 110px;
+  max-width: 120px;
   transition: border-color 0.15s;
 }
 .fpm-mech-select:focus { border-color: var(--accent-blue); }
@@ -4721,26 +4722,21 @@ body {
 .fpm-plan-row:hover { background: var(--bg-hover); }
 .fpm-plan-col {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
   padding-left: 8px;
 }
 .fpm-plan-col:first-child { padding-left: 0; }
-.fpm-plan-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  font-weight: 600;
-}
 .fpm-plan-val {
   font-size: 12px;
   font-weight: 700;
   color: var(--text-secondary);
   direction: ltr;
-  text-align: right;
+  white-space: nowrap;
 }
 .fpm-plan-col-duration { justify-content: center; }
-.fpm-plan-col-mech { flex-direction: column; gap: 4px; padding-left: 8px; }
-.fpm-plan-col-actions { flex-direction: row; gap: 5px; align-items: center; justify-content: flex-start; }
+.fpm-plan-col-mech { padding-left: 8px; }
+.fpm-plan-col-actions { gap: 5px; justify-content: flex-start; }
 .fpm-empty-dash { font-size: 13px; color: var(--text-muted); }
 .fpm-official-wrap { display: flex; flex-direction: column; gap: 2px; }
 .fpm-official-val { color: var(--accent-blue) !important; }
