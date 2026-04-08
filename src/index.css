@@ -743,14 +743,15 @@ body {
 .filter-panel-row {
   display: flex;
   align-items: flex-end;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 .filter-group {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  min-width: 140px;
+  flex: 1;
+  min-width: 130px;
 }
 .filter-label {
   font-size: 11px;
@@ -4248,20 +4249,17 @@ body {
 .pdm-supplier-name-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
 }
 .pdm-supplier-name {
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
-  flex: 1;
 }
 /* Row 2: avg + method btn */
 .pdm-supplier-avg-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
 }
 .pdm-supplier-avg {
@@ -4608,6 +4606,68 @@ body {
   color: var(--accent-green, #11BA65);
   font-weight: 700;
   background: color-mix(in srgb, var(--accent-green, #11BA65) 10%, transparent);
+}
+
+/* ── Paste button ── */
+.paste-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.paste-btn:hover {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  background: rgba(94,79,222,.07);
+}
+.paste-btn:active {
+  background: rgba(94,79,222,.14);
+  transform: scale(0.92);
+}
+
+/* wrapper for name input + paste btn */
+.inline-edit-with-paste {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.inline-edit-with-paste .inline-edit-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* PDM price edit area with paste btn */
+.pdm-price-edit-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.pdm-price-edit-wrap .pdm-price-input {
+  width: 100%;
+}
+.pdm-price-edit-wrap .paste-btn {
+  width: auto;
+  padding: 1px 8px;
+  font-size: 11px;
+  height: 20px;
+  gap: 4px;
+}
+.pdm-price-edit-wrap .paste-btn::after {
+  content: 'لصق';
+  font-size: 10px;
+  font-family: var(--font-family);
 }
 
 /* ── PDM supplier links ── */

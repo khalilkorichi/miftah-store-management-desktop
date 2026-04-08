@@ -1,8 +1,22 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   XIcon, TagIcon, StarIcon, ShieldCheckIcon, UserIcon, UsersIcon,
-  EditIcon, PlusIcon, TrashIcon, ChevronDownIcon, LinkIcon, ExternalLinkIcon
+  EditIcon, PlusIcon, TrashIcon, ChevronDownIcon, LinkIcon, ExternalLinkIcon, ClipboardIcon
 } from './Icons';
+
+function PasteBtn({ onPaste }) {
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) onPaste(text.trim());
+    } catch { /* denied */ }
+  };
+  return (
+    <button type="button" className="paste-btn" onClick={handlePaste} title="لصق من الحافظة">
+      <ClipboardIcon className="icon-xs" />
+    </button>
+  );
+}
 
 const fmtNum = (val) => {
   if (val === null || val === undefined) return '0';
@@ -321,6 +335,7 @@ function ProductDetailModal({
                                 dir="ltr"
                                 autoFocus
                               />
+                              <PasteBtn onPaste={(t) => setSupplierLinkInput(t)} />
                               <button className="pdm-sup-link-save" onClick={() => { onUpdateSupplierPlanLink?.(product.id, supplier.id, supplierLinkInput.trim()); setEditingSupplierLink(null); }}>✓</button>
                               <button className="pdm-sup-link-cancel" onClick={() => setEditingSupplierLink(null)}>✕</button>
                             </div>
@@ -358,16 +373,19 @@ function ProductDetailModal({
                         return (
                           <td key={plan.id} className={`pdm-td-price ${isBest ? 'pdm-best' : ''} ${priceUsd === 0 ? 'pdm-empty' : ''}`}>
                             {editingCell === cellKey ? (
-                              <input
-                                type="number"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => { onUpdatePrice(product.id, plan.id, supplier.id, editValue); setEditingCell(null); }}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { onUpdatePrice(product.id, plan.id, supplier.id, editValue); setEditingCell(null); } }}
-                                step="0.01" min="0" autoFocus
-                                className="pdm-price-input"
-                                dir="ltr"
-                              />
+                              <div className="pdm-price-edit-wrap">
+                                <input
+                                  type="number"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() => { onUpdatePrice(product.id, plan.id, supplier.id, editValue); setEditingCell(null); }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') { onUpdatePrice(product.id, plan.id, supplier.id, editValue); setEditingCell(null); } }}
+                                  step="0.01" min="0" autoFocus
+                                  className="pdm-price-input"
+                                  dir="ltr"
+                                />
+                                <PasteBtn onPaste={(t) => setEditValue(t)} />
+                              </div>
                             ) : (
                               <button className="pdm-price-btn" onClick={() => { setEditingCell(cellKey); setEditValue((priceUsd || 0).toString()); }}>
                                 {priceUsd > 0 ? (

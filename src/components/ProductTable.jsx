@@ -11,8 +11,24 @@ import {
   TagIcon, ChevronDownIcon, ChevronLeftIcon, TrashIcon, PlusCircleIcon,
   EyeIcon, StarIcon, PackageIcon, SearchIcon, PlusIcon, SettingsIcon,
   UserIcon, UsersIcon, CopyIcon, UploadIcon, ShieldCheckIcon,
-  FilterIcon, GitBranchIcon, SortIcon
+  FilterIcon, GitBranchIcon, SortIcon, ClipboardIcon
 } from './Icons';
+
+function PasteBtn({ onPaste, className = '' }) {
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) onPaste(text.trim());
+    } catch {
+      // clipboard access denied
+    }
+  };
+  return (
+    <button type="button" className={`paste-btn ${className}`} onClick={handlePaste} title="لصق من الحافظة">
+      <ClipboardIcon className="icon-xs" />
+    </button>
+  );
+}
 
 const fmtNum = (val) => {
   if (val === null || val === undefined) return '0';
@@ -179,16 +195,19 @@ function ProductCard({
           <span className="product-card-index">{isBranch ? '↳' : index + 1}</span>
           <div className="product-card-name-area">
             {editingName === product.id ? (
-              <input
-                type="text"
-                value={editNameValue}
-                onChange={(e) => setEditNameValue(e.target.value)}
-                onBlur={handleSaveName}
-                onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
-                autoFocus
-                className="inline-edit-input product-card-name-input"
-                dir="rtl"
-              />
+              <div className="inline-edit-with-paste">
+                <input
+                  type="text"
+                  value={editNameValue}
+                  onChange={(e) => setEditNameValue(e.target.value)}
+                  onBlur={handleSaveName}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                  autoFocus
+                  className="inline-edit-input product-card-name-input"
+                  dir="rtl"
+                />
+                <PasteBtn onPaste={(t) => setEditNameValue(t)} />
+              </div>
             ) : (
               <h3 className="product-card-name" onClick={handleStartEditName} title="انقر للتعديل">
                 {product.name}
@@ -231,7 +250,7 @@ function ProductCard({
           </div>
         )}
         <div className="product-card-quick-actions">
-          <button className="btn-chip-action" onClick={() => setActivationModalProduct(product)} title="إدارة طرق التفعيل">
+          <button className="btn-chip-action" onClick={() => setActivationModalProduct({ id: product.id })} title="إدارة طرق التفعيل">
             {assignedMethods.length === 0 ? <><PlusCircleIcon className="icon-xs" /> طريقة تفعيل</> : <><SettingsIcon className="icon-xs" /> التفعيل</>}
           </button>
           <button className="btn-chip-action competitors" onClick={() => setCompetitorsModalProduct(product)} title="مراقبة المنافسين">
@@ -297,11 +316,11 @@ function ProductTable({
   const [editSupplierValue, setEditSupplierValue] = useState('');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showAddSupplier, setShowAddSupplier] = useState(false);
-  const [activationModalProduct, setActivationModalProduct] = useState(null);
   const [competitorsModalProduct, setCompetitorsModalProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [detailModalProductId, setDetailModalProductId] = useState(null);
+  const [activationModalProductId, setActivationModalProductId] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filterSupplier, setFilterSupplier] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -309,6 +328,7 @@ function ProductTable({
   const [sortBy, setSortBy] = useState('default'); // default | name_asc | name_desc | price_asc | price_desc
 
   const detailModalProduct = detailModalProductId ? products.find(p => p.id === detailModalProductId) || null : null;
+  const activationModalProduct = activationModalProductId ? products.find(p => p.id === activationModalProductId) || null : null;
 
   const getProductLowestPrice = (p) => {
     let min = Infinity;
@@ -511,7 +531,7 @@ function ProductTable({
                 onUpdateOfficialPrice={onUpdateOfficialPrice}
                 onUpdateWarranty={onUpdateWarranty}
                 requestConfirm={requestConfirm}
-                setActivationModalProduct={setActivationModalProduct}
+                setActivationModalProduct={(p) => setActivationModalProductId(p ? p.id : null)}
                 setCompetitorsModalProduct={setCompetitorsModalProduct}
                 setDetailModalProduct={(p) => setDetailModalProductId(p ? p.id : null)}
                 getDurationLabel={getDurationLabel}
@@ -537,7 +557,7 @@ function ProductTable({
 
       <AddProductModal isOpen={showAddProduct} onClose={() => setShowAddProduct(false)} onConfirm={(productData) => onAddProduct(productData.name, productData.plans, productData.activationMethods, productData.accountType || 'none', productData.storeUrl || '', productData.categoryId || null)} durations={durations} suppliers={suppliers} allMethods={activationMethods} categories={categories} onCreateCategory={onAddCategory} />
       <AddSupplierModal isOpen={showAddSupplier} onClose={() => setShowAddSupplier(false)} onConfirm={(supplierData) => onAddSupplier(supplierData)} />
-      <ActivationMethodsModal isOpen={!!activationModalProduct} product={activationModalProduct} onClose={() => setActivationModalProduct(null)} allMethods={activationMethods} onToggleMethod={onToggleProductMethod} onAddMethodType={onAddActivationMethodType} onDeleteMethodType={onDeleteActivationMethodType} />
+      <ActivationMethodsModal isOpen={!!activationModalProduct} product={activationModalProduct} onClose={() => setActivationModalProductId(null)} allMethods={activationMethods} onToggleMethod={onToggleProductMethod} onAddMethodType={onAddActivationMethodType} onDeleteMethodType={onDeleteActivationMethodType} />
       <CompetitorsModal isOpen={!!competitorsModalProduct} product={competitorsModalProduct} onClose={() => setCompetitorsModalProduct(null)} onAddCompetitor={onAddCompetitor} onUpdateCompetitor={onUpdateCompetitor} onDeleteCompetitor={onDeleteCompetitor} />
       <ConfirmModal isOpen={confirmDialog.isOpen} title={confirmDialog.title} message={confirmDialog.message} onConfirm={confirmDialog.onConfirm} onCancel={closeConfirm} />
       <ImportSallaModal isOpen={showImport} onClose={() => setShowImport(false)} onImport={(importedProducts) => { onImportProducts(importedProducts); setShowImport(false); }} existingProducts={products} durations={durations} suppliers={suppliers} />
