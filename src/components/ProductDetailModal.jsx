@@ -25,6 +25,7 @@ const fmtNum = (val) => {
 
 function ProductDetailModal({
   isOpen, product, suppliers, durations, exchangeRate, activationMethods = [],
+  categories = [], onAddCategory, onUpdateCategory,
   onClose, onUpdatePrice, onUpdateOfficialPrice, onUpdateWarranty, onUpdateSupplierWarranty, onUpdateProductUrl,
   onAddPlan, onDeletePlan, getDurationLabel, getAvailableDurations,
   onUpdateSupplierActivationMethod, onUpdateSupplierPlanLink,
@@ -34,6 +35,8 @@ function ProductDetailModal({
   const [editValue, setEditValue] = useState('');
   const [addingPlan, setAddingPlan] = useState(false);
   const [editingUrl, setEditingUrl] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [warrantyDaysInput, setWarrantyDaysInput] = useState('');
   const [urlValue, setUrlValue] = useState('');
   const [editingSupplierLink, setEditingSupplierLink] = useState(null); // supplierId
@@ -211,29 +214,75 @@ function ProductDetailModal({
             )}
           </div>
 
+          <div className="pdm-category-row">
+            <span className="pdm-category-label">الفئة:</span>
+            {addingCategory ? (
+              <div className="pdm-category-new-input-wrap">
+                <input
+                  className="pdm-category-new-input"
+                  type="text"
+                  placeholder="اسم الفئة الجديدة..."
+                  autoFocus
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newCategoryName.trim()) {
+                      const newCat = { id: `cat_${Date.now()}`, name: newCategoryName.trim(), color: '#6366f1' };
+                      onAddCategory && onAddCategory(newCat);
+                      onUpdateCategory && onUpdateCategory(product.id, newCat.id);
+                      setAddingCategory(false);
+                      setNewCategoryName('');
+                    } else if (e.key === 'Escape') {
+                      setAddingCategory(false);
+                      setNewCategoryName('');
+                    }
+                  }}
+                />
+                <button className="pdm-category-confirm-btn" onClick={() => {
+                  if (newCategoryName.trim()) {
+                    const newCat = { id: `cat_${Date.now()}`, name: newCategoryName.trim(), color: '#6366f1' };
+                    onAddCategory && onAddCategory(newCat);
+                    onUpdateCategory && onUpdateCategory(product.id, newCat.id);
+                    setAddingCategory(false);
+                    setNewCategoryName('');
+                  }
+                }}>✓</button>
+                <button className="pdm-category-cancel-btn" onClick={() => { setAddingCategory(false); setNewCategoryName(''); }}>✕</button>
+              </div>
+            ) : (
+              <>
+                <select
+                  className="pdm-category-select"
+                  value={product.categoryId || ''}
+                  onChange={e => onUpdateCategory && onUpdateCategory(product.id, e.target.value)}
+                >
+                  <option value="">— بدون فئة —</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+                <button className="pdm-category-add-btn" title="إضافة فئة جديدة" onClick={() => setAddingCategory(true)}>+</button>
+              </>
+            )}
+          </div>
+
           <div className="pdm-stats-bar">
             {lowestPrice && (
               <div className="pdm-stat">
                 <span className="pdm-stat-label">أقل سعر</span>
-                <span className="pdm-stat-value best" dir="ltr">${fmtNum(lowestPrice)}</span>
+                <span className="pdm-stat-value best" dir="ltr">{fmtNum(lowestPrice * exchangeRate)} ر.س</span>
               </div>
             )}
             {highestPrice && (
               <div className="pdm-stat">
                 <span className="pdm-stat-label">أعلى سعر</span>
-                <span className="pdm-stat-value" dir="ltr">${fmtNum(highestPrice)}</span>
+                <span className="pdm-stat-value" dir="ltr">{fmtNum(highestPrice * exchangeRate)} ر.س</span>
               </div>
             )}
             <div className="pdm-stat">
               <span className="pdm-stat-label">الموردين</span>
               <span className="pdm-stat-value">{suppliers.length}</span>
             </div>
-            {lowestPrice && (
-              <div className="pdm-stat">
-                <span className="pdm-stat-label">أقل سعر بالريال</span>
-                <span className="pdm-stat-value" dir="ltr">{fmtNum(lowestPrice * exchangeRate)} ﷼</span>
-              </div>
-            )}
           </div>
         </div>
 
