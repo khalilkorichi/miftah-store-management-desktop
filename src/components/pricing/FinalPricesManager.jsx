@@ -80,15 +80,18 @@ function MechanismParamInputs({ mechanism, params, onChange }) {
 /* ══════════════════════════════════════════════
    PLAN SUB-ROW
 ══════════════════════════════════════════════ */
-function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, setRowMechs, localPrices, setLocalPrices, finalPrices, onSetFinalPrices }) {
-  const totalCost  = computeTotalCost(baseSAR, costs);
-  const suggested  = computeSuggested(rowMech.mechanism, baseSAR, costs, rowMech);
-  const finalVal   = parseFloat(localPrices[planKey]);
-  const savedFinal = finalPrices[planKey];
-  const isSet      = savedFinal !== undefined;
+function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, setRowMechs, localPrices, setLocalPrices, finalPrices, onSetFinalPrices, exchangeRate }) {
+  const totalCost     = computeTotalCost(baseSAR, costs);
+  const suggested     = computeSuggested(rowMech.mechanism, baseSAR, costs, rowMech);
+  const officialSAR   = (plan.officialPriceUsd || 0) * exchangeRate;
+  const finalVal      = parseFloat(localPrices[planKey]);
+  const savedFinal    = finalPrices[planKey];
+  const isSet         = savedFinal !== undefined;
   const priceForMargin = isSet ? savedFinal : (isNaN(finalVal) ? 0 : finalVal);
   const profitMargin   = priceForMargin > 0 ? ((priceForMargin - totalCost) / priceForMargin) * 100 : 0;
   const pricingStatus  = getPricingStatus(priceForMargin, totalCost, suggested);
+  // Difference between final/suggested and official price
+  const diffFromOfficial = officialSAR > 0 && priceForMargin > 0 ? priceForMargin - officialSAR : null;
 
   const handleSave = () => {
     const val = parseFloat(localPrices[planKey]);
@@ -112,6 +115,23 @@ function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, set
       <div className="fpm-plan-col fpm-plan-col-price">
         <span className="fpm-plan-label">سعر المورد</span>
         <span className="fpm-plan-val">{baseSAR > 0 ? `${fmt(baseSAR)} ر.س` : '—'}</span>
+      </div>
+
+      {/* Official price */}
+      <div className="fpm-plan-col fpm-plan-col-price">
+        <span className="fpm-plan-label">السعر الرسمي</span>
+        {officialSAR > 0 ? (
+          <div className="fpm-official-wrap">
+            <span className="fpm-plan-val fpm-official-val">{fmt(officialSAR)} ر.س</span>
+            {diffFromOfficial !== null && (
+              <span className={`fpm-official-diff ${diffFromOfficial > 0 ? 'above' : diffFromOfficial < 0 ? 'below' : 'equal'}`}>
+                {diffFromOfficial > 0 ? `+${fmt(diffFromOfficial)}` : fmt(diffFromOfficial)}
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="fpm-empty-dash">—</span>
+        )}
       </div>
 
       {/* Total cost */}
@@ -264,6 +284,7 @@ function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, e
         <div className="fpm-plans-header">
           <span className="fpm-plans-col-head fpm-ph-duration">الخطة</span>
           <span className="fpm-plans-col-head">سعر المورد</span>
+          <span className="fpm-plans-col-head">السعر الرسمي</span>
           <span className="fpm-plans-col-head">إجمالي التكلفة</span>
           <span className="fpm-plans-col-head fpm-ph-mech">آلية التسعير + المقترح</span>
           <span className="fpm-plans-col-head">هامش الربح</span>
@@ -290,6 +311,7 @@ function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, e
               setLocalPrices={setLocalPrices}
               finalPrices={finalPrices}
               onSetFinalPrices={onSetFinalPrices}
+              exchangeRate={exchangeRate}
             />
           );
         })}
