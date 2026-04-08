@@ -70,6 +70,7 @@ function PricingDashboard({
             exchangeRate={exchangeRate}
             pricingData={pricingData}
             finalPrices={finalPrices}
+            onGoToFinalPrices={() => setActiveSubTab('finalprices')}
           />
         )}
         {activeSubTab === 'costs' && (
