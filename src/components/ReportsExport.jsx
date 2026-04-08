@@ -2023,69 +2023,105 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
             </div>
 
             {setPrices > 0 && (
-              <div className="table-wrapper" style={{ marginTop: '16px' }}>
-                <table className="analytics-table grouped-table">
-                  <thead>
-                    <tr>
-                      <th className="th-product">المنتج</th>
-                      <th>الخطة</th>
-                      <th>سعر المورد</th>
-                      <th>التكلفة</th>
-                      <th style={{ background: 'var(--accent-purple, #5E4FDE)', color: '#fff' }}>سعر البيع النهائي</th>
-                      <th style={{ background: 'var(--accent-blue)', color: '#fff' }}>السعر الرسمي</th>
-                      <th>الهامش</th>
-                      <th>التقييم</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const targetProds = selectedFpProduct ? [selectedFpProduct] : products;
-                      return targetProds.flatMap((prod, pi) =>
-                        prod.plans.map((plan, ri) => {
-                          const key = `${prod.id}_${plan.id}`;
-                          const savedConfig = pricingData[prod.id] || {};
-                          const supplierId = savedConfig.primarySupplierId || (() => {
-                            let minP = Infinity, bestId = null;
-                            suppliers.forEach(s => { const p = plan.prices[s.id] || 0; if (p > 0 && p < minP) { minP = p; bestId = s.id; } });
-                            return bestId;
-                          })();
-                          const baseSAR = supplierId ? (plan.prices[supplierId] || 0) * exchangeRate : 0;
-                          const tc = rpComputeTotalCost(baseSAR, costs);
-                          const sg = rpComputeSuggested(baseSAR, costs);
-                          const fp = finalPrices[key];
-                          const officialSAR = (plan.officialPriceUsd || 0) * exchangeRate;
-                          const isSet = fp !== undefined && fp > 0;
-                          const margin = isSet ? ((fp - tc) / fp) * 100 : null;
-                          const statusLabel = isSet ? rpGetStatusLabel(fp, tc, sg) : null;
-                          return (
-                            <tr key={key} style={{ background: pi % 2 === 0 ? 'var(--bg-secondary)' : 'transparent' }}>
-                              {ri === 0 && (
-                                <td rowSpan={prod.plans.length} className="td-product-name-cell" style={{ fontWeight: '700', verticalAlign: 'middle' }}>
-                                  {formatProductName(prod)}
-                                </td>
-                              )}
-                              <td><span className="plan-badge">{getDurationLabel(plan.durationId)}</span></td>
-                              <td className="td-price td-sar">{baseSAR > 0 ? <span className="price-cell">{fmt(baseSAR)}<span className="price-unit-sm"> ر.س</span></span> : <span className="price-not-available">—</span>}</td>
-                              <td className="td-price">{tc > 0 ? <span className="price-cell">{fmt(tc)}<span className="price-unit-sm"> ر.س</span></span> : <span className="price-not-available">—</span>}</td>
-                              <td style={{ fontWeight: '800', color: isSet ? 'var(--accent-purple, #5E4FDE)' : 'var(--text-muted)', textAlign: 'center' }}>
-                                {isSet ? <><span className="price-cell">{fmt(fp)}</span><span className="price-unit-sm"> ر.س</span></> : <span className="price-not-available">بعد الحفظ</span>}
-                              </td>
-                              <td style={{ fontStyle: 'italic', color: 'var(--accent-blue)', textAlign: 'center' }}>
-                                {officialSAR > 0 ? <span className="price-cell">{fmt(officialSAR)}<span className="price-unit-sm"> ر.س</span></span> : <span className="price-not-available">—</span>}
-                              </td>
-                              <td style={{ textAlign: 'center' }}>
-                                {margin !== null ? <span className={`po-margin-badge ${margin >= 0 ? 'positive' : 'negative'}`}>{fmtPct(margin)}%</span> : <span className="price-not-available">—</span>}
-                              </td>
-                              <td style={{ textAlign: 'center' }}>
-                                {statusLabel ? <span className={`po-status-badge po-status-${statusLabel === 'مثالي' ? 'success' : statusLabel === 'يحتاج رفع' ? 'warning' : statusLabel === 'تحت التكلفة' ? 'danger' : 'info'}`}>{statusLabel}</span> : <span className="price-not-available">—</span>}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      );
-                    })()}
-                  </tbody>
-                </table>
+              <div className="fpm-accordion-list" style={{ marginTop: '16px' }}>
+                {(() => {
+                  const targetProds = selectedFpProduct ? [selectedFpProduct] : products;
+                  return targetProds.map(prod => {
+                    const setPricesCount = prod.plans.filter(pl => finalPrices[`${prod.id}_${pl.id}`] > 0).length;
+                    const allSet = setPricesCount === prod.plans.length && prod.plans.length > 0;
+                    const noneSet = setPricesCount === 0;
+                    return (
+                      <div key={prod.id} className="fpm-accordion-item fpm-accordion-open">
+                        <div className="fpm-accordion-header" style={{ cursor: 'default' }}>
+                          <div className="fpm-acc-left">
+                            <div className="fpm-acc-product-info">
+                              <span className="fpm-acc-product-name">{formatProductName(prod)}</span>
+                              <div className="fpm-acc-meta">
+                                <span className="fpm-acc-plans-pill">{prod.plans.length} خطة</span>
+                                {allSet && <span className="fpm-acc-status-pill fpm-acc-status-done">مكتمل ✓</span>}
+                                {!allSet && !noneSet && <span className="fpm-acc-status-pill fpm-acc-status-partial">{setPricesCount}/{prod.plans.length} مسعّر</span>}
+                                {noneSet && <span className="fpm-acc-status-pill fpm-acc-status-none">لم يُسعَّر</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="fpm-accordion-body">
+                          <div className="fp-report-plans-header">
+                            <span className="fpm-plans-col-head fpm-ph-duration">الخطة</span>
+                            <span className="fpm-plans-col-head fpm-ph-price">سعر المورد</span>
+                            <span className="fpm-plans-col-head fpm-ph-price">السعر الرسمي</span>
+                            <span className="fpm-plans-col-head fpm-ph-price">التكلفة</span>
+                            <span className="fpm-plans-col-head fpm-ph-price fp-report-ph-final">سعر البيع النهائي</span>
+                            <span className="fpm-plans-col-head fpm-ph-margin">الهامش</span>
+                            <span className="fpm-plans-col-head fpm-ph-status">التقييم</span>
+                          </div>
+
+                          {prod.plans.map(plan => {
+                            const key = `${prod.id}_${plan.id}`;
+                            const savedConfig = pricingData[prod.id] || {};
+                            const supplierId = savedConfig.primarySupplierId || (() => {
+                              let minP = Infinity, bestId = null;
+                              suppliers.forEach(s => { const p = plan.prices[s.id] || 0; if (p > 0 && p < minP) { minP = p; bestId = s.id; } });
+                              return bestId;
+                            })();
+                            const baseSAR = supplierId ? (plan.prices[supplierId] || 0) * exchangeRate : 0;
+                            const tc = rpComputeTotalCost(baseSAR, costs);
+                            const sg = rpComputeSuggested(baseSAR, costs);
+                            const fp = finalPrices[key];
+                            const officialSAR = (plan.officialPriceUsd || 0) * exchangeRate;
+                            const isSet = fp !== undefined && fp > 0;
+                            const margin = isSet ? ((fp - tc) / fp) * 100 : null;
+                            const statusLabel = isSet ? rpGetStatusLabel(fp, tc, sg) : null;
+                            const diffFromOfficial = officialSAR > 0 && isSet ? fp - officialSAR : null;
+                            return (
+                              <div key={key} className="fp-report-plan-row">
+                                <div className="fpm-plan-col fpm-plan-col-duration">
+                                  <span className="fpm-plan-badge">{getDurationLabel(plan.durationId)}</span>
+                                </div>
+                                <div className="fpm-plan-col fpm-plan-col-price">
+                                  <span className="fpm-plan-val">{baseSAR > 0 ? `${fmt(baseSAR)} ر.س` : '—'}</span>
+                                </div>
+                                <div className="fpm-plan-col fpm-plan-col-price">
+                                  {officialSAR > 0 ? (
+                                    <div className="fpm-official-wrap">
+                                      <span className="fpm-plan-val fpm-official-val">{fmt(officialSAR)} ر.س</span>
+                                      {diffFromOfficial !== null && (
+                                        <span className={`fpm-official-diff ${diffFromOfficial > 0 ? 'above' : diffFromOfficial < 0 ? 'below' : 'equal'}`}>
+                                          {diffFromOfficial > 0 ? `+${fmt(diffFromOfficial)}` : fmt(diffFromOfficial)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="fpm-empty-dash">—</span>
+                                  )}
+                                </div>
+                                <div className="fpm-plan-col fpm-plan-col-price">
+                                  <span className="fpm-plan-val">{tc > 0 ? `${fmt(tc)} ر.س` : '—'}</span>
+                                </div>
+                                <div className="fpm-plan-col fpm-plan-col-price">
+                                  {isSet
+                                    ? <span className="fp-report-val-final">{fmt(fp)} ر.س</span>
+                                    : <span className="fpm-status-pending">بعد الحفظ</span>}
+                                </div>
+                                <div className="fpm-plan-col fpm-plan-col-margin">
+                                  {margin !== null
+                                    ? <span className={`po-margin-badge ${margin >= 0 ? 'positive' : 'negative'}`}>{fmtPct(margin)}%</span>
+                                    : <span className="fpm-empty-dash">—</span>}
+                                </div>
+                                <div className="fpm-plan-col fpm-plan-col-status">
+                                  {statusLabel
+                                    ? <span className={`po-status-badge po-status-${statusLabel === 'مثالي' ? 'success' : statusLabel === 'يحتاج رفع' ? 'warning' : statusLabel === 'تحت التكلفة' ? 'danger' : 'info'}`}>{statusLabel}</span>
+                                    : <span className="fpm-empty-dash">—</span>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             )}
           </div>
