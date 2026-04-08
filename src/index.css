@@ -7540,6 +7540,17 @@ body.dark-mode .selectable-card.selected {
 .po-alert-title { font-size: 13px; font-weight: 700; }
 .po-alert-names { font-size: 11px; font-weight: 500; opacity: 0.75; }
 .po-alert-hint { font-size: 11px; font-weight: 600; opacity: 0.7; white-space: nowrap; align-self: center; }
+.po-alert-nav-btn {
+  flex-shrink: 0; align-self: center;
+  padding: 6px 12px; border-radius: 8px;
+  border: 1px solid currentColor;
+  background: transparent; color: inherit;
+  font-family: var(--font-family); font-size: 11px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  transition: background 0.15s, opacity 0.15s;
+  opacity: 0.85;
+}
+.po-alert-nav-btn:hover { background: rgba(249,75,96,0.12); opacity: 1; }
 
 /* ── Section wrapper ── */
 .po-section { display: flex; flex-direction: column; gap: 12px; }
