@@ -1151,6 +1151,75 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
             <MetricCard label="حالة الوصف" value={product.description ? 'مكتمل' : 'ناقص'} color={product.description ? pdfColors.green : pdfColors.orange} />
           </div>
 
+          <div style={{ marginBottom: '20px', border: `1px solid ${pdfColors.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ background: `${pdfColors.accent}10`, padding: '10px 16px', borderBottom: `1px solid ${pdfColors.border}` }}>
+              <span style={{ fontSize: '13px', fontWeight: '700', color: pdfColors.accent }}>معلومات المنتج</span>
+            </div>
+            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <span style={{ fontSize: '11px', color: pdfColors.muted, fontWeight: '600', minWidth: '90px' }}>مدد الاشتراك</span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {product.plans.map((plan, pi) => (
+                    <span key={pi} style={{ background: `${pdfColors.blue}15`, color: pdfColors.blue, border: `1px solid ${pdfColors.blue}40`, borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: '600' }}>
+                      {getDurationLabel(plan.durationId)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {(product.activationMethods || []).length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '11px', color: pdfColors.muted, fontWeight: '600', minWidth: '90px' }}>طرق التفعيل</span>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {(product.activationMethods || []).map(mId => {
+                      const m = activationMethods.find(x => x.id === mId);
+                      return m ? (
+                        <span key={mId} style={{ background: '#f5f7fa', border: `1px solid ${pdfColors.border}`, borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: '500' }}>
+                          {m.icon} {m.label}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
+              {product.storeUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '11px', color: pdfColors.muted, fontWeight: '600', minWidth: '90px' }}>رابط المتجر</span>
+                  <span style={{ fontSize: '11px', color: pdfColors.blue, direction: 'ltr' }}>{product.storeUrl}</span>
+                </div>
+              )}
+              {product.plans.some(plan => Object.values(plan.supplierWarranty || {}).some(v => v > 0)) && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '11px', color: pdfColors.muted, fontWeight: '600', minWidth: '90px', paddingTop: '4px' }}>الضمان</span>
+                  <table style={{ borderCollapse: 'collapse', fontSize: '11px' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ padding: '3px 10px', background: '#f5f7fa', border: `1px solid ${pdfColors.border}`, fontWeight: '600', textAlign: 'right' }}>المورد</th>
+                        {product.plans.map((plan, pi) => (
+                          <th key={pi} style={{ padding: '3px 10px', background: '#f5f7fa', border: `1px solid ${pdfColors.border}`, fontWeight: '600', textAlign: 'center' }}>{getDurationLabel(plan.durationId)}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {suppliers.map(sup => (
+                        <tr key={sup.id}>
+                          <td style={{ padding: '3px 10px', border: `1px solid ${pdfColors.border}`, fontWeight: '500' }}>{sup.name}</td>
+                          {product.plans.map((plan, pi) => {
+                            const days = (plan.supplierWarranty || {})[sup.id] || 0;
+                            return (
+                              <td key={pi} style={{ padding: '3px 10px', border: `1px solid ${pdfColors.border}`, textAlign: 'center', color: days > 0 ? pdfColors.green : pdfColors.muted, fontWeight: days > 0 ? '600' : '400' }}>
+                                {days > 0 ? `${days} يوم` : '—'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+
           {product.description && (
             <div style={{ marginBottom: '24px' }}>
               <h2 style={{ fontSize: '15px', fontWeight: '700', color: pdfColors.accent, borderBottom: `2px solid ${pdfColors.accent}20`, paddingBottom: '8px', marginBottom: '10px' }}>

@@ -46,7 +46,8 @@ function migrateData(data) {
   if (!needsMigration) {
     const productsNeedFeatures = data.products.some(p => p.description === undefined || (p.plans || []).some(plan => (plan.features || []).some(f => f.order === undefined)));
     const productsNeedCategory = data.products.some(p => !('categoryId' in p));
-    if (productsNeedFeatures || productsNeedCategory) {
+    const productsNeedSupplierWarranty = data.products.some(p => (p.plans || []).some(plan => !plan.supplierWarranty));
+    if (productsNeedFeatures || productsNeedCategory || productsNeedSupplierWarranty) {
       data = { ...data, products: data.products.map(p => ({
         ...p,
         description: p.description || '',
@@ -54,6 +55,7 @@ function migrateData(data) {
         categoryId: 'categoryId' in p ? p.categoryId : null,
         plans: (p.plans || []).map(plan => ({
           ...plan,
+          supplierWarranty: plan.supplierWarranty || {},
           features: (plan.features || []).map((f, i) => ({ ...f, order: f.order !== undefined ? f.order : i + 1 })),
         })),
       })) };
@@ -543,6 +545,28 @@ function App() {
     );
   }, []);
 
+  const handleUpdateSupplierWarranty = useCallback((productId, planId, supplierId, days) => {
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        return {
+          ...p,
+          plans: p.plans.map((plan) =>
+            plan.id === planId
+              ? {
+                  ...plan,
+                  supplierWarranty: {
+                    ...(plan.supplierWarranty || {}),
+                    [supplierId]: Math.max(0, parseInt(days) || 0),
+                  },
+                }
+              : plan
+          ),
+        };
+      })
+    );
+  }, []);
+
   // === Competitors Management ===
   const handleAddCompetitor = useCallback((productId, name, url) => {
     setProducts((prev) =>
@@ -749,6 +773,7 @@ function App() {
             onDeleteActivationMethodType={handleDeleteActivationMethodType}
             onUpdateOfficialPrice={handleUpdateOfficialPrice}
             onUpdateWarranty={handleUpdateWarranty}
+            onUpdateSupplierWarranty={handleUpdateSupplierWarranty}
             onAddCompetitor={handleAddCompetitor}
             onUpdateCompetitor={handleUpdateCompetitor}
             onDeleteCompetitor={handleDeleteCompetitor}
@@ -806,6 +831,7 @@ function App() {
             durations={durations}
             suppliers={suppliers}
             exchangeRate={exchangeRate}
+            activationMethods={activationMethods}
           />
           </div>
         )}

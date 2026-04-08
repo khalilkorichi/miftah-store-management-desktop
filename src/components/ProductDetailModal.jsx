@@ -11,7 +11,7 @@ const fmtNum = (val) => {
 
 function ProductDetailModal({
   isOpen, product, suppliers, durations, exchangeRate, activationMethods = [],
-  onClose, onUpdatePrice, onUpdateOfficialPrice, onUpdateWarranty, onUpdateProductUrl,
+  onClose, onUpdatePrice, onUpdateOfficialPrice, onUpdateWarranty, onUpdateSupplierWarranty, onUpdateProductUrl,
   onAddPlan, onDeletePlan, getDurationLabel, getAvailableDurations,
   requestConfirm
 }) {
@@ -19,6 +19,7 @@ function ProductDetailModal({
   const [editValue, setEditValue] = useState('');
   const [addingPlan, setAddingPlan] = useState(false);
   const [editingUrl, setEditingUrl] = useState(false);
+  const [warrantyDaysInput, setWarrantyDaysInput] = useState('');
   const [urlValue, setUrlValue] = useState('');
 
   const sanitizeUrl = (raw) => {
@@ -227,11 +228,17 @@ function ProductDetailModal({
                       <th key={plan.id} className="pdm-th-plan">
                         <div className="pdm-plan-header-cell">
                           <span className="pdm-plan-duration">{getDurationLabel(plan.durationId)}</span>
-                          {plan.warrantyDays > 0 && (
-                            <span className="pdm-plan-warranty">
-                              <ShieldCheckIcon className="icon-xs" /> {plan.warrantyDays} يوم
-                            </span>
-                          )}
+                          {(() => {
+                            const vals = Object.values(plan.supplierWarranty || {}).filter(v => v > 0);
+                            if (vals.length === 0) return null;
+                            const minW = Math.min(...vals), maxW = Math.max(...vals);
+                            return (
+                              <span className="pdm-plan-warranty">
+                                <ShieldCheckIcon className="icon-xs" />
+                                {minW === maxW ? `${minW} يوم` : `${minW}–${maxW} يوم`}
+                              </span>
+                            );
+                          })()}
                           {plan.officialPriceUsd > 0 && (
                             <span className="pdm-plan-official" dir="ltr">
                               الرسمي: ${fmtNum(plan.officialPriceUsd)}
@@ -326,22 +333,51 @@ function ProductDetailModal({
                       )}
                     </div>
                     <div className="pdm-plan-card-body">
-                      <div className="pdm-plan-card-row">
-                        <span className="pdm-plan-card-label"><ShieldCheckIcon className="icon-xs" /> الضمان</span>
-                        {editingCell === `warranty-${plan.id}` ? (
-                          <div className="pdm-warranty-edit">
-                            <input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => { onUpdateWarranty(product.id, plan.id, editValue); setEditingCell(null); }}
-                              onKeyDown={(e) => { if (e.key === 'Enter') { onUpdateWarranty(product.id, plan.id, editValue); setEditingCell(null); } }}
-                              min="0" max="365" autoFocus className="pdm-warranty-input" dir="ltr" />
-                            <span>يوم</span>
-                          </div>
-                        ) : (
-                          <button className="pdm-plan-card-value clickable" onClick={() => { setEditingCell(`warranty-${plan.id}`); setEditValue((plan.warrantyDays || 0).toString()); }}>
-                            {plan.warrantyDays > 0 ? `${plan.warrantyDays} يوم` : 'تحديد'}
-                            <EditIcon className="icon-xs" />
-                          </button>
-                        )}
+                      <div className="pdm-warranty-section">
+                        <div className="pdm-warranty-section-title"><ShieldCheckIcon className="icon-xs" /> الضمان لكل مورد</div>
+                        {suppliers.map((supplier) => {
+                          const supWarranty = (plan.supplierWarranty || {})[supplier.id] || 0;
+                          const cellKey = `warranty-${plan.id}-${supplier.id}`;
+                          const isEditing = editingCell === cellKey;
+                          const saveWarranty = () => {
+                            if (onUpdateSupplierWarranty) onUpdateSupplierWarranty(product.id, plan.id, supplier.id, warrantyDaysInput);
+                            setEditingCell(null);
+                          };
+                          return (
+                            <div key={supplier.id} className="pdm-warranty-supplier-row">
+                              <span className="pdm-warranty-supplier-name">{supplier.name}</span>
+                              {isEditing ? (
+                                <div className="pdm-warranty-edit-wrap">
+                                  <input
+                                    type="number"
+                                    value={warrantyDaysInput}
+                                    onChange={(e) => setWarrantyDaysInput(e.target.value)}
+                                    onBlur={saveWarranty}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') saveWarranty(); if (e.key === 'Escape') setEditingCell(null); }}
+                                    min="0" max="3650" autoFocus
+                                    className="pdm-warranty-input"
+                                    dir="ltr"
+                                    placeholder="0"
+                                  />
+                                  <span className="pdm-warranty-days-label">يوم</span>
+                                  <div className="pdm-warranty-presets">
+                                    <button className="pdm-warranty-preset" onMouseDown={(e) => { e.preventDefault(); setWarrantyDaysInput('30'); }} title="شهر">شهر</button>
+                                    <button className="pdm-warranty-preset" onMouseDown={(e) => { e.preventDefault(); setWarrantyDaysInput('180'); }} title="6 أشهر">6 أشهر</button>
+                                    <button className="pdm-warranty-preset" onMouseDown={(e) => { e.preventDefault(); setWarrantyDaysInput('365'); }} title="سنة">سنة</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  className={`pdm-warranty-value-btn ${supWarranty > 0 ? 'has-warranty' : ''}`}
+                                  onClick={() => { setEditingCell(cellKey); setWarrantyDaysInput(supWarranty.toString()); }}
+                                >
+                                  {supWarranty > 0 ? `${supWarranty} يوم` : 'تحديد'}
+                                  <EditIcon className="icon-xs" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className="pdm-plan-card-row">
                         <span className="pdm-plan-card-label">السعر الرسمي</span>
