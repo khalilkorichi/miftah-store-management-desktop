@@ -137,24 +137,26 @@ function PlanRow({ planKey, plan, getDurationLabel, baseSAR, costs, rowMech, set
         <span className="fpm-plan-val">{totalCost > 0 ? `${fmt(totalCost)} ر.س` : '—'}</span>
       </div>
 
-      {/* Mechanism + suggested price */}
+      {/* Mechanism selector only */}
       <div className="fpm-plan-col fpm-plan-col-mech">
-        <div className="fpm-mech-row">
-          <select
-            className="fpm-mech-select"
-            value={rowMech.mechanism}
-            onChange={e => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], mechanism: e.target.value } }))}
-          >
-            {MECHANISM_OPTIONS.map(opt => (
-              <option key={opt.id} value={opt.id}>{opt.icon} {opt.label}</option>
-            ))}
-          </select>
-          <MechanismParamInputs
-            mechanism={rowMech.mechanism}
-            params={rowMech}
-            onChange={fields => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], ...fields } }))}
-          />
-        </div>
+        <select
+          className="fpm-mech-select"
+          value={rowMech.mechanism}
+          onChange={e => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], mechanism: e.target.value } }))}
+        >
+          {MECHANISM_OPTIONS.map(opt => (
+            <option key={opt.id} value={opt.id}>{opt.icon} {opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Mechanism param inputs — standalone column */}
+      <div className="fpm-plan-col fpm-plan-col-params">
+        <MechanismParamInputs
+          mechanism={rowMech.mechanism}
+          params={rowMech}
+          onChange={fields => setRowMechs(prev => ({ ...prev, [planKey]: { ...prev[planKey], ...fields } }))}
+        />
       </div>
 
       {/* Suggested price — standalone column */}
@@ -286,6 +288,7 @@ function ProductAccordionRow({ prod, durations, suppliers, costs, pricingData, e
           <span className="fpm-plans-col-head">السعر الرسمي</span>
           <span className="fpm-plans-col-head">إجمالي التكلفة</span>
           <span className="fpm-plans-col-head fpm-ph-mech">آلية التسعير</span>
+          <span className="fpm-plans-col-head">المعامل</span>
           <span className="fpm-plans-col-head">السعر المقترح</span>
           <span className="fpm-plans-col-head">هامش الربح</span>
           <span className="fpm-plans-col-head">تقييم السعر</span>
