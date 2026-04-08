@@ -678,6 +678,149 @@ body {
   color: white;
 }
 
+/* ── Filter toggle button ── */
+.btn-filter-toggle {
+  position: relative;
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.btn-filter-toggle:hover,
+.btn-filter-toggle.active {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  background: rgba(94,79,222,.07);
+}
+.btn-filter-toggle.has-filters {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  background: rgba(94,79,222,.09);
+}
+.filter-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--accent-blue);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Filter panel ── */
+.filter-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.filter-panel-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 140px;
+}
+.filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-chip:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+.filter-chip.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+  font-weight: 700;
+}
+.filter-select {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  direction: rtl;
+}
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+.filter-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(239,68,68,.07);
+  border: 1px solid rgba(239,68,68,.25);
+  color: var(--accent-red);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
+}
+.filter-reset-btn:hover {
+  background: rgba(239,68,68,.15);
+}
+.filter-panel-summary {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-top: 4px;
+  border-top: 1px solid var(--border-color);
+  font-weight: 600;
+}
+
 .btn-add-product, .btn-add-supplier {
   display: flex;
   align-items: center;
@@ -1093,6 +1236,42 @@ body {
   color: var(--accent-red);
   border-color: var(--accent-red);
   background: rgba(239, 68, 68, 0.08);
+}
+.btn-card-action.branch:hover {
+  color: #11BA65;
+  border-color: #11BA65;
+  background: rgba(17,186,101,.08);
+}
+
+/* ── Branch card styles ── */
+.product-card--branch {
+  border-right: 3px solid #11BA65;
+  margin-right: 10px;
+  opacity: .95;
+}
+.product-branch-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: rgba(17,186,101,.07);
+  border-bottom: 1px solid rgba(17,186,101,.15);
+  font-size: 12px;
+  color: #11BA65;
+  border-radius: 0;
+}
+.product-branch-indicator strong { font-weight: 700; }
+.product-branch-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(17,186,101,.12);
+  color: #11BA65;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 4px;
 }
 
 .account-type-badge {
@@ -4376,6 +4555,189 @@ body {
   font-weight: 700;
   background: color-mix(in srgb, var(--accent-green, #11BA65) 10%, transparent);
 }
+
+/* ── PDM supplier links ── */
+.pdm-sup-link-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pdm-sup-link-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(94,79,222,.07);
+  border: 1px solid rgba(94,79,222,.18);
+  color: var(--accent-blue);
+  border-radius: 8px;
+  padding: 3px 10px;
+  font-size: 12px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pdm-sup-link-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.pdm-sup-link-btn:hover {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+.pdm-sup-link-edit {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.pdm-sup-link-input {
+  background: var(--bg-hover);
+  border: 1px solid var(--accent-blue);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: var(--font-family);
+  flex: 1;
+  min-width: 120px;
+  direction: ltr;
+}
+.pdm-sup-link-input:focus { outline: none; }
+.pdm-sup-link-save {
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.pdm-sup-link-save:hover { opacity: .85; }
+.pdm-sup-link-cancel {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ── PDM per-supplier activation methods ── */
+.pdm-sup-methods-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.pdm-sup-method-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245,158,11,.07);
+  border: 1px solid rgba(245,158,11,.22);
+  color: #d97706;
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.pdm-sup-method-remove {
+  background: none;
+  border: none;
+  color: rgba(217,119,6,.6);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+.pdm-sup-method-remove:hover { color: var(--accent-red); }
+.pdm-sup-method-add-btn {
+  background: none;
+  border: 1px dashed var(--border-color);
+  color: var(--text-muted);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.2s;
+}
+.pdm-sup-method-add-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* ── PDM method picker dropdown ── */
+.pdm-method-picker {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 200;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.14);
+  padding: 8px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pdm-method-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background 0.15s;
+  border: none;
+  background: none;
+  text-align: right;
+  width: 100%;
+  font-family: var(--font-family);
+}
+.pdm-method-picker-item:hover { background: var(--bg-hover); }
+.pdm-method-picker-item.selected { color: var(--accent-blue); font-weight: 700; }
+.pdm-method-check { color: var(--accent-green); margin-right: auto; }
+.pdm-method-picker-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+.pdm-method-picker-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.pdm-td-link { position: relative; min-width: 120px; }
+.pdm-td-methods { position: relative; min-width: 120px; }
 
 .pdm-add-plan-card {
   border: 2px dashed var(--border-color);

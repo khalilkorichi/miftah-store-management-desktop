@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import AddProductModal from './AddProductModal';
 import AddSupplierModal from './AddSupplierModal';
 import ActivationMethodsModal from './ActivationMethodsModal';
@@ -10,7 +10,8 @@ import {
   MessageCircleIcon, SendIcon, ShoppingCartIcon, EditIcon, XIcon,
   TagIcon, ChevronDownIcon, ChevronLeftIcon, TrashIcon, PlusCircleIcon,
   EyeIcon, StarIcon, PackageIcon, SearchIcon, PlusIcon, SettingsIcon,
-  UserIcon, UsersIcon, CopyIcon, UploadIcon, ShieldCheckIcon
+  UserIcon, UsersIcon, CopyIcon, UploadIcon, ShieldCheckIcon,
+  FilterIcon, GitBranchIcon, SortIcon
 } from './Icons';
 
 const fmtNum = (val) => {
@@ -121,9 +122,13 @@ function ProductCard({
   onUpdateProductAccountType, onAddPlan, onDeletePlan, onUpdatePlanDuration,
   onToggleProductMethod, onUpdateOfficialPrice, onUpdateWarranty, requestConfirm,
   setActivationModalProduct, setCompetitorsModalProduct, setDetailModalProduct,
-  getDurationLabel, getAvailableDurations
+  getDurationLabel, getAvailableDurations,
+  onAddBranch, parentProduct, allProducts
 }) {
   const [addingPlan, setAddingPlan] = useState(false);
+
+  const isBranch = !!product.parentId;
+  const branchCount = allProducts ? allProducts.filter(p => p.parentId === product.id).length : 0;
 
   const assignedMethods = (product.activationMethods || [])
     .map((mId) => activationMethods.find((x) => x.id === mId))
@@ -162,10 +167,16 @@ function ProductCard({
   const availableDurations = getAvailableDurations(product);
 
   return (
-    <div className="product-card">
+    <div className={`product-card ${isBranch ? 'product-card--branch' : ''}`}>
+      {isBranch && parentProduct && (
+        <div className="product-branch-indicator">
+          <GitBranchIcon className="icon-xs" />
+          <span>فرع من: <strong>{parentProduct.name}</strong></span>
+        </div>
+      )}
       <div className="product-card-header">
         <div className="product-card-title-row">
-          <span className="product-card-index">{index + 1}</span>
+          <span className="product-card-index">{isBranch ? '↳' : index + 1}</span>
           <div className="product-card-name-area">
             {editingName === product.id ? (
               <input
@@ -188,10 +199,18 @@ function ProductCard({
               {product.accountType === 'individual' && <><UserIcon className="icon-xs" /> <span>فردي</span></>}
               {product.accountType === 'team' && <><UsersIcon className="icon-xs" /> <span>فريق</span></>}
             </div>
+            {branchCount > 0 && (
+              <span className="product-branch-count" title={`${branchCount} فرع`}>
+                <GitBranchIcon className="icon-xs" /> {branchCount}
+              </span>
+            )}
           </div>
         </div>
 
         <div className="product-card-actions-top">
+          <button className="btn-card-action branch" onClick={() => onAddBranch?.(product.id)} title="إضافة فرع لهذا المنتج">
+            <GitBranchIcon className="icon-sm" />
+          </button>
           <button className="btn-card-action" onClick={() => onDuplicateProduct(product.id)} title="تكرار المنتج">
             <CopyIcon className="icon-sm" />
           </button>
@@ -268,6 +287,7 @@ function ProductTable({
   onToggleProductMethod, onAddActivationMethodType, onDeleteActivationMethodType,
   onUpdateOfficialPrice, onUpdateWarranty, onUpdateSupplierWarranty, onAddCompetitor, onUpdateCompetitor, onDeleteCompetitor,
   onImportProducts,
+  onUpdateSupplierActivationMethod, onAddBranch, onUpdateSupplierPlanLink,
 }) {
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
@@ -282,12 +302,58 @@ function ProductTable({
   const [searchQuery, setSearchQuery] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [detailModalProductId, setDetailModalProductId] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterSupplier, setFilterSupplier] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterType, setFilterType] = useState('all'); // all | main | branches
+  const [sortBy, setSortBy] = useState('default'); // default | name_asc | name_desc | price_asc | price_desc
 
   const detailModalProduct = detailModalProductId ? products.find(p => p.id === detailModalProductId) || null : null;
 
-  const filteredProducts = searchQuery.trim()
-    ? products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : products;
+  const getProductLowestPrice = (p) => {
+    let min = Infinity;
+    for (const plan of p.plans || []) {
+      for (const price of Object.values(plan.prices || {})) {
+        if (price > 0 && price < min) min = price;
+      }
+    }
+    return min === Infinity ? null : min;
+  };
+
+  const filteredProducts = useMemo(() => {
+    let result = [...products];
+    if (searchQuery.trim()) {
+      result = result.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+    if (filterType === 'main') result = result.filter(p => !p.parentId);
+    else if (filterType === 'branches') result = result.filter(p => !!p.parentId);
+    if (filterSupplier) {
+      result = result.filter(p =>
+        p.plans?.some(plan => (plan.prices?.[parseInt(filterSupplier)] || 0) > 0)
+      );
+    }
+    if (filterCategory) {
+      result = result.filter(p => p.categoryId === filterCategory);
+    }
+    if (sortBy === 'name_asc') result.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+    else if (sortBy === 'name_desc') result.sort((a, b) => b.name.localeCompare(a.name, 'ar'));
+    else if (sortBy === 'price_asc') {
+      result.sort((a, b) => {
+        const pa = getProductLowestPrice(a) ?? Infinity;
+        const pb = getProductLowestPrice(b) ?? Infinity;
+        return pa - pb;
+      });
+    } else if (sortBy === 'price_desc') {
+      result.sort((a, b) => {
+        const pa = getProductLowestPrice(a) ?? -Infinity;
+        const pb = getProductLowestPrice(b) ?? -Infinity;
+        return pb - pa;
+      });
+    }
+    return result;
+  }, [products, searchQuery, filterSupplier, filterCategory, filterType, sortBy]);
+
+  const activeFiltersCount = [filterSupplier, filterCategory, filterType !== 'all', sortBy !== 'default'].filter(Boolean).length;
 
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const requestConfirm = (title, message, onConfirm) => {
@@ -334,8 +400,68 @@ function ProductTable({
               <XIcon className="icon-xs" />
             </button>
           )}
+          <button
+            className={`btn-filter-toggle ${showFilters ? 'active' : ''} ${activeFiltersCount > 0 ? 'has-filters' : ''}`}
+            onClick={() => setShowFilters(v => !v)}
+            title="فلترة وترتيب"
+          >
+            <FilterIcon className="icon-sm" />
+            {activeFiltersCount > 0 && <span className="filter-badge">{activeFiltersCount}</span>}
+          </button>
         </div>
       </div>
+
+      {/* ── Advanced Filter Panel ── */}
+      {showFilters && (
+        <div className="filter-panel">
+          <div className="filter-panel-row">
+            <div className="filter-group">
+              <label className="filter-label">نوع المنتج</label>
+              <div className="filter-chips">
+                {[['all','الكل'],['main','رئيسية'],['branches','فروع']].map(([v,l]) => (
+                  <button key={v} className={`filter-chip ${filterType === v ? 'active' : ''}`} onClick={() => setFilterType(v)}>{l}</button>
+                ))}
+              </div>
+            </div>
+            <div className="filter-group">
+              <label className="filter-label">الترتيب</label>
+              <select className="filter-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                <option value="default">الافتراضي</option>
+                <option value="name_asc">الاسم أ → ي</option>
+                <option value="name_desc">الاسم ي → أ</option>
+                <option value="price_asc">السعر: الأقل أولاً</option>
+                <option value="price_desc">السعر: الأعلى أولاً</option>
+              </select>
+            </div>
+          </div>
+          <div className="filter-panel-row">
+            <div className="filter-group">
+              <label className="filter-label">تصفية حسب المورد</label>
+              <select className="filter-select" value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
+                <option value="">جميع الموردين</option>
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            {categories.length > 0 && (
+              <div className="filter-group">
+                <label className="filter-label">الفئة</label>
+                <select className="filter-select" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                  <option value="">جميع الفئات</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                </select>
+              </div>
+            )}
+            {activeFiltersCount > 0 && (
+              <button className="filter-reset-btn" onClick={() => { setFilterSupplier(''); setFilterCategory(''); setFilterType('all'); setSortBy('default'); }}>
+                <XIcon className="icon-xs" /> إعادة تعيين
+              </button>
+            )}
+          </div>
+          <div className="filter-panel-summary">
+            {filteredProducts.length} منتج {filteredProducts.length !== products.length ? `من أصل ${products.length}` : ''}
+          </div>
+        </div>
+      )}
 
       <SupplierManagerPanel
         suppliers={suppliers}
@@ -352,47 +478,58 @@ function ProductTable({
 
       {filteredProducts.length > 0 ? (
         <div className="products-grid">
-          {filteredProducts.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              index={index}
-              suppliers={suppliers}
-              durations={durations}
-              exchangeRate={exchangeRate}
-              activationMethods={activationMethods}
-              editingCell={editingCell}
-              setEditingCell={setEditingCell}
-              editValue={editValue}
-              setEditValue={setEditValue}
-              editingName={editingName}
-              setEditingName={setEditingName}
-              editNameValue={editNameValue}
-              setEditNameValue={setEditNameValue}
-              onUpdatePrice={onUpdatePrice}
-              onDeleteProduct={onDeleteProduct}
-              onDuplicateProduct={onDuplicateProduct}
-              onUpdateProductName={onUpdateProductName}
-              onUpdateProductAccountType={onUpdateProductAccountType}
-              onAddPlan={onAddPlan}
-              onDeletePlan={onDeletePlan}
-              onUpdatePlanDuration={onUpdatePlanDuration}
-              onToggleProductMethod={onToggleProductMethod}
-              onUpdateOfficialPrice={onUpdateOfficialPrice}
-              onUpdateWarranty={onUpdateWarranty}
-              requestConfirm={requestConfirm}
-              setActivationModalProduct={setActivationModalProduct}
-              setCompetitorsModalProduct={setCompetitorsModalProduct}
-              setDetailModalProduct={(p) => setDetailModalProductId(p ? p.id : null)}
-              getDurationLabel={getDurationLabel}
-              getAvailableDurations={getAvailableDurations}
-            />
-          ))}
+          {filteredProducts.map((product, index) => {
+            const parentProduct = product.parentId ? products.find(p => p.id === product.parentId) : null;
+            return (
+              <ProductCard
+                key={product.id}
+                product={product}
+                index={index}
+                suppliers={suppliers}
+                durations={durations}
+                exchangeRate={exchangeRate}
+                activationMethods={activationMethods}
+                editingCell={editingCell}
+                setEditingCell={setEditingCell}
+                editValue={editValue}
+                setEditValue={setEditValue}
+                editingName={editingName}
+                setEditingName={setEditingName}
+                editNameValue={editNameValue}
+                setEditNameValue={setEditNameValue}
+                onUpdatePrice={onUpdatePrice}
+                onDeleteProduct={onDeleteProduct}
+                onDuplicateProduct={onDuplicateProduct}
+                onUpdateProductName={onUpdateProductName}
+                onUpdateProductAccountType={onUpdateProductAccountType}
+                onAddPlan={onAddPlan}
+                onDeletePlan={onDeletePlan}
+                onUpdatePlanDuration={onUpdatePlanDuration}
+                onToggleProductMethod={onToggleProductMethod}
+                onUpdateOfficialPrice={onUpdateOfficialPrice}
+                onUpdateWarranty={onUpdateWarranty}
+                requestConfirm={requestConfirm}
+                setActivationModalProduct={setActivationModalProduct}
+                setCompetitorsModalProduct={setCompetitorsModalProduct}
+                setDetailModalProduct={(p) => setDetailModalProductId(p ? p.id : null)}
+                getDurationLabel={getDurationLabel}
+                getAvailableDurations={getAvailableDurations}
+                onAddBranch={onAddBranch}
+                parentProduct={parentProduct}
+                allProducts={products}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="empty-state">
           <PackageIcon className="empty-icon icon-xl" />
-          <p>{searchQuery ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد منتجات حالياً. أضف منتجاً جديداً للبدء!'}</p>
+          <p>{searchQuery || activeFiltersCount > 0 ? 'لا توجد نتائج مطابقة للفلتر المحدد' : 'لا توجد منتجات حالياً. أضف منتجاً جديداً للبدء!'}</p>
+          {activeFiltersCount > 0 && (
+            <button className="filter-reset-btn" style={{ margin: '12px auto 0', display: 'flex' }} onClick={() => { setFilterSupplier(''); setFilterCategory(''); setFilterType('all'); setSortBy('default'); }}>
+              <XIcon className="icon-xs" /> إزالة الفلاتر
+            </button>
+          )}
         </div>
       )}
 
@@ -420,6 +557,8 @@ function ProductTable({
         getDurationLabel={getDurationLabel}
         getAvailableDurations={getAvailableDurations}
         requestConfirm={requestConfirm}
+        onUpdateSupplierActivationMethod={onUpdateSupplierActivationMethod}
+        onUpdateSupplierPlanLink={onUpdateSupplierPlanLink}
       />
     </div>
   );

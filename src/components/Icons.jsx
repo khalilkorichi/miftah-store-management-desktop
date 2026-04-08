@@ -180,3 +180,9 @@ export const EraserIcon = (p) => I(<><path d="M20 20H7L3 16l10-10 7 7-3.5 3.5"/>
 export const UndoIcon = (p) => I(<><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></>, p);
 
 export const RedoIcon = (p) => I(<><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"/></>, p);
+
+export const FilterIcon = (p) => I(<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>, p);
+
+export const GitBranchIcon = (p) => I(<><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></>, p);
+
+export const SortIcon = (p) => I(<><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></>, p);

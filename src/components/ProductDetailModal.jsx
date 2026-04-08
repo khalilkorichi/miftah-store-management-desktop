@@ -13,6 +13,7 @@ function ProductDetailModal({
   isOpen, product, suppliers, durations, exchangeRate, activationMethods = [],
   onClose, onUpdatePrice, onUpdateOfficialPrice, onUpdateWarranty, onUpdateSupplierWarranty, onUpdateProductUrl,
   onAddPlan, onDeletePlan, getDurationLabel, getAvailableDurations,
+  onUpdateSupplierActivationMethod, onUpdateSupplierPlanLink,
   requestConfirm
 }) {
   const [editingCell, setEditingCell] = useState(null);
@@ -21,6 +22,9 @@ function ProductDetailModal({
   const [editingUrl, setEditingUrl] = useState(false);
   const [warrantyDaysInput, setWarrantyDaysInput] = useState('');
   const [urlValue, setUrlValue] = useState('');
+  const [editingSupplierLink, setEditingSupplierLink] = useState(null); // supplierId
+  const [supplierLinkInput, setSupplierLinkInput] = useState('');
+  const [openMethodPicker, setOpenMethodPicker] = useState(null); // supplierId
 
   const sanitizeUrl = (raw) => {
     const trimmed = (raw || '').trim();
@@ -38,6 +42,9 @@ function ProductDetailModal({
       setClosing(false);
       setEditingUrl(false);
       setUrlValue('');
+      setEditingSupplierLink(null);
+      setSupplierLinkInput('');
+      setOpenMethodPicker(null);
       requestAnimationFrame(() => {
         if (containerRef.current) {
           containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -253,6 +260,11 @@ function ProductDetailModal({
               <tbody>
                 {suppliers.map((supplier) => {
                   const { total, count } = getTotalSupplierPrices(supplier.id);
+                  const supplierLink = (product.supplierLinks || {})[supplier.id] || '';
+                  const supplierMethods = (product.supplierActivationMethods || {})[supplier.id] || [];
+                  const effectiveMethods = supplierMethods;
+                  const isEditingLink = editingSupplierLink === supplier.id;
+                  const isPickerOpen = openMethodPicker === supplier.id;
                   return (
                     <tr key={supplier.id} className="pdm-supplier-row">
                       <td className="pdm-td-supplier">
@@ -263,6 +275,66 @@ function ProductDetailModal({
                               متوسط: ${fmtNum(total / count)}
                             </span>
                           )}
+                          {/* Per-supplier link */}
+                          {isEditingLink ? (
+                            <div className="pdm-sup-link-edit">
+                              <input
+                                className="pdm-sup-link-input"
+                                value={supplierLinkInput}
+                                onChange={e => setSupplierLinkInput(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') { onUpdateSupplierPlanLink?.(product.id, supplier.id, supplierLinkInput.trim()); setEditingSupplierLink(null); }
+                                  if (e.key === 'Escape') setEditingSupplierLink(null);
+                                }}
+                                placeholder="https://..."
+                                dir="ltr"
+                                autoFocus
+                              />
+                              <button className="pdm-sup-link-save" onClick={() => { onUpdateSupplierPlanLink?.(product.id, supplier.id, supplierLinkInput.trim()); setEditingSupplierLink(null); }}>✓</button>
+                              <button className="pdm-sup-link-cancel" onClick={() => setEditingSupplierLink(null)}>✕</button>
+                            </div>
+                          ) : (
+                            <div className="pdm-sup-link-row">
+                              {supplierLink ? (
+                                <a href={supplierLink} target="_blank" rel="noopener noreferrer" className="pdm-sup-link-chip" dir="ltr" title={supplierLink}>
+                                  🔗 <span>{supplierLink.replace(/^https?:\/\//, '').substring(0, 28)}{supplierLink.length > 35 ? '…' : ''}</span>
+                                </a>
+                              ) : null}
+                              <button className="pdm-sup-link-btn" title={supplierLink ? 'تعديل الرابط' : 'إضافة رابط المنتج'} onClick={() => { setSupplierLinkInput(supplierLink); setEditingSupplierLink(supplier.id); }}>
+                                {supplierLink ? '✏️' : '🔗+'}
+                              </button>
+                            </div>
+                          )}
+                          {/* Per-supplier activation methods */}
+                          <div className="pdm-sup-methods-row">
+                            {effectiveMethods.map(mId => {
+                              const m = activationMethods.find(x => x.id === mId);
+                              return m ? (
+                                <span key={mId} className="pdm-sup-method-chip" style={{ '--act-color': m.color }}>
+                                  {m.icon}
+                                  <button className="pdm-sup-method-remove" onClick={() => onUpdateSupplierActivationMethod?.(product.id, supplier.id, mId, false)}>✕</button>
+                                </span>
+                              ) : null;
+                            })}
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <button className="pdm-sup-method-add-btn" title="إضافة طريقة تفعيل لهذا المورد" onClick={() => setOpenMethodPicker(isPickerOpen ? null : supplier.id)}>⚙</button>
+                              {isPickerOpen && (
+                                <div className="pdm-method-picker">
+                                  {activationMethods.map(m => {
+                                    const active = supplierMethods.includes(m.id);
+                                    return (
+                                      <button key={m.id} className={`pdm-method-picker-item ${active ? 'active' : ''}`} style={{ '--act-color': m.color }}
+                                        onClick={() => { onUpdateSupplierActivationMethod?.(product.id, supplier.id, m.id, !active); }}>
+                                        {m.icon} {m.label}
+                                        {active && <span className="pdm-method-check">✓</span>}
+                                      </button>
+                                    );
+                                  })}
+                                  <button className="pdm-method-picker-close" onClick={() => setOpenMethodPicker(null)}>إغلاق</button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       {plans.map((plan) => {
