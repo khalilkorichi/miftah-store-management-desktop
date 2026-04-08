@@ -2038,16 +2038,16 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                               <span className="fpm-acc-product-name">{formatProductName(prod)}</span>
                               <div className="fpm-acc-meta">
                                 <span className="fpm-acc-plans-pill">{prod.plans.length} خطة</span>
-                                {allSet && <span className="fpm-acc-status-pill fpm-acc-status-done">مكتمل ✓</span>}
-                                {!allSet && !noneSet && <span className="fpm-acc-status-pill fpm-acc-status-partial">{setPricesCount}/{prod.plans.length} مسعّر</span>}
-                                {noneSet && <span className="fpm-acc-status-pill fpm-acc-status-none">لم يُسعَّر</span>}
+                                <span className={`fpm-acc-status-pill ${allSet ? 'fpm-acc-status-done' : noneSet ? 'fpm-acc-status-none' : 'fpm-acc-status-partial'}`}>
+                                  {setPricesCount}/{prod.plans.length} مسعّر{allSet ? ' ✓' : ''}
+                                </span>
                               </div>
                             </div>
                           </div>
                         </div>
 
                         <div className="fpm-accordion-body">
-                          <div className="fp-report-plans-header">
+                          <div className="fpm-plans-header fp-report-grid">
                             <span className="fpm-plans-col-head fpm-ph-duration">الخطة</span>
                             <span className="fpm-plans-col-head fpm-ph-price">سعر المورد</span>
                             <span className="fpm-plans-col-head fpm-ph-price">السعر الرسمي</span>
@@ -2075,7 +2075,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                             const statusLabel = isSet ? rpGetStatusLabel(fp, tc, sg) : null;
                             const diffFromOfficial = officialSAR > 0 && isSet ? fp - officialSAR : null;
                             return (
-                              <div key={key} className="fp-report-plan-row">
+                              <div key={key} className="fpm-plan-row fp-report-grid">
                                 <div className="fpm-plan-col fpm-plan-col-duration">
                                   <span className="fpm-plan-badge">{getDurationLabel(plan.durationId)}</span>
                                 </div>
