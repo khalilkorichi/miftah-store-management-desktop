@@ -871,6 +871,9 @@ function App() {
             exchangeRate={exchangeRate}
             activationMethods={activationMethods}
             categories={categories}
+            finalPrices={finalPrices}
+            costs={costs}
+            pricingData={pricingData}
           />
           </div>
         )}
