@@ -278,7 +278,7 @@ function ProductCard({
               <div key={plan.id} className="plan-summary-chip">
                 <span className="plan-chip-duration">{getDurationLabel(plan.durationId)}</span>
                 {bestPrice ? (
-                  <span className="plan-chip-price best">${fmtNum(bestPrice)}</span>
+                  <span className="plan-chip-price best">{fmtNum(bestPrice * (exchangeRate || 1))} ر.س</span>
                 ) : (
                   <span className="plan-chip-price empty">غير مسعّر</span>
                 )}

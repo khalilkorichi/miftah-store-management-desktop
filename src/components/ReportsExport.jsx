@@ -438,7 +438,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
 
         <div style={{ padding: '16px 28px' }}>
           <SectionTitle color={pdfColors.accent}>
-            <CurrencyIcon className="icon-sm" /> جدول الأسعار الشامل — بالدولار والريال
+            <CurrencyIcon className="icon-sm" /> جدول الأسعار الشامل — بالريال السعودي
           </SectionTitle>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: `1px solid ${pdfColors.border}`, borderRadius: '8px' }}>
             <thead>
@@ -449,19 +449,9 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                 <th style={thStyle}>الخطة</th>
                 <th style={thStyle}>الضمان</th>
                 {suppliers.map((s) => (
-                  <th key={s.id} style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }} colSpan={2}>{s.name}</th>
+                  <th key={s.id} style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>{s.name}</th>
                 ))}
                 <th style={{ ...thStyle, background: pdfColors.green, color: '#fff', minWidth: '100px' }}>أفضل سعر</th>
-              </tr>
-              <tr>
-                <th style={subThStyle} /><th style={subThStyle} /><th style={subThStyle} /><th style={subThStyle} />
-                {suppliers.map((s) => (
-                  <React.Fragment key={s.id}>
-                    <th style={{ ...subThStyle, color: pdfColors.accent }}>دولار $</th>
-                    <th style={{ ...subThStyle, color: pdfColors.green }}>ريال ﷼</th>
-                  </React.Fragment>
-                ))}
-                <th style={subThStyle} />
               </tr>
             </thead>
             <tbody>
@@ -503,18 +493,13 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                         const usd = plan.prices[s.id] || 0;
                         const isBest = usd > 0 && usd === minP;
                         return (
-                          <React.Fragment key={s.id}>
-                            <td style={{ ...tdStyle, fontWeight: isBest ? '700' : '500', color: isBest ? pdfColors.green : '#333', background: isBest ? '#E8FFF3' : undefined }}>
-                              {usd > 0 ? `$${fmt(usd)}` : <span style={{ color: '#bbb', fontSize: '10px' }}>—</span>}
-                            </td>
-                            <td style={{ ...tdStyle, color: isBest ? pdfColors.green : '#666', background: isBest ? '#E8FFF3' : undefined }}>
-                              {usd > 0 ? `${fmt(usd * exchangeRate)}` : <span style={{ color: '#bbb', fontSize: '10px' }}>—</span>}
-                            </td>
-                          </React.Fragment>
+                          <td key={s.id} style={{ ...tdStyle, fontWeight: isBest ? '700' : '500', color: isBest ? pdfColors.green : '#333', background: isBest ? '#E8FFF3' : undefined }}>
+                            {usd > 0 ? `${fmt(usd * exchangeRate)} ر.س` : <span style={{ color: '#bbb', fontSize: '10px' }}>—</span>}
+                          </td>
                         );
                       })}
                       <td style={{ ...tdStyle, fontWeight: '700', color: pdfColors.green, fontSize: '11px' }}>
-                        {minP < Infinity ? `${bestName} — $${fmt(minP)}` : <span style={{ color: '#bbb', fontSize: '10px' }}>—</span>}
+                        {minP < Infinity ? `${bestName} — ${fmt(minP * exchangeRate)} ر.س` : <span style={{ color: '#bbb', fontSize: '10px' }}>—</span>}
                       </td>
                     </tr>
                   );
@@ -594,9 +579,9 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
               <h3 style={{ fontSize: '13px', fontWeight: '700', color: pdfColors.green, margin: '0 0 10px' }}>ملخص الأسعار</h3>
               {cheapestOverall < Infinity && (
                 <>
-                  <InfoRow label="أقل سعر" value={`$${fmt(cheapestOverall)} (${cheapestSupplier})`} color={pdfColors.green} bold />
-                  <InfoRow label="أعلى سعر" value={`$${fmt(expensiveOverall)} (${expensiveSupplier})`} color={pdfColors.red} />
-                  <InfoRow label="فارق التوفير" value={`$${fmt(expensiveOverall - cheapestOverall)}`} color={pdfColors.orange} bold />
+                  <InfoRow label="أقل سعر" value={`${fmt(cheapestOverall * exchangeRate)} ر.س (${cheapestSupplier})`} color={pdfColors.green} bold />
+                  <InfoRow label="أعلى سعر" value={`${fmt(expensiveOverall * exchangeRate)} ر.س (${expensiveSupplier})`} color={pdfColors.red} />
+                  <InfoRow label="فارق التوفير" value={`${fmt((expensiveOverall - cheapestOverall) * exchangeRate)} ر.س`} color={pdfColors.orange} bold />
                 </>
               )}
             </div>
@@ -635,19 +620,9 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                 <th style={thStyle}>الخطة</th>
                 <th style={thStyle}>الضمان</th>
                 {suppliers.map((s) => (
-                  <th key={s.id} style={{ ...thStyle, background: pdfColors.blue, color: '#fff' }} colSpan={2}>{s.name}</th>
+                  <th key={s.id} style={{ ...thStyle, background: pdfColors.blue, color: '#fff' }}>{s.name}</th>
                 ))}
                 <th style={{ ...thStyle, background: pdfColors.green, color: '#fff' }}>أفضل سعر</th>
-              </tr>
-              <tr>
-                <th style={subThStyle} />
-                {suppliers.map((s) => (
-                  <React.Fragment key={s.id}>
-                    <th style={{ ...subThStyle, color: pdfColors.blue }}>$ دولار</th>
-                    <th style={{ ...subThStyle, color: pdfColors.green }}>﷼ ريال</th>
-                  </React.Fragment>
-                ))}
-                <th style={subThStyle} />
               </tr>
             </thead>
             <tbody>
@@ -673,18 +648,13 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                       const usd = plan.prices[s.id] || 0;
                       const isBest = usd > 0 && usd === minP;
                       return (
-                        <React.Fragment key={s.id}>
-                          <td style={{ ...tdStyle, fontWeight: isBest ? '800' : '500', color: isBest ? pdfColors.green : '#333', background: isBest ? '#E8FFF3' : undefined }}>
-                            {usd > 0 ? `$${fmt(usd)}` : <span style={{ color: '#bbb', fontSize: '10px' }}>—</span>}
-                          </td>
-                          <td style={{ ...tdStyle, color: isBest ? pdfColors.green : '#666', background: isBest ? '#E8FFF3' : undefined }}>
-                            {usd > 0 ? `${fmt(usd * exchangeRate)}` : <span style={{ color: '#bbb', fontSize: '10px' }}>—</span>}
-                          </td>
-                        </React.Fragment>
+                        <td key={s.id} style={{ ...tdStyle, fontWeight: isBest ? '800' : '500', color: isBest ? pdfColors.green : '#333', background: isBest ? '#E8FFF3' : undefined }}>
+                          {usd > 0 ? `${fmt(usd * exchangeRate)} ر.س` : <span style={{ color: '#bbb', fontSize: '10px' }}>—</span>}
+                        </td>
                       );
                     })}
                     <td style={{ ...tdStyle, fontWeight: '700', color: pdfColors.green }}>
-                      {minP < Infinity ? `${bestName} — $${fmt(minP)}` : <span style={{ color: '#bbb' }}>—</span>}
+                      {minP < Infinity ? `${bestName} — ${fmt(minP * exchangeRate)} ر.س` : <span style={{ color: '#bbb' }}>—</span>}
                     </td>
                   </tr>
                 );
@@ -703,9 +673,9 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                     <th style={{ ...thStyle, textAlign: 'right' }}>الخطة</th>
                     <th style={thStyle}>الضمان</th>
                     <th style={thStyle}>أفضل مورد</th>
-                    <th style={thStyle}>أقل سعر ($)</th>
-                    <th style={thStyle}>المتوسط ($)</th>
-                    <th style={thStyle}>التوفير ($)</th>
+                    <th style={thStyle}>أقل سعر (ر.س)</th>
+                    <th style={thStyle}>المتوسط (ر.س)</th>
+                    <th style={thStyle}>التوفير (ر.س)</th>
                     <th style={thStyle}>نسبة التوفير</th>
                   </tr>
                 </thead>
@@ -721,9 +691,9 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                         )}
                       </td>
                       <td style={{ ...tdStyle, fontWeight: '600', color: pdfColors.green }}>{a.cheapest.supplierName}</td>
-                      <td style={{ ...tdStyle, fontWeight: '700' }}>{a.cheapest.price > 0 ? `$${fmt(a.cheapest.price)}` : '—'}</td>
-                      <td style={tdStyle}>{a.avgPrice > 0 ? `$${fmt(a.avgPrice)}` : '—'}</td>
-                      <td style={{ ...tdStyle, color: pdfColors.orange, fontWeight: '600' }}>${fmt(a.savings)}</td>
+                      <td style={{ ...tdStyle, fontWeight: '700' }}>{a.cheapest.price > 0 ? `${fmt(a.cheapest.price * exchangeRate)} ر.س` : '—'}</td>
+                      <td style={tdStyle}>{a.avgPrice > 0 ? `${fmt(a.avgPrice * exchangeRate)} ر.س` : '—'}</td>
+                      <td style={{ ...tdStyle, color: pdfColors.orange, fontWeight: '600' }}>{fmt(a.savings * exchangeRate)} ر.س</td>
                       <td style={tdStyle}>
                         <Badge color={parseFloat(a.savingsPercent) > 10 ? pdfColors.red : pdfColors.orange}>{a.savingsPercent}%</Badge>
                       </td>
@@ -797,7 +767,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                 <MetricCard label="الخطط المتاحة" value={planCount} color={pdfColors.green} />
                 <MetricCard label="الأفضل سعراً" value={bestCount} color={pdfColors.accent} />
                 <MetricCard label="نسبة الفوز" value={`${winRate}%`} color={pdfColors.blue} />
-                <MetricCard label="إجمالي الأسعار" value={`$${fmt(totalSpend)}`} color={pdfColors.orange} />
+                <MetricCard label="إجمالي الأسعار" value={`${fmt(totalSpend * exchangeRate)} ر.س`} color={pdfColors.orange} />
               </div>
 
               {supplierPlans.length === 0 ? (
@@ -819,8 +789,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                         <th style={{ ...thStyle, background: pdfColors.green, color: '#fff', textAlign: 'right' }}>المنتج</th>
                         <th style={{ ...thStyle, background: pdfColors.green, color: '#fff' }}>الخطة</th>
                         <th style={{ ...thStyle, background: pdfColors.green, color: '#fff' }}>الضمان</th>
-                        <th style={{ ...thStyle, background: pdfColors.green, color: '#fff' }}>السعر ($)</th>
-                        <th style={{ ...thStyle, background: pdfColors.green, color: '#fff' }}>السعر (﷼)</th>
+                        <th style={{ ...thStyle, background: pdfColors.green, color: '#fff' }}>السعر (ر.س)</th>
                         <th style={{ ...thStyle, background: pdfColors.green, color: '#fff' }}>الحالة</th>
                       </tr>
                     </thead>
@@ -842,8 +811,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                                 <span style={{ color: '#bbb', fontSize: '10px' }}>—</span>
                               )}
                             </td>
-                            <td style={{ ...tdStyle, fontWeight: '700' }}>${fmt(row.price)}</td>
-                            <td style={tdStyle}>{fmt(row.price * exchangeRate)} ﷼</td>
+                            <td style={{ ...tdStyle, fontWeight: '700' }}>{fmt(row.price * exchangeRate)} ر.س</td>
                             <td style={tdStyle}>
                               {row.isBest
                                 ? <Badge color={pdfColors.green} bg="#E8FFF3">★ الأفضل</Badge>
@@ -875,8 +843,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
         color={pdfColors.green}
         subtitle={`${products.length} منتج — ${suppliers.length} مورد — سعر الصرف: 1$ = ${exchangeRate} ﷼`}
         stats={<>
-          <MetricCard label="إجمالي التوفير ($)" value={`$${fmt(totalSavings)}`} color={pdfColors.orange} />
-          <MetricCard label="إجمالي التوفير (﷼)" value={`${fmt(totalSavings * exchangeRate)}`} color={pdfColors.gold} />
+          <MetricCard label="إجمالي التوفير" value={`${fmt(totalSavings * exchangeRate)} ر.س`} color={pdfColors.gold} />
           <MetricCard label="متوسط نسبة التوفير" value={`${avgSavingsPercent}%`} color={pdfColors.red} />
           <MetricCard label="إجمالي الخطط" value={totalPlans} color={pdfColors.blue} />
         </>}
@@ -905,11 +872,10 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                   )}
                   <td style={tdStyle}><Badge color={pdfColors.green}>{a.planDuration}</Badge></td>
                   <td style={{ ...tdStyle, fontWeight: '600', color: pdfColors.green }}>{a.cheapest.supplierName !== '-' ? a.cheapest.supplierName : <span style={{ color: '#bbb' }}>—</span>}</td>
-                  <td style={{ ...tdStyle, fontWeight: '700' }}>{a.cheapest.price > 0 ? `$${fmt(a.cheapest.price)}` : '—'}</td>
-                  <td style={tdStyle}>{a.cheapest.price > 0 ? `${fmt(a.cheapest.price * exchangeRate)}` : '—'}</td>
-                  <td style={tdStyle}>{a.avgPrice > 0 ? `$${fmt(a.avgPrice)}` : '—'}</td>
-                  <td style={{ ...tdStyle, color: pdfColors.red }}>{a.expensive.price > 0 ? `$${fmt(a.expensive.price)}` : '—'}</td>
-                  <td style={{ ...tdStyle, color: pdfColors.orange, fontWeight: '600' }}>${fmt(a.savings)}</td>
+                  <td style={{ ...tdStyle, fontWeight: '700' }}>{a.cheapest.price > 0 ? `${fmt(a.cheapest.price * exchangeRate)} ر.س` : '—'}</td>
+                  <td style={tdStyle}>{a.avgPrice > 0 ? `${fmt(a.avgPrice * exchangeRate)} ر.س` : '—'}</td>
+                  <td style={{ ...tdStyle, color: pdfColors.red }}>{a.expensive.price > 0 ? `${fmt(a.expensive.price * exchangeRate)} ر.س` : '—'}</td>
+                  <td style={{ ...tdStyle, color: pdfColors.orange, fontWeight: '600' }}>{fmt(a.savings * exchangeRate)} ر.س</td>
                   <td style={tdStyle}>
                     <Badge color={parseFloat(a.savingsPercent) > 10 ? pdfColors.red : pdfColors.orange}>{a.savingsPercent}%</Badge>
                   </td>
@@ -929,7 +895,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
               <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>الخطط المتوفرة</th>
               <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>مرات الأفضل سعراً</th>
               <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>نسبة الفوز</th>
-              <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>إجمالي الأسعار ($)</th>
+              <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>إجمالي الأسعار (ر.س)</th>
             </tr>
           </thead>
           <tbody>
@@ -998,8 +964,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
             <MetricCard label="المنتجات" value={products.length} color={pdfColors.accent} />
             <MetricCard label="الموردين" value={suppliers.length} color={pdfColors.green} />
             <MetricCard label="الخطط" value={totalPlans} color={pdfColors.blue} />
-            <MetricCard label="التوفير ($)" value={`$${fmt(totalSavings)}`} color={pdfColors.orange} />
-            <MetricCard label="التوفير (﷼)" value={`${fmt(totalSavings * exchangeRate)}`} color={pdfColors.gold} />
+            <MetricCard label="إجمالي التوفير" value={`${fmt(totalSavings * exchangeRate)} ر.س`} color={pdfColors.gold} />
             <MetricCard label="متوسط التوفير" value={`${avgSavingsPercent}%`} color={pdfColors.red} />
           </>}
         />
@@ -1026,7 +991,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                 <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>الخطط</th>
                 <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>مرات الفوز</th>
                 <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>نسبة الفوز</th>
-                <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>إجمالي ($)</th>
+                <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>إجمالي (ر.س)</th>
                 <th style={{ ...thStyle, background: pdfColors.accent, color: '#fff' }}>التقييم</th>
               </tr>
             </thead>
@@ -1086,10 +1051,9 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                     )}
                     <td style={tdStyle}><Badge color={pdfColors.orange}>{a.planDuration}</Badge></td>
                     <td style={{ ...tdStyle, fontWeight: '600', color: pdfColors.green }}>{a.cheapest.supplierName !== '-' ? a.cheapest.supplierName : '—'}</td>
-                    <td style={{ ...tdStyle, fontWeight: '700' }}>{a.cheapest.price > 0 ? `$${fmt(a.cheapest.price)}` : '—'}</td>
-                    <td style={tdStyle}>{a.cheapest.price > 0 ? `${fmt(a.cheapest.price * exchangeRate)}` : '—'}</td>
-                    <td style={tdStyle}>{a.avgPrice > 0 ? `$${fmt(a.avgPrice)}` : '—'}</td>
-                    <td style={{ ...tdStyle, color: pdfColors.orange, fontWeight: '600' }}>${fmt(a.savings)}</td>
+                    <td style={{ ...tdStyle, fontWeight: '700' }}>{a.cheapest.price > 0 ? `${fmt(a.cheapest.price * exchangeRate)} ر.س` : '—'}</td>
+                    <td style={tdStyle}>{a.avgPrice > 0 ? `${fmt(a.avgPrice * exchangeRate)} ر.س` : '—'}</td>
+                    <td style={{ ...tdStyle, color: pdfColors.orange, fontWeight: '600' }}>{fmt(a.savings * exchangeRate)} ر.س</td>
                     <td style={tdStyle}><Badge color={parseFloat(a.savingsPercent) > 10 ? pdfColors.red : pdfColors.orange}>{a.savingsPercent}%</Badge></td>
                   </tr>
                 ))
@@ -1803,18 +1767,18 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
         const supplierAvgData = suppliers.map(s => {
           let total = 0, cnt = 0;
           products.forEach(p => p.plans.forEach(pl => { const pr = pl.prices[s.id] || 0; if (pr > 0) { total += pr; cnt++; } }));
-          return { label: s.name, value: cnt > 0 ? total / cnt : 0, display: cnt > 0 ? `$${fmt(total / cnt)}` : '—', color: '#F7784A' };
+          return { label: s.name, value: cnt > 0 ? total / cnt : 0, display: cnt > 0 ? `${fmt((total / cnt) * exchangeRate)} ر.س` : '—', color: '#F7784A' };
         }).filter(d => d.value > 0).sort((a, b) => a.value - b.value);
 
         const productBestPriceData = products.map(p => {
           let best = Infinity;
           p.plans.forEach(pl => suppliers.forEach(s => { const pr = pl.prices[s.id] || 0; if (pr > 0) best = Math.min(best, pr); }));
-          return { label: p.name, value: best < Infinity ? best : 0, display: best < Infinity ? `$${fmt(best)}` : '—', color: '#11BA65' };
+          return { label: p.name, value: best < Infinity ? best : 0, display: best < Infinity ? `${fmt(best * exchangeRate)} ر.س` : '—', color: '#11BA65' };
         }).filter(d => d.value > 0).sort((a, b) => b.value - a.value).slice(0, 8);
 
         const savingsData = analytics.filter(a => a.savings > 0)
           .sort((a, b) => b.savings - a.savings).slice(0, 8)
-          .map(a => ({ label: `${a.productName} — ${a.planDuration}`, value: a.savings, display: `$${fmt(a.savings)}`, color: '#EC4899' }));
+          .map(a => ({ label: `${a.productName} — ${a.planDuration}`, value: a.savings, display: `${fmt(a.savings * exchangeRate)} ر.س`, color: '#EC4899' }));
 
         return (
           <div className="stats-section">
@@ -1915,7 +1879,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
             <thead>
               <tr>
                 <th className="th-product">المنتج</th><th>الخطة</th><th>الضمان</th><th>أفضل مورد</th>
-                <th>أقل سعر ($)</th><th>أقل سعر (﷼)</th>
+                <th>أقل سعر (ر.س)</th>
                 <th>المتوسط</th><th>التوفير</th><th>نسبة التوفير</th>
               </tr>
             </thead>
@@ -1938,7 +1902,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                         </div>
                       </td>
                       {!isExpanded ? (
-                        <td colSpan={8} className="td-group-summary">
+                        <td colSpan={7} className="td-group-summary">
                           <div className="collapsed-summary-row">
                             <div className="collapsed-summary-cell cs-supplier">
                               <span className="collapsed-label">أفضل مورد</span>
@@ -1947,17 +1911,12 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                             <div className="collapsed-summary-divider"></div>
                             <div className="collapsed-summary-cell cs-price">
                               <span className="collapsed-label">أقل سعر</span>
-                              <span className="collapsed-value"><span className="cv-unit">$</span>{fmt(bestPlan.cheapest.price)}</span>
-                            </div>
-                            <div className="collapsed-summary-divider"></div>
-                            <div className="collapsed-summary-cell cs-sar">
-                              <span className="collapsed-label">بالريال</span>
-                              <span className="collapsed-value">{fmt(bestPlan.cheapest.price * exchangeRate)}<span className="cv-unit"> ﷼</span></span>
+                              <span className="collapsed-value">{fmt(bestPlan.cheapest.price * exchangeRate)}<span className="cv-unit"> ر.س</span></span>
                             </div>
                             <div className="collapsed-summary-divider"></div>
                             <div className="collapsed-summary-cell cs-savings">
                               <span className="collapsed-label">إجمالي التوفير</span>
-                              <span className="collapsed-value"><span className="cv-unit">$</span>{fmt(totalGroupSavings)}</span>
+                              <span className="collapsed-value">{fmt(totalGroupSavings * exchangeRate)}<span className="cv-unit"> ر.س</span></span>
                             </div>
                             <div className="collapsed-summary-divider"></div>
                             <div className="collapsed-summary-cell cs-pct">
@@ -1967,7 +1926,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                           </div>
                         </td>
                       ) : (
-                        <td colSpan={8} className="td-group-summary"></td>
+                        <td colSpan={7} className="td-group-summary"></td>
                       )}
                     </tr>
                     {isExpanded && group.plans.map((a, pi) => (
@@ -1976,10 +1935,9 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                         <td><span className="plan-badge">{a.planDuration}</span></td>
                         <td className="td-warranty">{a.warrantyDays > 0 ? <span className="warranty-badge-sm">{a.warrantyDays} يوم</span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
                         <td className="td-best-supplier">{a.cheapest.supplierName !== '-' ? a.cheapest.supplierName : <span className="price-not-available">لا يوجد</span>}</td>
-                        <td className="td-price">{a.cheapest.price > 0 ? <span className="price-cell"><span className="price-unit-sm">$</span>{fmt(a.cheapest.price)}</span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
-                        <td className="td-price td-sar">{a.cheapest.price > 0 ? <span className="price-cell">{fmt(a.cheapest.price * exchangeRate)}<span className="price-unit-sm"> ﷼</span></span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
-                        <td className="td-price td-avg">{a.avgPrice > 0 ? <span className="price-cell"><span className="price-unit-sm">$</span>{fmt(a.avgPrice)}</span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
-                        <td className="td-savings"><span className="savings-pill"><span className="price-unit-sm">$</span>{fmt(a.savings)}</span></td>
+                        <td className="td-price td-sar">{a.cheapest.price > 0 ? <span className="price-cell">{fmt(a.cheapest.price * exchangeRate)}<span className="price-unit-sm"> ر.س</span></span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
+                        <td className="td-price td-avg">{a.avgPrice > 0 ? <span className="price-cell">{fmt(a.avgPrice * exchangeRate)}<span className="price-unit-sm"> ر.س</span></span> : <span className="price-not-available" style={{opacity: 0.5}}>—</span>}</td>
+                        <td className="td-savings"><span className="savings-pill">{fmt(a.savings * exchangeRate)}<span className="price-unit-sm"> ر.س</span></span></td>
                         <td className="td-savings-pct"><span className="pct-badge">{a.savingsPercent}%</span></td>
                       </tr>
                     ))}

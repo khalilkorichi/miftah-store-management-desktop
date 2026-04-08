@@ -231,7 +231,7 @@ function Dashboard({
               {visibleProducts.map(p => (
                 <div key={p.id} className={`dash-table-row status-${p.status}`} onClick={() => onNavigate('products')}>
                   <span className="dash-table-name">{p.name}</span>
-                  <span className="dash-table-cell" dir="ltr">{p.supplierPrice > 0 ? `$${fmt(p.supplierPrice)}` : '—'}</span>
+                  <span className="dash-table-cell" dir="ltr">{p.supplierPrice > 0 ? `${fmt(p.supplierPrice * exchangeRate)} ﷼` : '—'}</span>
                   <span className="dash-table-cell" dir="ltr">{p.totalCost > 0 ? `${fmt(p.totalCost)} ﷼` : '—'}</span>
                   <span className="dash-table-cell" dir="ltr">{p.officialPrice > 0 ? `${fmt(p.officialPrice)} ﷼` : '—'}</span>
                   <span className={`dash-table-cell margin-${p.status}`}>

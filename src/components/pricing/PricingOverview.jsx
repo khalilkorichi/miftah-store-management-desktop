@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingDownIcon, AlertTriangleIcon, TrendingUpIcon, CheckCircleIcon, SendIcon, PackageIcon, BarChartIcon, ClipboardIcon } from '../Icons';
 
 const fmt = (val) => Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtSAR = (val) => `${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
 const fmtPct = (val) => Number(val).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData }) {
@@ -149,10 +150,10 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
                         <span className="po-product-name">{p.name}</span>
                       </div>
                     </td>
-                    <td className="po-td-num">{fmt(baseC)}</td>
-                    <td className="po-td-num">{fmt(totalCost)}</td>
-                    <td className="po-td-num">{fmt(currP)}</td>
-                    <td className="po-td-num po-td-suggested">{fmt(suggestedPrice)}</td>
+                    <td className="po-td-num">{fmtSAR(baseC)}</td>
+                    <td className="po-td-num">{fmtSAR(totalCost)}</td>
+                    <td className="po-td-num">{fmtSAR(currP)}</td>
+                    <td className="po-td-num po-td-suggested">{fmtSAR(suggestedPrice)}</td>
                     <td className="po-td-num">
                       <span className={`po-margin-badge ${profitMargin > 0 ? 'positive' : 'negative'}`}>
                         {fmtPct(profitMargin)}%
