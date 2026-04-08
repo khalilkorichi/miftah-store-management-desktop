@@ -185,6 +185,64 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
     }));
   }, [setProducts]);
 
+  // ── Inline editing states for product info card ──
+  const [editingUrl, setEditingUrl] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const urlInputRef = useRef(null);
+  const [editingWarranty, setEditingWarranty] = useState(null); // { planId, supplierId }
+  const [warrantyInput, setWarrantyInput] = useState('');
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+  const [showMethodPicker, setShowMethodPicker] = useState(false);
+  const durationPickerRef = useRef(null);
+  const methodPickerRef = useRef(null);
+
+  useEffect(() => { if (editingUrl && urlInputRef.current) urlInputRef.current.focus(); }, [editingUrl]);
+  useClickOutside(durationPickerRef, () => setShowDurationPicker(false));
+  useClickOutside(methodPickerRef, () => setShowMethodPicker(false));
+
+  // ── Handlers for product info inline editing ──
+  const addPlanLocal = useCallback((durationId) => {
+    if (!product) return;
+    updateProduct(product.id, (p) => {
+      const newPlanId = Math.max(0, ...p.plans.map(pl => pl.id)) + 1;
+      const prices = {};
+      suppliers.forEach(s => { prices[s.id] = 0; });
+      return { ...p, plans: [...p.plans, { id: newPlanId, durationId, prices, supplierWarranty: {} }] };
+    });
+    setShowDurationPicker(false);
+  }, [product, updateProduct, suppliers]);
+
+  const deletePlanLocal = useCallback((planId) => {
+    if (!product || product.plans.length <= 1) return;
+    updateProduct(product.id, (p) => ({ ...p, plans: p.plans.filter(pl => pl.id !== planId) }));
+  }, [product, updateProduct]);
+
+  const toggleMethodLocal = useCallback((methodId) => {
+    if (!product) return;
+    updateProduct(product.id, (p) => {
+      const current = p.activationMethods || [];
+      return { ...p, activationMethods: current.includes(methodId) ? current.filter(m => m !== methodId) : [...current, methodId] };
+    });
+  }, [product, updateProduct]);
+
+  const saveUrlLocal = useCallback(() => {
+    if (!product) return;
+    updateProduct(product.id, { storeUrl: urlInput.trim() });
+    setEditingUrl(false);
+  }, [product, updateProduct, urlInput]);
+
+  const saveWarrantyLocal = useCallback((planId, supplierId, days) => {
+    const d = Math.max(0, parseInt(days) || 0);
+    updateProduct(product.id, (p) => ({
+      ...p,
+      plans: p.plans.map(pl => pl.id === planId
+        ? { ...pl, supplierWarranty: { ...(pl.supplierWarranty || {}), [supplierId]: d } }
+        : pl
+      ),
+    }));
+    setEditingWarranty(null);
+  }, [product, updateProduct]);
+
   const editorRef = useRef(null);
   const [editorFormats, setEditorFormats] = useState({});
   const isFocusedRef = useRef(false);
@@ -453,6 +511,18 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
     return { withDesc, totalFeatures, total: products.length };
   }, [products]);
 
+  const availableDurations = useMemo(() => {
+    if (!product) return durations;
+    const usedIds = new Set(product.plans.map(pl => pl.durationId));
+    return durations.filter(d => !usedIds.has(d.id));
+  }, [product, durations]);
+
+  const availableMethods = useMemo(() => {
+    if (!product) return activationMethods;
+    const usedIds = new Set(product.activationMethods || []);
+    return activationMethods.filter(m => !usedIds.has(m.id));
+  }, [product, activationMethods]);
+
   const getProductStatus = (p) => {
     const hasDesc = p.description?.trim();
     const hasFeatures = p.plans?.some(plan => plan.features?.some(f => !f.isSeparator && f.text.trim()));
@@ -600,39 +670,118 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
               <span className="pf-product-info-header-title">معلومات المنتج</span>
             </div>
             <div className="pf-product-info-body">
+
+              {/* ── مدد الاشتراك ── */}
               <div className="pf-product-info-row">
                 <span className="pf-product-info-label">مدد الاشتراك</span>
                 <div className="pf-product-info-value-cell">
-                  {product.plans.length > 0 ? product.plans.map(plan => (
-                    <span key={plan.id} className="pf-info-chip pf-info-chip--duration">
+                  {product.plans.map(plan => (
+                    <span key={plan.id} className="pf-info-chip pf-info-chip--duration pf-info-chip--editable">
                       {getDurationLabel(plan.durationId)}
+                      {product.plans.length > 1 && (
+                        <button className="pf-chip-remove" onClick={() => deletePlanLocal(plan.id)} title="حذف هذه المدة">
+                          <XIcon className="icon-xs" />
+                        </button>
+                      )}
                     </span>
-                  )) : <span className="pf-info-empty">غير محدد</span>}
+                  ))}
+                  <div className="pf-picker-wrap" ref={durationPickerRef}>
+                    <button
+                      className="pf-info-chip pf-info-chip--add"
+                      onClick={() => setShowDurationPicker(v => !v)}
+                      title="إضافة مدة اشتراك"
+                    >
+                      <PlusIcon className="icon-xs" /> مدة
+                    </button>
+                    {showDurationPicker && (
+                      <div className="pf-picker-dropdown">
+                        {availableDurations.length === 0
+                          ? <div className="pf-picker-empty">كل المدد مضافة بالفعل</div>
+                          : availableDurations.map(dur => (
+                            <button key={dur.id} className="pf-picker-item" onClick={() => addPlanLocal(dur.id)}>
+                              {getDurationLabel(dur.id)}
+                            </button>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* ── طرق التفعيل ── */}
               <div className="pf-product-info-row">
                 <span className="pf-product-info-label">طرق التفعيل</span>
                 <div className="pf-product-info-value-cell">
-                  {(product.activationMethods || []).length > 0 ? (product.activationMethods || []).map(mId => {
+                  {(product.activationMethods || []).map(mId => {
                     const m = activationMethods.find(x => x.id === mId);
                     return m ? (
-                      <span key={mId} className="pf-info-chip pf-info-chip--method" style={{ borderColor: m.color + '55', color: m.color, background: m.color + '14' }}>
+                      <span key={mId} className="pf-info-chip pf-info-chip--method pf-info-chip--editable" style={{ borderColor: m.color + '55', color: m.color, background: m.color + '14' }}>
                         {m.icon} {m.label}
+                        <button className="pf-chip-remove" style={{ color: m.color }} onClick={() => toggleMethodLocal(mId)} title="إزالة">
+                          <XIcon className="icon-xs" />
+                        </button>
                       </span>
                     ) : null;
-                  }) : <span className="pf-info-empty">غير محدد</span>}
+                  })}
+                  <div className="pf-picker-wrap" ref={methodPickerRef}>
+                    <button
+                      className="pf-info-chip pf-info-chip--add"
+                      onClick={() => setShowMethodPicker(v => !v)}
+                      title="إضافة طريقة تفعيل"
+                    >
+                      <PlusIcon className="icon-xs" /> طريقة
+                    </button>
+                    {showMethodPicker && (
+                      <div className="pf-picker-dropdown">
+                        {availableMethods.length === 0
+                          ? <div className="pf-picker-empty">كل الطرق مضافة بالفعل</div>
+                          : availableMethods.map(m => (
+                            <button key={m.id} className="pf-picker-item" onClick={() => { toggleMethodLocal(m.id); setShowMethodPicker(false); }} style={{ color: m.color }}>
+                              {m.icon} {m.label}
+                            </button>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* ── رابط المتجر ── */}
               <div className="pf-product-info-row">
                 <span className="pf-product-info-label">رابط المتجر</span>
                 <div className="pf-product-info-value-cell">
-                  {product.storeUrl ? (
-                    <a href={product.storeUrl} target="_blank" rel="noopener noreferrer" className="pf-info-chip pf-info-chip--link" dir="ltr">
-                      🔗 {product.storeUrl}
-                    </a>
-                  ) : <span className="pf-info-empty">غير محدد</span>}
+                  {editingUrl ? (
+                    <div className="pf-url-edit-wrap">
+                      <input
+                        ref={urlInputRef}
+                        className="pf-url-input"
+                        value={urlInput}
+                        onChange={e => setUrlInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveUrlLocal(); if (e.key === 'Escape') setEditingUrl(false); }}
+                        placeholder="https://example.com/product"
+                        dir="ltr"
+                      />
+                      <button className="pf-url-btn pf-url-btn--save" onClick={saveUrlLocal}>حفظ</button>
+                      <button className="pf-url-btn pf-url-btn--cancel" onClick={() => setEditingUrl(false)}>إلغاء</button>
+                    </div>
+                  ) : (
+                    <div className="pf-url-display" onClick={() => { setUrlInput(product.storeUrl || ''); setEditingUrl(true); }}>
+                      {product.storeUrl ? (
+                        <a href={product.storeUrl} target="_blank" rel="noopener noreferrer" className="pf-info-chip pf-info-chip--link" dir="ltr" onClick={e => e.stopPropagation()}>
+                          🔗 {product.storeUrl}
+                        </a>
+                      ) : (
+                        <span className="pf-info-empty pf-info-empty--clickable">+ إضافة رابط المتجر</span>
+                      )}
+                      <button className="pf-url-edit-btn" title="تعديل الرابط">✏️</button>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* ── الضمان ── */}
               <div className="pf-product-info-row pf-product-info-row--warranty">
                 <span className="pf-product-info-label">الضمان</span>
                 <div className="pf-product-info-value-cell">
@@ -653,9 +802,34 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
                               <td className="pf-warranty-sup-name">{sup.name}</td>
                               {product.plans.map(plan => {
                                 const days = (plan.supplierWarranty || {})[sup.id] || 0;
+                                const isEditing = editingWarranty?.planId === plan.id && editingWarranty?.supplierId === sup.id;
                                 return (
-                                  <td key={plan.id} className={`pf-warranty-cell ${days > 0 ? 'has-warranty' : ''}`}>
-                                    {days > 0 ? `${days} يوم` : '—'}
+                                  <td
+                                    key={plan.id}
+                                    className={`pf-warranty-cell pf-warranty-cell--editable ${days > 0 ? 'has-warranty' : ''}`}
+                                    onClick={() => { if (!isEditing) { setEditingWarranty({ planId: plan.id, supplierId: sup.id }); setWarrantyInput(days > 0 ? String(days) : ''); } }}
+                                  >
+                                    {isEditing ? (
+                                      <div className="pf-warranty-edit-wrap" onClick={e => e.stopPropagation()}>
+                                        <input
+                                          className="pf-warranty-input"
+                                          type="number"
+                                          min="0"
+                                          value={warrantyInput}
+                                          autoFocus
+                                          onChange={e => setWarrantyInput(e.target.value)}
+                                          onKeyDown={e => { if (e.key === 'Enter') saveWarrantyLocal(plan.id, sup.id, warrantyInput); if (e.key === 'Escape') setEditingWarranty(null); }}
+                                        />
+                                        <div className="pf-warranty-presets">
+                                          {[{ label: 'شهر', days: 30 }, { label: '6 أشهر', days: 180 }, { label: 'سنة', days: 365 }].map(p => (
+                                            <button key={p.days} className="pf-warranty-preset-btn" onClick={() => saveWarrantyLocal(plan.id, sup.id, p.days)}>{p.label}</button>
+                                          ))}
+                                          <button className="pf-warranty-preset-btn pf-warranty-preset-btn--clear" onClick={() => saveWarrantyLocal(plan.id, sup.id, 0)}>✕</button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <span className="pf-warranty-cell-value">{days > 0 ? `${days} يوم` : '—'}</span>
+                                    )}
                                   </td>
                                 );
                               })}
@@ -667,6 +841,7 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
                   ) : <span className="pf-info-empty">لا توجد خطط</span>}
                 </div>
               </div>
+
             </div>
           </div>
 
