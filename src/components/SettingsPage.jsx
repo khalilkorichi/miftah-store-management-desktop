@@ -3,7 +3,8 @@ import {
   SettingsIcon, GlobeIcon, ClockIcon, PaletteIcon, 
   MoonIcon, SunIcon, DatabaseIcon, UploadIcon, 
   DownloadIcon, RefreshIcon, InfoIcon, XIcon, PlusIcon,
-  AlertTriangleIcon, CheckCircleIcon, PackageIcon, ImageIcon
+  AlertTriangleIcon, CheckCircleIcon, PackageIcon, ImageIcon,
+  ExternalLinkIcon
 } from './Icons';
 
 function SettingsPage({
@@ -228,6 +229,43 @@ function SettingsPage({
               style={{ display: 'none' }}
             />
             <p className="settings-logo-hint">الحد الأقصى: 500 كيلوبايت — يتكيف لونه تلقائياً مع الوضع الداكن/الفاتح</p>
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-card-icon-wrap settings-card-teal">
+            <GlobeIcon className="icon-md" />
+          </div>
+          <h3>رابط المتجر</h3>
+          <p className="settings-desc">رابط متجرك الرقمي — يُستخدم كاختصار للوصول السريع من لوحة التحكم</p>
+          <div className="settings-rate-row" style={{ flexDirection: 'column', gap: '10px', alignItems: 'stretch' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="url"
+                value={appSettings?.storeUrl || ''}
+                onChange={e => updateSetting('storeUrl', e.target.value)}
+                placeholder="https://miftahdigital.store/"
+                className="settings-input"
+                style={{ flex: 1, direction: 'ltr', textAlign: 'left' }}
+                dir="ltr"
+              />
+              {appSettings?.storeUrl && (
+                <a
+                  href={appSettings.storeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="settings-save-btn"
+                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <ExternalLinkIcon className="icon-sm" /> فتح
+                </a>
+              )}
+            </div>
+            {appSettings?.storeUrl && (
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', direction: 'ltr', textAlign: 'left', margin: 0 }}>
+                {appSettings.storeUrl}
+              </p>
+            )}
           </div>
         </div>
 
