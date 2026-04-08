@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   PackageIcon, UsersIcon, GiftIcon, DollarSignIcon, BarChartIcon,
   TrendingUpIcon, TrendingDownIcon, AlertTriangleIcon, CheckCircleIcon,
@@ -48,6 +48,37 @@ function Dashboard({
     const greet = h < 12 ? 'صباح الخير' : h < 17 ? 'مساء النور' : 'مساء الخير';
     return { arabicDate: date, greeting: greet };
   }, []);
+
+  // Live clock — ticks every second
+  const [clockNow, setClockNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setClockNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const enabledTimezones = useMemo(() => {
+    const defaults = [
+      { id: 'dz', label: 'الجزائر', tz: 'Africa/Algiers', flag: '🇩🇿' },
+      { id: 'sa', label: 'السعودية', tz: 'Asia/Riyadh', flag: '🇸🇦' },
+    ];
+    const tzSettings = appSettings?.timezones;
+    if (!tzSettings || !Array.isArray(tzSettings)) return defaults;
+    return tzSettings.filter(z => z.enabled !== false);
+  }, [appSettings?.timezones]);
+
+  const formatClock = (tz) => {
+    try {
+      return clockNow.toLocaleTimeString('en-US', {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+    } catch {
+      return '--:--:--';
+    }
+  };
   const totalProducts = products.length;
   const totalSuppliers = suppliers.length;
   const totalBundles = bundles.length;
@@ -156,6 +187,17 @@ function Dashboard({
         <div className="dash-hero-orb dash-hero-orb-3" />
         <div className="dash-hero-content">
           <div className="dash-hero-left">
+            {enabledTimezones.length > 0 && (
+              <div className="dash-clocks-row">
+                {enabledTimezones.map((zone) => (
+                  <div key={zone.id} className="dash-clock-pill">
+                    <span className="dash-clock-flag">{zone.flag}</span>
+                    <span className="dash-clock-label">{zone.label}</span>
+                    <span className="dash-clock-time">{formatClock(zone.tz)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="dash-hero-date">
               <CalendarIcon className="icon-xs" />
               <span>{arabicDate}</span>
