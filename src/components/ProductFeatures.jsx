@@ -593,69 +593,79 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
           )}
 
           <div className="pf-product-info-card">
-            <div className="pf-product-info-row">
-              <span className="pf-product-info-label">مدد الاشتراك</span>
-              <div className="pf-product-info-chips">
-                {product.plans.length > 0 ? product.plans.map(plan => (
-                  <span key={plan.id} className="pf-info-chip pf-info-chip--duration">
-                    {getDurationLabel(plan.durationId)}
-                  </span>
-                )) : <span className="pf-info-empty">غير محدد</span>}
+            <div className="pf-product-info-header">
+              <div className="pf-product-info-header-icon">
+                <PackageIcon className="icon-xs" />
               </div>
+              <span className="pf-product-info-header-title">معلومات المنتج</span>
             </div>
-            <div className="pf-product-info-row">
-              <span className="pf-product-info-label">طرق التفعيل</span>
-              <div className="pf-product-info-chips">
-                {(product.activationMethods || []).length > 0 ? (product.activationMethods || []).map(mId => {
-                  const m = activationMethods.find(x => x.id === mId);
-                  return m ? (
-                    <span key={mId} className="pf-info-chip pf-info-chip--method" style={{ borderColor: m.color + '60', color: m.color }}>
-                      {m.icon} {m.label}
+            <div className="pf-product-info-body">
+              <div className="pf-product-info-row">
+                <span className="pf-product-info-label">مدد الاشتراك</span>
+                <div className="pf-product-info-value-cell">
+                  {product.plans.length > 0 ? product.plans.map(plan => (
+                    <span key={plan.id} className="pf-info-chip pf-info-chip--duration">
+                      {getDurationLabel(plan.durationId)}
                     </span>
-                  ) : null;
-                }) : <span className="pf-info-empty">غير محدد</span>}
+                  )) : <span className="pf-info-empty">غير محدد</span>}
+                </div>
               </div>
-            </div>
-            <div className="pf-product-info-row">
-              <span className="pf-product-info-label">رابط المتجر</span>
-              <div className="pf-product-info-chips">
-                {product.storeUrl ? (
-                  <a href={product.storeUrl} target="_blank" rel="noopener noreferrer" className="pf-info-chip pf-info-chip--link" dir="ltr">
-                    {product.storeUrl}
-                  </a>
-                ) : <span className="pf-info-empty">غير محدد</span>}
+              <div className="pf-product-info-row">
+                <span className="pf-product-info-label">طرق التفعيل</span>
+                <div className="pf-product-info-value-cell">
+                  {(product.activationMethods || []).length > 0 ? (product.activationMethods || []).map(mId => {
+                    const m = activationMethods.find(x => x.id === mId);
+                    return m ? (
+                      <span key={mId} className="pf-info-chip pf-info-chip--method" style={{ borderColor: m.color + '55', color: m.color, background: m.color + '14' }}>
+                        {m.icon} {m.label}
+                      </span>
+                    ) : null;
+                  }) : <span className="pf-info-empty">غير محدد</span>}
+                </div>
               </div>
-            </div>
-            <div className="pf-product-info-row pf-product-info-row--warranty">
-              <span className="pf-product-info-label">الضمان</span>
-              <div className="pf-warranty-table-wrap">
-                {product.plans.length > 0 ? (
-                  <table className="pf-warranty-table">
-                    <thead>
-                      <tr>
-                        <th>المورد</th>
-                        {product.plans.map(plan => (
-                          <th key={plan.id}>{getDurationLabel(plan.durationId)}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {suppliers.map(sup => (
-                        <tr key={sup.id}>
-                          <td className="pf-warranty-sup-name">{sup.name}</td>
-                          {product.plans.map(plan => {
-                            const days = (plan.supplierWarranty || {})[sup.id] || 0;
-                            return (
-                              <td key={plan.id} className={`pf-warranty-cell ${days > 0 ? 'has-warranty' : ''}`}>
-                                {days > 0 ? `${days} يوم` : '—'}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : <span className="pf-info-empty">لا توجد خطط</span>}
+              <div className="pf-product-info-row">
+                <span className="pf-product-info-label">رابط المتجر</span>
+                <div className="pf-product-info-value-cell">
+                  {product.storeUrl ? (
+                    <a href={product.storeUrl} target="_blank" rel="noopener noreferrer" className="pf-info-chip pf-info-chip--link" dir="ltr">
+                      🔗 {product.storeUrl}
+                    </a>
+                  ) : <span className="pf-info-empty">غير محدد</span>}
+                </div>
+              </div>
+              <div className="pf-product-info-row pf-product-info-row--warranty">
+                <span className="pf-product-info-label">الضمان</span>
+                <div className="pf-product-info-value-cell">
+                  {product.plans.length > 0 ? (
+                    <div className="pf-warranty-table-wrap">
+                      <table className="pf-warranty-table">
+                        <thead>
+                          <tr>
+                            <th>المورد</th>
+                            {product.plans.map(plan => (
+                              <th key={plan.id}>{getDurationLabel(plan.durationId)}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {suppliers.map(sup => (
+                            <tr key={sup.id}>
+                              <td className="pf-warranty-sup-name">{sup.name}</td>
+                              {product.plans.map(plan => {
+                                const days = (plan.supplierWarranty || {})[sup.id] || 0;
+                                return (
+                                  <td key={plan.id} className={`pf-warranty-cell ${days > 0 ? 'has-warranty' : ''}`}>
+                                    {days > 0 ? `${days} يوم` : '—'}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : <span className="pf-info-empty">لا توجد خطط</span>}
+                </div>
               </div>
             </div>
           </div>
