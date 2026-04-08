@@ -1,5 +1,16 @@
 export const DEFAULT_EXCHANGE_RATE = 3.75;
 
+export const DEFAULT_CATEGORIES = [
+  { id: 'cat_ai', name: 'الذكاء الاصطناعي', color: '#5E4FDE', icon: '🤖' },
+  { id: 'cat_entertainment', name: 'الترفيه والإعلام', color: '#F7784A', icon: '🎬' },
+  { id: 'cat_education', name: 'التعليم والتطوير', color: '#1A51F4', icon: '📚' },
+  { id: 'cat_business', name: 'الأعمال والتسويق', color: '#11BA65', icon: '💼' },
+  { id: 'cat_security', name: 'الأمن والحماية', color: '#F94B60', icon: '🔒' },
+  { id: 'cat_design', name: 'تصميم وإبداع', color: '#EC4899', icon: '🎨' },
+  { id: 'cat_productivity', name: 'الإنتاجية', color: '#FFC530', icon: '⚡' },
+  { id: 'cat_cloud', name: 'التخزين السحابي', color: '#0EA5E9', icon: '☁️' },
+];
+
 export const DEFAULT_COSTS = [
   { id: 'salla_commission', name: 'عمولة سلة', type: 'percentage', value: 2, applyTo: 'all', active: true },
   { id: 'marketing', name: 'الحملات الإعلانية', type: 'percentage', value: 5, applyTo: 'all', active: true },
