@@ -185,45 +185,45 @@ function Dashboard({
         <div className="dash-hero-orb dash-hero-orb-1" />
         <div className="dash-hero-orb dash-hero-orb-2" />
         <div className="dash-hero-orb dash-hero-orb-3" />
-        {/* Row 1 — Date pill + live clocks */}
+        {/* Row 1 — Date (right) | Clocks + Store btn (left) */}
         <div className="dash-hero-row-top">
           <div className="dash-hero-date">
             <CalendarIcon className="icon-xs" />
             <span>{arabicDate}</span>
           </div>
-          {enabledTimezones.length > 0 && (
-            <div className="dash-clocks-row">
-              {enabledTimezones.map((zone) => (
-                <div key={zone.id} className="dash-clock-pill">
-                  <span className="dash-clock-flag">{zone.flag}</span>
-                  <span className="dash-clock-label">{zone.label}</span>
-                  <span className="dash-clock-time">{formatClock(zone.tz)}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="dash-hero-top-left">
+            {enabledTimezones.length > 0 && (
+              <div className="dash-clocks-row">
+                {enabledTimezones.map((zone) => (
+                  <div key={zone.id} className="dash-clock-pill">
+                    <span className="dash-clock-flag">{zone.flag}</span>
+                    <span className="dash-clock-label">{zone.label}</span>
+                    <span className="dash-clock-time">{formatClock(zone.tz)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {storeUrl && (
+              <a
+                href={storeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="dash-hero-store-btn"
+              >
+                <GlobeIcon className="icon-sm" />
+                <span>زيارة المتجر</span>
+                <ExternalLinkIcon className="icon-xs dash-hero-ext-icon" />
+              </a>
+            )}
+          </div>
         </div>
 
-        {/* Row 2 — Title block + Store button */}
-        <div className="dash-hero-row-main">
-          <div className="dash-hero-title-block">
-            <span className="dash-hero-greeting">{greeting}،</span>
-            <h1 className="dash-hero-title-main">
-              <ActivityIcon className="icon-md" /> لوحة التحكم
-            </h1>
-          </div>
-          {storeUrl && (
-            <a
-              href={storeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="dash-hero-store-btn"
-            >
-              <GlobeIcon className="icon-sm" />
-              <span>زيارة المتجر</span>
-              <ExternalLinkIcon className="icon-xs dash-hero-ext-icon" />
-            </a>
-          )}
+        {/* Row 2 — Full-width title */}
+        <div className="dash-hero-title-block">
+          <span className="dash-hero-greeting">{greeting}،</span>
+          <h1 className="dash-hero-title-main">
+            <ActivityIcon className="icon-md" /> لوحة التحكم
+          </h1>
         </div>
 
         {/* Row 3 — Subtitle + Quote */}
