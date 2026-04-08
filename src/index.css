@@ -1777,62 +1777,9 @@ body {
   animation: fadeIn 0.3s ease;
 }
 
+/* Legacy dashboard-header kept for margin consistency */
 .dashboard-header {
-  margin-bottom: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-/* ── Dashboard quote banner ── */
-.dash-quote-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 11px 20px;
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, rgba(94,79,222,0.08) 0%, rgba(59,130,246,0.06) 50%, rgba(16,185,129,0.06) 100%);
-  border: 1px solid rgba(94,79,222,0.15);
-  border-radius: 14px;
-  text-align: center;
-}
-.dash-quote-emoji {
-  font-size: 17px;
-  flex-shrink: 0;
-}
-.dash-quote-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-style: italic;
-  letter-spacing: 0.01em;
-}
-
-/* ── Dashboard header store button ── */
-.dash-store-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 18px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, var(--accent-purple), #4f46e5);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(94,79,222,0.35);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.dash-store-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(94,79,222,0.45);
+  margin-bottom: 0;
 }
 
 .dashboard-title {
@@ -1849,6 +1796,173 @@ body {
   font-size: 14px;
   color: var(--text-muted);
   margin: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   Dashboard Hero Card
+   ═══════════════════════════════════════════════ */
+.dash-hero-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg,
+    rgba(94,79,222,0.12) 0%,
+    rgba(59,130,246,0.08) 40%,
+    rgba(16,185,129,0.06) 100%);
+  border: 1px solid rgba(94,79,222,0.2);
+  border-radius: 22px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(8px);
+}
+
+/* Decorative blurred orbs */
+.dash-hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(55px);
+  opacity: 0.4;
+}
+.dash-hero-orb-1 {
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, #5e4fde 0%, transparent 70%);
+  top: -70px; left: -70px;
+}
+.dash-hero-orb-2 {
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, #11ba65 0%, transparent 70%);
+  bottom: -50px; right: 22%;
+}
+.dash-hero-orb-3 {
+  width: 120px; height: 120px;
+  background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
+  top: 10px; right: 35%;
+  opacity: 0.25;
+}
+
+/* Hero layout */
+.dash-hero-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.dash-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Date row */
+.dash-hero-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: rgba(94,79,222,0.08);
+  border: 1px solid rgba(94,79,222,0.15);
+  padding: 4px 10px;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+/* Title block */
+.dash-hero-title {
+  margin: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dash-hero-greeting {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-purple);
+  opacity: 0.9;
+  line-height: 1.4;
+}
+.dash-hero-title-main {
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--text-primary);
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Subtitle */
+.dash-hero-subtitle {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Quote strip */
+.dash-hero-quote {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 8px;
+  padding: 9px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(94,79,222,0.18);
+  border-right: 3px solid rgba(94,79,222,0.55);
+  border-radius: 12px;
+  max-width: 520px;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.dash-hero-quote-emoji {
+  font-size: 16px;
+  flex-shrink: 0;
+  font-style: normal;
+}
+
+/* Store button */
+.dash-hero-store-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 26px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #5e4fde 0%, #4338ca 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow:
+    0 4px 18px rgba(94,79,222,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.18);
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.015em;
+}
+.dash-hero-store-btn:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 24px rgba(94,79,222,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.dash-hero-ext-icon {
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.dash-hero-store-btn:hover .dash-hero-ext-icon {
+  opacity: 1;
 }
 
 .dashboard-stats-grid {
