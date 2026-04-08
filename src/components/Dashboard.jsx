@@ -288,13 +288,23 @@ function Dashboard({
                 <span className="dash-section-badge">{alertItems.length}</span>
               </h2>
               <div className="dash-alerts-list">
-                {visibleAlerts.map((alert, idx) => (
-                  <div key={idx} className={`dash-alert-item alert-${alert.type}`} onClick={() => onNavigate(alert.action)}>
-                    <span className="dash-alert-icon">{alert.icon}</span>
-                    <span className="dash-alert-text">{alert.text}</span>
-                    <ArrowLeftIcon className="icon-xs dash-alert-arrow" />
-                  </div>
-                ))}
+                {visibleAlerts.map((alert, idx) => {
+                  const parts = alert.text.split(' - ');
+                  const productName = parts[0];
+                  const desc = parts.slice(1).join(' - ');
+                  const typeLabel = alert.type === 'danger' ? 'خطر' : alert.type === 'warning' ? 'تحذير' : 'معلومة';
+                  return (
+                    <div key={idx} className={`dash-alert-item alert-${alert.type}`} onClick={() => onNavigate(alert.action)}>
+                      <span className="dash-alert-icon-wrap">{alert.icon}</span>
+                      <span className="dash-alert-body">
+                        <span className="dash-alert-product">{productName}</span>
+                        <span className="dash-alert-desc">{desc}</span>
+                      </span>
+                      <span className={`dash-alert-badge badge-${alert.type}`}>{typeLabel}</span>
+                      <ArrowLeftIcon className="icon-xs dash-alert-arrow" />
+                    </div>
+                  );
+                })}
                 {alertItems.length > 5 && (
                   <button className="dash-show-more-btn" onClick={() => setShowAllAlerts(!showAllAlerts)}>
                     {showAllAlerts ? 'عرض أقل' : `عرض الكل (${alertItems.length})`}
