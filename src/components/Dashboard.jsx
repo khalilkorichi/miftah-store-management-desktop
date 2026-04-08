@@ -4,7 +4,7 @@ import {
   TrendingUpIcon, TrendingDownIcon, AlertTriangleIcon, CheckCircleIcon,
   PlusIcon, TagIcon, StarIcon, ActivityIcon, PercentIcon,
   SettingsIcon, LayersIcon, ArrowLeftIcon, ZapIcon, AwardIcon,
-  ExternalLinkIcon, GlobeIcon
+  ExternalLinkIcon, GlobeIcon, CalendarIcon
 } from './Icons';
 
 const MOTIVATIONAL_QUOTES = [
@@ -39,6 +39,14 @@ function Dashboard({
   const todayQuote = useMemo(() => {
     const idx = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
     return MOTIVATIONAL_QUOTES[idx];
+  }, []);
+
+  const { arabicDate, greeting } = useMemo(() => {
+    const now = new Date();
+    const date = now.toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const h = now.getHours();
+    const greet = h < 12 ? 'صباح الخير' : h < 17 ? 'مساء النور' : 'مساء الخير';
+    return { arabicDate: date, greeting: greet };
   }, []);
   const totalProducts = products.length;
   const totalSuppliers = suppliers.length;
@@ -141,32 +149,40 @@ function Dashboard({
 
   return (
     <div className="dashboard-page">
-      {/* Motivational Quote Banner */}
-      <div className="dash-quote-banner">
-        <span className="dash-quote-emoji">{todayQuote.emoji}</span>
-        <span className="dash-quote-text">{todayQuote.text}</span>
-        <span className="dash-quote-emoji">{todayQuote.emoji}</span>
-      </div>
-
-      <div className="dashboard-header">
-        <div className="dashboard-header-text">
-          <h1 className="dashboard-title">
-            <ActivityIcon className="icon-md" /> لوحة التحكم
-          </h1>
-          <p className="dashboard-subtitle">نظرة عامة على متجرك الرقمي</p>
+      {/* Hero Header Card */}
+      <div className="dash-hero-card">
+        <div className="dash-hero-orb dash-hero-orb-1" />
+        <div className="dash-hero-orb dash-hero-orb-2" />
+        <div className="dash-hero-orb dash-hero-orb-3" />
+        <div className="dash-hero-content">
+          <div className="dash-hero-left">
+            <div className="dash-hero-date">
+              <CalendarIcon className="icon-xs" />
+              <span>{arabicDate}</span>
+            </div>
+            <h1 className="dash-hero-title">
+              <span className="dash-hero-greeting">{greeting}،</span>
+              <span className="dash-hero-title-main"><ActivityIcon className="icon-md" /> لوحة التحكم</span>
+            </h1>
+            <p className="dash-hero-subtitle">نظرة عامة على متجرك الرقمي</p>
+            <div className="dash-hero-quote">
+              <span className="dash-hero-quote-emoji">{todayQuote.emoji}</span>
+              <span>{todayQuote.text}</span>
+            </div>
+          </div>
+          {storeUrl && (
+            <a
+              href={storeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="dash-hero-store-btn"
+            >
+              <GlobeIcon className="icon-sm" />
+              <span>زيارة المتجر</span>
+              <ExternalLinkIcon className="icon-xs dash-hero-ext-icon" />
+            </a>
+          )}
         </div>
-        {storeUrl && (
-          <a
-            href={storeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="dash-store-btn"
-          >
-            <GlobeIcon className="icon-sm" />
-            <span>زيارة المتجر</span>
-            <ExternalLinkIcon className="icon-xs" />
-          </a>
-        )}
       </div>
 
       <div className="dashboard-stats-grid">
