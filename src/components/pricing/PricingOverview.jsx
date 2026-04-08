@@ -59,17 +59,20 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
 
   /* aggregate KPIs */
   const totalProducts  = products.length;
+  const completeCount  = productStats.filter(p => p.status === 'complete').length;
+  const partialCount   = productStats.filter(p => p.status === 'partial').length;
+  const noneCount      = productStats.filter(p => p.status === 'none').length;
   const belowCostProds = productStats.filter(p => p.belowCost);
   const allPlans       = productStats.reduce((s, p) => s + p.totalPlans, 0);
   const allSetPlans    = productStats.reduce((s, p) => s + p.setPrices, 0);
-  const allUnsetPlans  = allPlans - allSetPlans;
   const coveragePct    = allPlans > 0 ? (allSetPlans / allPlans) * 100 : 0;
   const marginsArr     = productStats.filter(p => p.avgMargin !== null).map(p => p.avgMargin);
   const avgMarginAll   = marginsArr.length > 0 ? marginsArr.reduce((a, b) => a + b, 0) / marginsArr.length : 0;
 
-  /* progress bar widths — plan-level: set vs unset */
-  const barSetPct   = allPlans > 0 ? (allSetPlans  / allPlans) * 100 : 0;
-  const barUnsetPct = allPlans > 0 ? (allUnsetPlans / allPlans) * 100 : 100;
+  /* progress bar — three product-level buckets */
+  const barCompletePct = totalProducts > 0 ? (completeCount / totalProducts) * 100 : 0;
+  const barPartialPct  = totalProducts > 0 ? (partialCount  / totalProducts) * 100 : 0;
+  const barNonePct     = totalProducts > 0 ? (noneCount     / totalProducts) * 100 : 100;
 
   /* insights */
   const ranked  = productStats.filter(p => p.avgMargin !== null).sort((a, b) => b.avgMargin - a.avgMargin);
@@ -130,24 +133,28 @@ function PricingOverview({ products, suppliers, costs, exchangeRate, pricingData
         </div>
       </div>
 
-      {/* Coverage Progress Bar — plan-level */}
+      {/* Coverage Progress Bar — product-level: complete / partial / none */}
       <div className="po-progress-card">
         <div className="po-progress-header">
-          <span className="po-progress-title">تقدم التسعير — على مستوى الخطط</span>
+          <span className="po-progress-title">تقدم التسعير — على مستوى المنتجات</span>
           <div className="po-progress-legend">
             <span className="po-leg-dot po-leg-green" />
-            <span className="po-leg-txt">مُسعَّرة ({allSetPlans})</span>
+            <span className="po-leg-txt">مكتمل ({completeCount})</span>
+            <span className="po-leg-dot po-leg-amber" />
+            <span className="po-leg-txt">جزئي ({partialCount})</span>
             <span className="po-leg-dot po-leg-muted" />
-            <span className="po-leg-txt">لم تُسعَّر ({allUnsetPlans})</span>
+            <span className="po-leg-txt">لم يُسعَّر ({noneCount})</span>
           </div>
         </div>
         <div className="po-progress-bar-track">
-          {barSetPct   > 0 && <div className="po-progress-seg po-seg-green" style={{ width: `${barSetPct}%`   }} title={`مُسعَّرة ${fmtPct(barSetPct)}%`} />}
-          {barUnsetPct > 0 && <div className="po-progress-seg po-seg-muted" style={{ width: `${barUnsetPct}%` }} title={`لم تُسعَّر ${fmtPct(barUnsetPct)}%`} />}
+          {barCompletePct > 0 && <div className="po-progress-seg po-seg-green" style={{ width: `${barCompletePct}%` }} title={`مكتمل ${fmtPct(barCompletePct)}%`} />}
+          {barPartialPct  > 0 && <div className="po-progress-seg po-seg-amber" style={{ width: `${barPartialPct}%`  }} title={`جزئي ${fmtPct(barPartialPct)}%`} />}
+          {barNonePct     > 0 && <div className="po-progress-seg po-seg-muted" style={{ width: `${barNonePct}%`    }} title={`لم يُسعَّر ${fmtPct(barNonePct)}%`} />}
         </div>
         <div className="po-progress-counts">
-          <span className="po-pct-label po-pct-green">{fmtPct(barSetPct)}% مُسعَّرة</span>
-          <span className="po-pct-label po-pct-muted">{fmtPct(barUnsetPct)}% لم تُسعَّر</span>
+          {barCompletePct > 0 && <span className="po-pct-label po-pct-green">{fmtPct(barCompletePct)}% مكتمل</span>}
+          {barPartialPct  > 0 && <span className="po-pct-label po-pct-amber">{fmtPct(barPartialPct)}% جزئي</span>}
+          <span className="po-pct-label po-pct-muted">{fmtPct(barNonePct)}% لم يُسعَّر</span>
         </div>
       </div>
 
