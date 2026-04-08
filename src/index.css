@@ -251,6 +251,34 @@ body {
   gap: 12px;
 }
 
+.header-store-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  background: rgba(94, 79, 222, 0.12);
+  color: var(--accent-purple);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid rgba(94, 79, 222, 0.25);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.header-store-link:hover {
+  background: rgba(94, 79, 222, 0.2);
+  border-color: rgba(94, 79, 222, 0.45);
+  transform: translateY(-1px);
+}
+.header-store-link-text {
+  display: inline;
+}
+@media (max-width: 640px) {
+  .header-store-link-text { display: none; }
+  .header-store-link { padding: 7px 10px; }
+}
+
 .main-content {
   flex: 1;
   padding: 32px 24px;
@@ -1751,6 +1779,60 @@ body {
 
 .dashboard-header {
   margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ── Dashboard quote banner ── */
+.dash-quote-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 20px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(94,79,222,0.08) 0%, rgba(59,130,246,0.06) 50%, rgba(16,185,129,0.06) 100%);
+  border: 1px solid rgba(94,79,222,0.15);
+  border-radius: 14px;
+  text-align: center;
+}
+.dash-quote-emoji {
+  font-size: 17px;
+  flex-shrink: 0;
+}
+.dash-quote-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+/* ── Dashboard header store button ── */
+.dash-store-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, var(--accent-purple), #4f46e5);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(94,79,222,0.35);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dash-store-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(94,79,222,0.45);
 }
 
 .dashboard-title {
@@ -2166,12 +2248,14 @@ body {
 .dqb-orange .dqb-icon{ background: rgba(247,120,74,0.12); color: var(--accent-orange); }
 .dqb-purple .dqb-icon{ background: rgba(26,81,244,0.12); color: var(--accent-purple); }
 .dqb-grey .dqb-icon  { background: rgba(148,163,184,0.12); color: var(--text-muted); }
+.dqb-teal .dqb-icon  { background: rgba(20,184,166,0.12); color: #14b8a6; }
 
 .dqb-blue:hover  { border-color: rgba(94,79,222,0.35);  color: var(--accent-blue);   background: rgba(94,79,222,0.05); }
 .dqb-green:hover { border-color: rgba(17,186,101,0.35); color: var(--accent-green);  background: rgba(17,186,101,0.05); }
 .dqb-orange:hover{ border-color: rgba(247,120,74,0.35); color: var(--accent-orange); background: rgba(247,120,74,0.05); }
 .dqb-purple:hover{ border-color: rgba(26,81,244,0.35);  color: var(--accent-purple); background: rgba(26,81,244,0.05); }
 .dqb-grey:hover  { border-color: var(--border-color);   color: var(--text-primary);  background: var(--bg-input); }
+.dqb-teal:hover  { border-color: rgba(20,184,166,0.35); color: #14b8a6;              background: rgba(20,184,166,0.05); }
 
 .dash-pricing-summary {
   display: flex;
@@ -2392,6 +2476,7 @@ body {
 .settings-card-purple { background: rgba(139, 92, 246, 0.1); color: var(--accent-purple); }
 .settings-card-orange { background: rgba(247, 120, 74, 0.1); color: var(--accent-orange); }
 .settings-card-indigo { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
+.settings-card-teal   { background: rgba(20, 184, 166, 0.1); color: #14b8a6; }
 .settings-card-accent { background: rgba(94, 79, 222, 0.1); color: var(--accent-blue); }
 
 .settings-card h3 {
