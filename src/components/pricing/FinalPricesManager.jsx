@@ -235,6 +235,8 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
               {products.map(prod =>
                 (prod.plans || []).map((plan, pi) => {
                   const key = `${prod.id}_${plan.id}`;
+                  const isGroupFirst = pi === 0;
+                  const isGroupLast = pi === (prod.plans?.length || 1) - 1;
                   const baseSAR = getSupplierBasePrice(prod, plan);
                   const totalCost = computeTotalCost(baseSAR, costs);
                   const rowMech = rowMechs[key] || { mechanism: 'costplus', margin: 20, perceivedValue: 100, valueRatio: 20 };
@@ -247,12 +249,22 @@ function FinalPricesManager({ products, suppliers, durations, costs, pricingData
                   const pricingStatus = getPricingStatus(priceForMargin, totalCost, suggested);
 
                   return (
-                    <tr key={key} className="fpm-tr">
-                      {pi === 0 ? (
-                        <td className="fpm-td fpm-product-name" rowSpan={prod.plans.length}>
-                          {prod.name}
-                        </td>
-                      ) : null}
+                    <tr
+                      key={key}
+                      className={`fpm-tr${isGroupFirst ? ' fpm-group-first' : ''}${isGroupLast ? ' fpm-group-last' : ''}`}
+                    >
+                      <td className={`fpm-td fpm-td-product ${isGroupFirst ? 'fpm-product-name-cell' : 'fpm-product-cont-cell'}`}>
+                        {isGroupFirst ? (
+                          <div className="fpm-product-name-wrap">
+                            <span className="fpm-product-name-text">{prod.name}</span>
+                            {(prod.plans?.length || 0) > 1 && (
+                              <span className="fpm-product-plans-count">{prod.plans.length} خطط</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="fpm-product-cont-line" />
+                        )}
+                      </td>
                       <td className="fpm-td">
                         <span className="fpm-plan-badge">{getDurationLabel(plan.durationId)}</span>
                       </td>
