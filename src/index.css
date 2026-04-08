@@ -1905,28 +1905,115 @@ body {
   margin: 0;
 }
 
-/* Quote strip */
+/* Quote strip — simplified, no colored border */
 .dash-hero-quote {
   display: inline-flex;
   align-items: center;
   gap: 9px;
   margin-top: 8px;
-  padding: 9px 16px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(94,79,222,0.18);
-  border-right: 3px solid rgba(94,79,222,0.55);
-  border-radius: 12px;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
   max-width: 520px;
   font-size: 13px;
   font-style: italic;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-muted);
   line-height: 1.5;
 }
 .dash-hero-quote-emoji {
-  font-size: 16px;
+  font-size: 15px;
   flex-shrink: 0;
   font-style: normal;
+}
+
+/* ── Live clocks row ── */
+.dash-clocks-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dash-clock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.dash-clock-flag {
+  font-size: 14px;
+  line-height: 1;
+}
+.dash-clock-label {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.dash-clock-time {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  direction: ltr;
+  unicode-bidi: bidi-override;
+}
+
+/* ── Timezone settings in SettingsPage ── */
+.settings-tz-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.settings-tz-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+.settings-tz-flag {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.settings-tz-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+.settings-tz-code {
+  font-size: 11px;
+  color: var(--text-muted);
+  direction: ltr;
+  unicode-bidi: bidi-override;
+  font-family: monospace;
+  margin-inline-end: auto;
+}
+.settings-tz-toggle {
+  padding: 5px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+.settings-tz-toggle.active {
+  background: rgba(94,79,222,0.12);
+  border-color: rgba(94,79,222,0.3);
+  color: var(--accent-purple);
 }
 
 /* Store button */
