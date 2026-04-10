@@ -287,7 +287,8 @@ function ProductCard({
   const [addingPlan, setAddingPlan] = useState(false);
 
   const isBranch = !!product.parentId;
-  const branchCount = allProducts ? allProducts.filter(p => p.parentId === product.id).length : 0;
+  const branches = allProducts ? allProducts.filter(p => p.parentId === product.id) : [];
+  const branchCount = branches.length;
 
   const assignedMethods = (product.activationMethods || [])
     .map((mId) => activationMethods.find((x) => x.id === mId))
@@ -455,6 +456,204 @@ function ProductCard({
         </div>
 
       </div>
+
+    </div>
+  );
+}
+
+function ParentBranchesCard({
+  parent, branches, index, sharedCardProps,
+  onDetachBranch, onOpenMoveModal, onOpenAttachModal, onAddBranch
+}) {
+  const {
+    editingName, setEditingName, editNameValue, setEditNameValue,
+    onUpdateProductName, onUpdateProductAccountType, onDeleteProduct,
+    onDuplicateProduct, getDurationLabel, setDetailModalProduct,
+    setActivationModalProduct, setCompetitorsModalProduct,
+    exchangeRate, activationMethods, requestConfirm,
+    onUpdateProductColor
+  } = sharedCardProps;
+
+  const assignedMethods = (parent.activationMethods || [])
+    .map((mId) => activationMethods.find((x) => x.id === mId))
+    .filter(Boolean);
+
+  const handleStartEditName = () => {
+    setEditingName(parent.id);
+    setEditNameValue(parent.name);
+  };
+  const handleSaveName = () => {
+    if (editNameValue.trim()) onUpdateProductName(parent.id, editNameValue.trim());
+    setEditingName(null);
+  };
+  const handleCycleAccountType = () => {
+    const current = parent.accountType || 'none';
+    const next = current === 'none' ? 'individual' : current === 'individual' ? 'team' : 'none';
+    if (onUpdateProductAccountType) onUpdateProductAccountType(parent.id, next);
+  };
+
+  const totalPlans = (parent.plans?.length || 0) + branches.reduce((s, b) => s + (b.plans?.length || 0), 0);
+  const cardColor = parent.cardColor || null;
+  const cardStyle = cardColor ? { '--card-accent': cardColor, borderInlineEnd: `3px solid ${cardColor}` } : {};
+
+  const getLowestPrice = (product) => {
+    let min = Infinity;
+    for (const plan of product.plans || []) {
+      for (const price of Object.values(plan.prices || {})) {
+        if (price > 0 && price < min) min = price;
+      }
+    }
+    return min === Infinity ? null : min;
+  };
+
+  return (
+    <div className={`pbc-card ${cardColor ? 'pbc-card--colored' : ''}`} style={cardStyle}>
+      {cardColor && (
+        <div className="pbc-color-bar" style={{ background: `linear-gradient(135deg, ${cardColor}22 0%, transparent 60%)` }} />
+      )}
+
+      <div className="pbc-header">
+        <div className="pbc-header-right">
+          <span className="pbc-index">{index + 1}</span>
+          <div className="pbc-name-area">
+            {editingName === parent.id ? (
+              <div className="inline-edit-with-paste">
+                <input type="text" value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} onBlur={handleSaveName} onKeyDown={(e) => e.key === 'Enter' && handleSaveName()} autoFocus className="inline-edit-input product-card-name-input" dir="rtl" />
+                <PasteBtn onPaste={(t) => setEditNameValue(t)} />
+              </div>
+            ) : (
+              <h3 className="pbc-name" onClick={handleStartEditName} title="انقر للتعديل">{parent.name}</h3>
+            )}
+            <div className={`account-type-badge type-${parent.accountType || 'none'}`} onClick={handleCycleAccountType} title="تغيير نوع الحساب">
+              {(parent.accountType || 'none') === 'none' && <UserIcon className="icon-xs" style={{ opacity: 0.5 }} />}
+              {parent.accountType === 'individual' && <><UserIcon className="icon-xs" /> <span>فردي</span></>}
+              {parent.accountType === 'team' && <><UsersIcon className="icon-xs" /> <span>فريق</span></>}
+            </div>
+          </div>
+        </div>
+        <div className="pbc-header-actions">
+          <ColorPicker color={cardColor} onChangeColor={(c) => onUpdateProductColor?.(parent.id, c)} onClear={() => onUpdateProductColor?.(parent.id, null)} />
+          <button className="btn-card-action" onClick={() => onOpenAttachModal(parent)} title="إرفاق منتج كفرع">
+            <LinkIcon className="icon-sm" />
+          </button>
+          <button className="btn-card-action branch" onClick={() => onAddBranch?.(parent.id)} title="إضافة فرع جديد">
+            <GitBranchIcon className="icon-sm" />
+          </button>
+          <button className="btn-card-action" onClick={() => onDuplicateProduct(parent.id)} title="تكرار">
+            <CopyIcon className="icon-sm" />
+          </button>
+          <button className="btn-card-action danger" onClick={() => requestConfirm('حذف منتج', `هل أنت متأكد من حذف "${parent.name}" وجميع فروعه؟`, () => onDeleteProduct(parent.id))} title="حذف">
+            <TrashIcon className="icon-sm" />
+          </button>
+        </div>
+      </div>
+
+      <div className="pbc-stats-row">
+        <div className="pbc-stat">
+          <GitBranchIcon className="icon-sm" />
+          <span className="pbc-stat-val">{branches.length}</span>
+          <span className="pbc-stat-label">فرع</span>
+        </div>
+        <div className="pbc-stat">
+          <TagIcon className="icon-sm" />
+          <span className="pbc-stat-val">{totalPlans}</span>
+          <span className="pbc-stat-label">خطة</span>
+        </div>
+        {assignedMethods.length > 0 && (
+          <div className="pbc-methods">
+            {assignedMethods.map((m) => (
+              <span key={m.id} className="act-chip" style={{ '--act-color': m.color }}>{m.icon} {m.label}</span>
+            ))}
+          </div>
+        )}
+        <div className="pbc-stat-actions">
+          <button className="btn-chip-action" onClick={() => setActivationModalProduct({ id: parent.id })} title="إدارة طرق التفعيل">
+            <SettingsIcon className="icon-xs" /> التفعيل
+          </button>
+          <button className="btn-chip-action competitors" onClick={() => setCompetitorsModalProduct(parent)} title="المنافسين">
+            <EyeIcon className="icon-xs" /> المنافسين
+          </button>
+        </div>
+      </div>
+
+      <div className="pbc-parent-plans">
+        <div className="pbc-plans-header">
+          <TagIcon className="icon-xs" />
+          <span>خطط المنتج الأساسي ({parent.plans?.length || 0})</span>
+          <button className="btn-toggle-plans" onClick={() => setDetailModalProduct(parent)}>
+            عرض التفاصيل <ChevronLeftIcon className="icon-sm" />
+          </button>
+        </div>
+        {parent.plans?.length > 0 && (
+          <div className="plans-summary">
+            {parent.plans.map((plan) => {
+              let bestPrice = null;
+              for (const price of Object.values(plan.prices || {})) {
+                if (price > 0 && (bestPrice === null || price < bestPrice)) bestPrice = price;
+              }
+              return (
+                <div key={plan.id} className="plan-summary-chip">
+                  <span className="plan-chip-duration">{getDurationLabel(plan.durationId)}</span>
+                  {bestPrice ? (
+                    <span className="plan-chip-price best">{fmtNum(bestPrice * (exchangeRate || 1))} ر.س</span>
+                  ) : (
+                    <span className="plan-chip-price empty">غير مسعّر</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="pbc-branches-section">
+        <div className="pbc-branches-title">
+          <GitBranchIcon className="icon-sm" />
+          <span>الفروع ({branches.length})</span>
+        </div>
+        <div className="pbc-branches-grid">
+          {branches.map((branch) => {
+            const bType = branch.accountType === 'individual' ? 'فردي' : branch.accountType === 'team' ? 'فريق' : null;
+            const bPlans = branch.plans?.length || 0;
+            const bLowest = getLowestPrice(branch);
+            return (
+              <div key={branch.id} className="pbc-branch-item">
+                <button className="pbc-branch-info" onClick={() => setDetailModalProduct(branch)} title={`عرض تفاصيل ${branch.name}`}>
+                  <div className="pbc-branch-name-row">
+                    <span className="pbc-branch-name">{branch.name}</span>
+                    {bType && (
+                      <span className={`pbc-branch-type type-${branch.accountType}`}>
+                        {branch.accountType === 'individual' ? <UserIcon className="icon-xs" /> : <UsersIcon className="icon-xs" />}
+                        {bType}
+                      </span>
+                    )}
+                  </div>
+                  <div className="pbc-branch-details">
+                    <span className="pbc-branch-detail"><TagIcon className="icon-xs" /> {bPlans} خطط</span>
+                    {bLowest && (
+                      <span className="pbc-branch-detail price">{fmtNum(bLowest * (exchangeRate || 1))} ر.س</span>
+                    )}
+                  </div>
+                </button>
+                <div className="pbc-branch-actions">
+                  <button className="pbc-branch-btn" onClick={() => setDetailModalProduct(branch)} title="التفاصيل">
+                    <EyeIcon className="icon-xs" />
+                  </button>
+                  <button className="pbc-branch-btn" onClick={() => onOpenMoveModal(branch, parent.id)} title="نقل">
+                    <GitBranchIcon className="icon-xs" />
+                  </button>
+                  <button className="pbc-branch-btn success" onClick={() => requestConfirm('تحويل إلى منتج مستقل', `هل تريد فصل "${branch.name}"؟`, () => onDetachBranch(branch.id))} title="استقلال">
+                    <ArrowUpIcon className="icon-xs" />
+                  </button>
+                  <button className="pbc-branch-btn danger" onClick={() => requestConfirm('حذف الفرع', `هل أنت متأكد من حذف "${branch.name}"؟`, () => onDeleteProduct(branch.id))} title="حذف">
+                    <TrashIcon className="icon-xs" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -534,20 +733,25 @@ function AttachProductModal({ parent, allProducts, onConfirm, onClose }) {
 }
 
 function ProductGroup({ parent, branches, index, sharedCardProps, onDetachBranch, onOpenMoveModal, onOpenAttachModal }) {
-  const [hovered, setHovered] = useState(false);
   const hasBranches = branches.length > 0;
-  const layerCount = Math.min(branches.length, 3);
-  const { requestConfirm, setDetailModalProduct } = sharedCardProps;
+
+  if (hasBranches) {
+    return (
+      <ParentBranchesCard
+        parent={parent}
+        branches={branches}
+        index={index}
+        sharedCardProps={sharedCardProps}
+        onDetachBranch={onDetachBranch}
+        onOpenMoveModal={onOpenMoveModal}
+        onOpenAttachModal={onOpenAttachModal}
+        onAddBranch={sharedCardProps.onAddBranch}
+      />
+    );
+  }
 
   return (
-    <div
-      className={`product-group ${hasBranches ? 'product-group--has-branches' : ''} ${hovered ? 'product-group--expanded' : ''}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {hasBranches && Array.from({ length: layerCount }).map((_, i) => (
-        <div key={i} className={`product-group-layer layer-${i + 1}`} />
-      ))}
+    <div className="product-group">
       <ProductCard
         product={parent}
         index={index}
@@ -555,34 +759,6 @@ function ProductGroup({ parent, branches, index, sharedCardProps, onDetachBranch
         parentProduct={null}
         onAttachClick={() => onOpenAttachModal(parent)}
       />
-      {hasBranches && branches.map((branch, bi) => (
-        <div
-          key={branch.id}
-          className="product-group-branch-slot"
-          style={{ '--branch-index': bi }}
-        >
-          <ProductCard
-            product={branch}
-            index={bi}
-            {...sharedCardProps}
-            parentProduct={parent}
-          />
-          <div className="branch-actions-bar" onClick={e => e.stopPropagation()}>
-            <button className="branch-action-btn" onClick={() => setDetailModalProduct(branch)} title="عرض التفاصيل">
-              <EyeIcon className="icon-xs" /> التفاصيل
-            </button>
-            <button className="branch-action-btn" onClick={() => onOpenMoveModal(branch, parent.id)} title="نقل إلى منتج آخر">
-              <GitBranchIcon className="icon-xs" /> نقل
-            </button>
-            <button className="branch-action-btn success" onClick={() => requestConfirm('تحويل إلى منتج مستقل', `هل تريد فصل "${branch.name}" وتحويله إلى منتج مستقل؟`, () => onDetachBranch(branch.id))} title="تحويل إلى منتج مستقل">
-              <ArrowUpIcon className="icon-xs" /> استقلال
-            </button>
-            <button className="branch-action-btn danger" onClick={() => requestConfirm('حذف الفرع', `هل أنت متأكد من حذف الفرع "${branch.name}"؟`, () => sharedCardProps.onDeleteProduct(branch.id))} title="حذف الفرع">
-              <TrashIcon className="icon-xs" /> حذف
-            </button>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
