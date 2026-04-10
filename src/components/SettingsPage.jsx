@@ -782,19 +782,7 @@ function SettingsPage({
                     </div>
                   )}
 
-                  {updateStatus.state === 'available' && (
-                    <div className="update-available-card">
-                      <div className="update-available-header">
-                        <DownloadCloudIcon className="icon-sm" />
-                        <span>تحديث جديد متاح — جاري التحميل تلقائياً...</span>
-                      </div>
-                      <div className="update-available-version">
-                        <span>الإصدار الجديد: <strong>{updateStatus.version}</strong></span>
-                      </div>
-                    </div>
-                  )}
-
-                  {updateStatus.state === 'downloading' && (
+                  {(updateStatus.state === 'available' || updateStatus.state === 'downloading') && (
                     <div className="update-download-progress">
                       <div className="update-status-row">
                         <DownloadIcon className="icon-sm" />
