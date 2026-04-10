@@ -4,7 +4,7 @@ import BundleOverview from './BundleOverview';
 import BundleBuilder from './BundleBuilder';
 import BundlePricing from './BundlePricing';
 
-function BundleManager({ bundles, setBundles, products, suppliers, exchangeRate, pricingData, costs }) {
+function BundleManager({ bundles, setBundles, products, suppliers, exchangeRate, pricingData, costs, appSettings, onNavigateToSettings }) {
   const [activeSubTab, setActiveSubTab] = useState('overview');
   const [bundleToEdit, setBundleToEdit] = useState(null);
 
@@ -66,6 +66,9 @@ function BundleManager({ bundles, setBundles, products, suppliers, exchangeRate,
             costs={costs}
             setBundleToEdit={setBundleToEdit}
             setActiveSubTab={setActiveSubTab}
+            appSettings={appSettings}
+            exchangeRate={exchangeRate}
+            onNavigateToSettings={onNavigateToSettings}
           />
         )}
         {activeSubTab === 'builder' && (
