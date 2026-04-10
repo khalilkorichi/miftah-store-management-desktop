@@ -42,7 +42,7 @@ function SettingsPage({
 
   const isElectron = typeof window !== 'undefined' && !!window.electronUpdater;
   const [updateStatus, setUpdateStatus] = useState({ state: 'idle' });
-  const [appVersion, setAppVersion] = useState('2.1.0');
+  const [appVersion, setAppVersion] = useState('');
 
   useEffect(() => {
     if (!isElectron) return;
@@ -782,7 +782,7 @@ function SettingsPage({
                     </div>
                   )}
 
-                  {(updateStatus.state === 'available' || updateStatus.state === 'downloading') && (
+                  {updateStatus.state === 'downloading' && (
                     <div className="update-download-progress">
                       <div className="update-status-row">
                         <DownloadIcon className="icon-sm" />
