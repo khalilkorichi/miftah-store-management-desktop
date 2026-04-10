@@ -6946,66 +6946,6 @@ body {
   flex-shrink: 0;
 }
 
-.pbc-stats-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 16px 10px;
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 1;
-}
-.pbc-stat {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent-blue) 8%, transparent);
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.pbc-stat svg {
-  color: var(--accent-blue);
-  flex-shrink: 0;
-}
-.pbc-stat-val {
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.pbc-stat-label {
-  font-weight: 500;
-}
-.pbc-methods {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-.pbc-stat-actions {
-  display: flex;
-  gap: 5px;
-  margin-inline-start: auto;
-}
-
-.pbc-parent-plans {
-  padding: 10px 16px;
-  border-top: 1px solid var(--border-color);
-  position: relative;
-  z-index: 1;
-}
-.pbc-plans-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-.pbc-plans-header .btn-toggle-plans {
-  margin-inline-start: auto;
-}
-
 .pbc-branches-section {
   padding: 12px 16px 14px;
   border-top: 1px solid var(--border-color);
