@@ -39,9 +39,9 @@ function ExchangeRateBar({ exchangeRate, onRateChange }) {
               <button className="btn-cancel flex-center" onClick={() => { setIsEditing(false); setTempRate(exchangeRate); }}><XIcon className="icon-xs" /></button>
             </div>
           ) : (
-            <div className="exchange-display" onClick={() => { setIsEditing(true); setTempRate(exchangeRate); }}>
+            <div className="exchange-display" dir="ltr" onClick={() => { setIsEditing(true); setTempRate(exchangeRate); }}>
+              <button className="btn-edit-rate flex-center" title="تعديل سعر الصرف" onClick={(e) => { e.stopPropagation(); setIsEditing(true); setTempRate(exchangeRate); }}><EditIcon className="icon-xs" /></button>
               <span className="rate-value">1 USD = {exchangeRate} SAR</span>
-              <button className="btn-edit-rate flex-center" title="تعديل سعر الصرف"><EditIcon className="icon-xs" /></button>
             </div>
           )}
         </div>
