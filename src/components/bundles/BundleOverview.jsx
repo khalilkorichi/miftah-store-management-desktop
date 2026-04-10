@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { BarChartIcon, TrendingUpIcon, TrendingDownIcon, CheckCircleIcon, PackageIcon, EditIcon, ClipboardIcon, TrashIcon, DollarSignIcon, TagIcon } from '../Icons';
+import { BarChartIcon, TrendingUpIcon, TrendingDownIcon, CheckCircleIcon, PackageIcon, EditIcon, ClipboardIcon, TrashIcon, DollarSignIcon, TagIcon, SparklesIcon } from '../Icons';
+import AIBundleModal from './AIBundleModal';
 
 const fmt = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPct = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-function BundleOverview({ bundles, setBundles, products, getSupplierPrice, costs, setBundleToEdit, setActiveSubTab }) {
+function BundleOverview({ bundles, setBundles, products, getSupplierPrice, costs, setBundleToEdit, setActiveSubTab, appSettings, exchangeRate, onNavigateToSettings }) {
   const [expandedBundleId, setExpandedBundleId] = useState(null);
+  const [showAIModal, setShowAIModal] = useState(false);
   
   const calculateBundleCosts = (b) => {
     let fixed = 0;
@@ -89,6 +91,14 @@ function BundleOverview({ bundles, setBundles, products, getSupplierPrice, costs
           </div>
           <div className="po-kpi-glow" />
         </div>
+        <button className="po-kpi-card po-kpi-purple po-kpi-clickable" onClick={() => setShowAIModal(true)} type="button">
+          <div className="po-kpi-icon flex-row align-center justify-center"><SparklesIcon className="icon-lg" /></div>
+          <div className="po-kpi-data">
+            <span className="po-kpi-value po-kpi-value-sm">اقتراح ذكي</span>
+            <span className="po-kpi-label">إنشاء حزم بالذكاء الاصطناعي</span>
+          </div>
+          <div className="po-kpi-glow" />
+        </button>
       </div>
 
       <div className="bo-section-header">
@@ -198,6 +208,20 @@ function BundleOverview({ bundles, setBundles, products, getSupplierPrice, costs
             );
           })}
         </div>
+      )}
+
+      {showAIModal && (
+        <AIBundleModal
+          products={products}
+          getSupplierPrice={getSupplierPrice}
+          costs={costs}
+          exchangeRate={exchangeRate}
+          bundles={bundles}
+          setBundles={setBundles}
+          appSettings={appSettings}
+          onClose={() => setShowAIModal(false)}
+          onNavigateToSettings={onNavigateToSettings}
+        />
       )}
     </div>
   );
