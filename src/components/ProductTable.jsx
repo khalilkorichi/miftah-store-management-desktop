@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import AddProductModal from './AddProductModal';
 import AddSupplierModal from './AddSupplierModal';
 import ActivationMethodsModal from './ActivationMethodsModal';
@@ -11,8 +12,16 @@ import {
   TagIcon, ChevronDownIcon, ChevronLeftIcon, TrashIcon, PlusCircleIcon,
   EyeIcon, StarIcon, PackageIcon, SearchIcon, PlusIcon, SettingsIcon,
   UserIcon, UsersIcon, CopyIcon, UploadIcon, ShieldCheckIcon,
-  FilterIcon, GitBranchIcon, SortIcon, ClipboardIcon
+  FilterIcon, GitBranchIcon, SortIcon, ClipboardIcon,
+  ArrowUpIcon, LinkIcon, CheckIcon
 } from './Icons';
+
+const CARD_COLORS = [
+  '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16', '#22C55E',
+  '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9', '#3B82F6', '#6366F1',
+  '#5E4FDE', '#8B5CF6', '#A855F7', '#D946EF', '#EC4899', '#F43F5E',
+  '#64748B', '#475569', '#334155', '#1E293B', '#F8FAFC', '#94A3B8',
+];
 
 function PasteBtn({ onPaste, className = '' }) {
   const handlePaste = async () => {
@@ -130,6 +139,140 @@ function SupplierManagerPanel({ suppliers, editingSupplierField, editSupplierVal
   );
 }
 
+function ColorPicker({ color, onChangeColor, onClear }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef(null);
+  const popoverRef = useRef(null);
+  const debounceRef = useRef(null);
+  const isCustomColor = color && !CARD_COLORS.includes(color);
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 8, left: rect.left });
+    }
+    setOpen(v => !v);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => {
+      if (
+        popoverRef.current && !popoverRef.current.contains(e.target) &&
+        btnRef.current && !btnRef.current.contains(e.target)
+      ) setOpen(false);
+    };
+    const onClose = () => setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('scroll', onClose, true);
+    window.addEventListener('resize', onClose);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', onClose, true);
+      window.removeEventListener('resize', onClose);
+    };
+  }, [open]);
+
+  const openCustomPicker = (e) => {
+    e.stopPropagation();
+    const inp = document.createElement('input');
+    inp.type = 'color';
+    inp.value = color || '#5E4FDE';
+    Object.assign(inp.style, {
+      position: 'fixed', top: '-200px', left: '-200px',
+      width: '1px', height: '1px', opacity: '0', border: 'none'
+    });
+    document.body.appendChild(inp);
+
+    const handleInput = (ev) => {
+      const val = ev.target.value;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => onChangeColor(val), 60);
+    };
+    const handleChange = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      onChangeColor(inp.value);
+      inp.removeEventListener('input', handleInput);
+      inp.removeEventListener('change', handleChange);
+      setTimeout(() => { if (document.body.contains(inp)) document.body.removeChild(inp); }, 200);
+    };
+
+    inp.addEventListener('input', handleInput);
+    inp.addEventListener('change', handleChange);
+    inp.click();
+  };
+
+  return (
+    <div className="card-color-picker-wrap">
+      <button
+        ref={btnRef}
+        className={`card-color-dot-btn ${color ? 'has-color' : ''} ${open ? 'is-open' : ''}`}
+        style={color ? { '--dot-color': color, borderColor: `${color}88` } : undefined}
+        onClick={handleToggle}
+        title="تلوين البطاقة"
+      >
+        <span className="card-color-dot" style={color ? { background: color, boxShadow: `0 0 0 2px ${color}33` } : undefined} />
+      </button>
+      {open && createPortal(
+        <div
+          ref={popoverRef}
+          className="card-color-popover"
+          style={{ position: 'fixed', top: pos.top, left: pos.left }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="card-color-popover-header">
+            <span>لون البطاقة</span>
+            <button className="card-color-popover-close" onClick={() => setOpen(false)}>
+              <XIcon className="icon-xs" />
+            </button>
+          </div>
+          <div className="card-color-swatches">
+            {CARD_COLORS.map(c => (
+              <button
+                key={c}
+                className={`card-color-swatch ${color === c ? 'active' : ''}`}
+                style={{ background: c }}
+                onClick={() => onChangeColor(c)}
+                title={c}
+              >
+                {color === c && <CheckIcon style={{ width: 12, height: 12, color: '#fff', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' }} />}
+              </button>
+            ))}
+          </div>
+          <div className="card-color-custom-row">
+            <button
+              className={`card-color-custom-btn ${isCustomColor ? 'has-custom' : ''}`}
+              onClick={openCustomPicker}
+              title="اختر لوناً مخصصاً"
+              style={isCustomColor ? {
+                '--custom-color': color,
+                borderColor: `${color}55`,
+                background: `${color}10`,
+              } : undefined}
+            >
+              {isCustomColor ? (
+                <span className="card-color-custom-preview" style={{ background: color, boxShadow: `0 0 0 2px ${color}40, 0 2px 8px rgba(0,0,0,0.4)` }} />
+              ) : (
+                <span className="card-color-custom-wheel" />
+              )}
+              <span className={isCustomColor ? 'card-color-hex-label' : ''}>{isCustomColor ? color.toUpperCase() : 'لون مخصص'}</span>
+              {isCustomColor && <CheckIcon style={{ width: 12, height: 12, marginInlineStart: 'auto', flexShrink: 0, color: 'var(--custom-color)', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }} />}
+            </button>
+          </div>
+          {color && (
+            <button className="card-color-clear" onClick={() => { onClear(); setOpen(false); }}>
+              <XIcon className="icon-xs" /> إزالة اللون
+            </button>
+          )}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 function ProductCard({
   product, index, suppliers, durations, exchangeRate, activationMethods,
   editingCell, setEditingCell, editValue, setEditValue,
@@ -139,7 +282,7 @@ function ProductCard({
   onToggleProductMethod, onUpdateOfficialPrice, onUpdateWarranty, requestConfirm,
   setActivationModalProduct, setCompetitorsModalProduct, setDetailModalProduct,
   getDurationLabel, getAvailableDurations,
-  onAddBranch, parentProduct, allProducts
+  onAddBranch, parentProduct, allProducts, onUpdateProductColor, onAttachClick
 }) {
   const [addingPlan, setAddingPlan] = useState(false);
 
@@ -182,8 +325,17 @@ function ProductCard({
 
   const availableDurations = getAvailableDurations(product);
 
+  const cardColor = product.cardColor || null;
+  const cardStyle = cardColor ? {
+    '--card-accent': cardColor,
+    borderInlineEnd: `3px solid ${cardColor}`,
+  } : {};
+
   return (
-    <div className={`product-card ${isBranch ? 'product-card--branch' : ''}`}>
+    <div className={`product-card ${isBranch ? 'product-card--branch' : ''} ${cardColor ? 'product-card--colored' : ''}`} style={cardStyle}>
+      {cardColor && (
+        <div className="product-card-color-bar" style={{ background: `linear-gradient(135deg, ${cardColor}22 0%, transparent 60%)` }} />
+      )}
       {isBranch && parentProduct && (
         <div className="product-branch-indicator">
           <GitBranchIcon className="icon-xs" />
@@ -227,7 +379,17 @@ function ProductCard({
         </div>
 
         <div className="product-card-actions-top">
-          <button className="btn-card-action branch" onClick={() => onAddBranch?.(product.id)} title="إضافة فرع لهذا المنتج">
+          <ColorPicker
+            color={cardColor}
+            onChangeColor={(c) => onUpdateProductColor?.(product.id, c)}
+            onClear={() => onUpdateProductColor?.(product.id, null)}
+          />
+          {!isBranch && onAttachClick && (
+            <button className="btn-card-action" onClick={(e) => { e.stopPropagation(); onAttachClick(); }} title="إرفاق منتج موجود كفرع">
+              <LinkIcon className="icon-sm" />
+            </button>
+          )}
+          <button className="btn-card-action branch" onClick={() => onAddBranch?.(product.id)} title="إضافة فرع جديد لهذا المنتج">
             <GitBranchIcon className="icon-sm" />
           </button>
           <button className="btn-card-action" onClick={() => onDuplicateProduct(product.id)} title="تكرار المنتج">
@@ -297,6 +459,134 @@ function ProductCard({
   );
 }
 
+function MoveBranchModal({ branch, allProducts, currentParentId, onConfirm, onClose }) {
+  const [selectedId, setSelectedId] = useState(null);
+  const options = allProducts.filter(p => !p.parentId && p.id !== currentParentId && p.id !== branch?.id);
+  return (
+    <div className="branch-modal-overlay" onClick={onClose}>
+      <div className="branch-modal" onClick={e => e.stopPropagation()}>
+        <h3 className="branch-modal-title">
+          <GitBranchIcon className="icon-sm" /> نقل الفرع إلى منتج آخر
+        </h3>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+          اختر المنتج الأساسي الذي تريد نقل <strong>{branch?.name}</strong> إليه:
+        </p>
+        <div className="branch-modal-list">
+          {options.length === 0 ? (
+            <div className="branch-modal-empty">لا توجد منتجات أساسية أخرى</div>
+          ) : options.map(p => (
+            <button
+              key={p.id}
+              className={`branch-modal-option ${selectedId === p.id ? 'selected' : ''}`}
+              onClick={() => setSelectedId(p.id)}
+            >
+              <PackageIcon className="icon-sm" style={{ flexShrink: 0 }} />
+              {p.name}
+            </button>
+          ))}
+        </div>
+        <div className="branch-modal-actions">
+          <button className="branch-modal-cancel" onClick={onClose}>إلغاء</button>
+          <button className="branch-modal-confirm" disabled={!selectedId} onClick={() => { if (selectedId) { onConfirm(branch.id, selectedId); onClose(); } }}>
+            نقل الفرع
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AttachProductModal({ parent, allProducts, onConfirm, onClose }) {
+  const [selectedId, setSelectedId] = useState(null);
+  const options = allProducts.filter(p => !p.parentId && p.id !== parent?.id);
+  return (
+    <div className="branch-modal-overlay" onClick={onClose}>
+      <div className="branch-modal" onClick={e => e.stopPropagation()}>
+        <h3 className="branch-modal-title">
+          <LinkIcon className="icon-sm" /> إرفاق منتج كفرع
+        </h3>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+          اختر منتجاً مستقلاً لإرفاقه كفرع لـ <strong>{parent?.name}</strong>:
+        </p>
+        <div className="branch-modal-list">
+          {options.length === 0 ? (
+            <div className="branch-modal-empty">لا توجد منتجات مستقلة أخرى</div>
+          ) : options.map(p => (
+            <button
+              key={p.id}
+              className={`branch-modal-option ${selectedId === p.id ? 'selected' : ''}`}
+              onClick={() => setSelectedId(p.id)}
+            >
+              <PackageIcon className="icon-sm" style={{ flexShrink: 0 }} />
+              {p.name}
+            </button>
+          ))}
+        </div>
+        <div className="branch-modal-actions">
+          <button className="branch-modal-cancel" onClick={onClose}>إلغاء</button>
+          <button className="branch-modal-confirm" disabled={!selectedId} onClick={() => { if (selectedId) { onConfirm(selectedId, parent.id); onClose(); } }}>
+            إرفاق كفرع
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductGroup({ parent, branches, index, sharedCardProps, onDetachBranch, onOpenMoveModal, onOpenAttachModal }) {
+  const [hovered, setHovered] = useState(false);
+  const hasBranches = branches.length > 0;
+  const layerCount = Math.min(branches.length, 3);
+  const { requestConfirm, setDetailModalProduct } = sharedCardProps;
+
+  return (
+    <div
+      className={`product-group ${hasBranches ? 'product-group--has-branches' : ''} ${hovered ? 'product-group--expanded' : ''}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {hasBranches && Array.from({ length: layerCount }).map((_, i) => (
+        <div key={i} className={`product-group-layer layer-${i + 1}`} />
+      ))}
+      <ProductCard
+        product={parent}
+        index={index}
+        {...sharedCardProps}
+        parentProduct={null}
+        onAttachClick={() => onOpenAttachModal(parent)}
+      />
+      {hasBranches && branches.map((branch, bi) => (
+        <div
+          key={branch.id}
+          className="product-group-branch-slot"
+          style={{ '--branch-index': bi }}
+        >
+          <ProductCard
+            product={branch}
+            index={bi}
+            {...sharedCardProps}
+            parentProduct={parent}
+          />
+          <div className="branch-actions-bar" onClick={e => e.stopPropagation()}>
+            <button className="branch-action-btn" onClick={() => setDetailModalProduct(branch)} title="عرض التفاصيل">
+              <EyeIcon className="icon-xs" /> التفاصيل
+            </button>
+            <button className="branch-action-btn" onClick={() => onOpenMoveModal(branch, parent.id)} title="نقل إلى منتج آخر">
+              <GitBranchIcon className="icon-xs" /> نقل
+            </button>
+            <button className="branch-action-btn success" onClick={() => requestConfirm('تحويل إلى منتج مستقل', `هل تريد فصل "${branch.name}" وتحويله إلى منتج مستقل؟`, () => onDetachBranch(branch.id))} title="تحويل إلى منتج مستقل">
+              <ArrowUpIcon className="icon-xs" /> استقلال
+            </button>
+            <button className="branch-action-btn danger" onClick={() => requestConfirm('حذف الفرع', `هل أنت متأكد من حذف الفرع "${branch.name}"؟`, () => sharedCardProps.onDeleteProduct(branch.id))} title="حذف الفرع">
+              <TrashIcon className="icon-xs" /> حذف
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ProductTable({
   products, suppliers, durations, exchangeRate, activationMethods = [],
   categories = [], onAddCategory, onUpdateProductCategory,
@@ -306,7 +596,8 @@ function ProductTable({
   onToggleProductMethod, onAddActivationMethodType, onDeleteActivationMethodType,
   onUpdateOfficialPrice, onUpdateWarranty, onUpdateSupplierWarranty, onAddCompetitor, onUpdateCompetitor, onDeleteCompetitor,
   onImportProducts,
-  onUpdateSupplierActivationMethod, onAddBranch, onUpdateSupplierPlanLink,
+  onUpdateSupplierActivationMethod, onAddBranch, onUpdateSupplierPlanLink, onUpdateProductColor,
+  onMoveBranch, onDetachBranch, onAttachAsBranch,
 }) {
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
@@ -326,6 +617,8 @@ function ProductTable({
   const [filterCategory, setFilterCategory] = useState('');
   const [filterType, setFilterType] = useState('all'); // all | main | branches
   const [sortBy, setSortBy] = useState('default'); // default | name_asc | name_desc | price_asc | price_desc
+  const [movingBranchCtx, setMovingBranchCtx] = useState(null); // { branch, parentId }
+  const [attachParentCtx, setAttachParentCtx] = useState(null); // parent product
 
   const detailModalProduct = detailModalProductId ? products.find(p => p.id === detailModalProductId) || null : null;
   const activationModalProduct = activationModalProductId ? products.find(p => p.id === activationModalProductId) || null : null;
@@ -340,39 +633,47 @@ function ProductTable({
     return min === Infinity ? null : min;
   };
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
-    if (searchQuery.trim()) {
-      result = result.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const productGroups = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+
+    if (filterType === 'branches') {
+      let result = products.filter(p => !!p.parentId);
+      if (q) result = result.filter(p => p.name.toLowerCase().includes(q));
+      if (filterSupplier) result = result.filter(p => p.plans?.some(plan => (plan.prices?.[parseInt(filterSupplier)] || 0) > 0));
+      if (filterCategory) result = result.filter(p => p.categoryId === filterCategory);
+      if (sortBy === 'name_asc') result.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+      else if (sortBy === 'name_desc') result.sort((a, b) => b.name.localeCompare(a.name, 'ar'));
+      else if (sortBy === 'price_asc') result.sort((a, b) => (getProductLowestPrice(a) ?? Infinity) - (getProductLowestPrice(b) ?? Infinity));
+      else if (sortBy === 'price_desc') result.sort((a, b) => (getProductLowestPrice(b) ?? -Infinity) - (getProductLowestPrice(a) ?? -Infinity));
+      return result.map(p => ({ parent: p, branches: [], isBranchMode: true }));
     }
-    if (filterType === 'main') result = result.filter(p => !p.parentId);
-    else if (filterType === 'branches') result = result.filter(p => !!p.parentId);
-    if (filterSupplier) {
-      result = result.filter(p =>
-        p.plans?.some(plan => (plan.prices?.[parseInt(filterSupplier)] || 0) > 0)
-      );
+
+    let parents = products.filter(p => !p.parentId);
+    if (filterType === 'main') {
+      // filter parents only
     }
-    if (filterCategory) {
-      result = result.filter(p => p.categoryId === filterCategory);
-    }
-    if (sortBy === 'name_asc') result.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-    else if (sortBy === 'name_desc') result.sort((a, b) => b.name.localeCompare(a.name, 'ar'));
-    else if (sortBy === 'price_asc') {
-      result.sort((a, b) => {
-        const pa = getProductLowestPrice(a) ?? Infinity;
-        const pb = getProductLowestPrice(b) ?? Infinity;
-        return pa - pb;
-      });
-    } else if (sortBy === 'price_desc') {
-      result.sort((a, b) => {
-        const pa = getProductLowestPrice(a) ?? -Infinity;
-        const pb = getProductLowestPrice(b) ?? -Infinity;
-        return pb - pa;
+    if (filterSupplier) parents = parents.filter(p => p.plans?.some(plan => (plan.prices?.[parseInt(filterSupplier)] || 0) > 0));
+    if (filterCategory) parents = parents.filter(p => p.categoryId === filterCategory);
+    if (q) {
+      parents = parents.filter(p => {
+        const nameMatch = p.name.toLowerCase().includes(q);
+        const branchMatch = products.some(b => b.parentId === p.id && b.name.toLowerCase().includes(q));
+        return nameMatch || branchMatch;
       });
     }
-    return result;
+    if (sortBy === 'name_asc') parents.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+    else if (sortBy === 'name_desc') parents.sort((a, b) => b.name.localeCompare(a.name, 'ar'));
+    else if (sortBy === 'price_asc') parents.sort((a, b) => (getProductLowestPrice(a) ?? Infinity) - (getProductLowestPrice(b) ?? Infinity));
+    else if (sortBy === 'price_desc') parents.sort((a, b) => (getProductLowestPrice(b) ?? -Infinity) - (getProductLowestPrice(a) ?? -Infinity));
+
+    return parents.map(parent => ({
+      parent,
+      branches: products.filter(p => p.parentId === parent.id),
+      isBranchMode: false,
+    }));
   }, [products, searchQuery, filterSupplier, filterCategory, filterType, sortBy]);
 
+  const filteredProducts = productGroups;
   const activeFiltersCount = [filterSupplier, filterCategory, filterType !== 'all', sortBy !== 'default'].filter(Boolean).length;
 
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
@@ -480,7 +781,7 @@ function ProductTable({
             )}
           </div>
           <div className="filter-panel-summary">
-            {filteredProducts.length} منتج {filteredProducts.length !== products.length ? `من أصل ${products.length}` : ''}
+            {productGroups.length} منتج {productGroups.length !== products.filter(p => filterType === 'branches' ? !!p.parentId : !p.parentId).length ? `من أصل ${products.filter(p => filterType === 'branches' ? !!p.parentId : !p.parentId).length}` : ''}
           </div>
         </div>
       )}
@@ -498,47 +799,65 @@ function ProductTable({
         setShowAddSupplier={setShowAddSupplier}
       />
 
-      {filteredProducts.length > 0 ? (
+      {productGroups.length > 0 ? (
         <div className="products-grid">
-          {filteredProducts.map((product, index) => {
-            const parentProduct = product.parentId ? products.find(p => p.id === product.parentId) : null;
+          {productGroups.map(({ parent, branches, isBranchMode }, index) => {
+            const sharedCardProps = {
+              suppliers,
+              durations,
+              exchangeRate,
+              activationMethods,
+              editingCell,
+              setEditingCell,
+              editValue,
+              setEditValue,
+              editingName,
+              setEditingName,
+              editNameValue,
+              setEditNameValue,
+              onUpdatePrice,
+              onDeleteProduct,
+              onDuplicateProduct,
+              onUpdateProductName,
+              onUpdateProductAccountType,
+              onAddPlan,
+              onDeletePlan,
+              onUpdatePlanDuration,
+              onToggleProductMethod,
+              onUpdateOfficialPrice,
+              onUpdateWarranty,
+              requestConfirm,
+              setActivationModalProduct: (p) => setActivationModalProductId(p ? p.id : null),
+              setCompetitorsModalProduct,
+              setDetailModalProduct: (p) => setDetailModalProductId(p ? p.id : null),
+              getDurationLabel,
+              getAvailableDurations,
+              onAddBranch,
+              allProducts: products,
+              onUpdateProductColor,
+            };
+            if (isBranchMode) {
+              const parentProduct = products.find(p => p.id === parent.parentId) || null;
+              return (
+                <ProductCard
+                  key={parent.id}
+                  product={parent}
+                  index={index}
+                  {...sharedCardProps}
+                  parentProduct={parentProduct}
+                />
+              );
+            }
             return (
-              <ProductCard
-                key={product.id}
-                product={product}
+              <ProductGroup
+                key={parent.id}
+                parent={parent}
+                branches={branches}
                 index={index}
-                suppliers={suppliers}
-                durations={durations}
-                exchangeRate={exchangeRate}
-                activationMethods={activationMethods}
-                editingCell={editingCell}
-                setEditingCell={setEditingCell}
-                editValue={editValue}
-                setEditValue={setEditValue}
-                editingName={editingName}
-                setEditingName={setEditingName}
-                editNameValue={editNameValue}
-                setEditNameValue={setEditNameValue}
-                onUpdatePrice={onUpdatePrice}
-                onDeleteProduct={onDeleteProduct}
-                onDuplicateProduct={onDuplicateProduct}
-                onUpdateProductName={onUpdateProductName}
-                onUpdateProductAccountType={onUpdateProductAccountType}
-                onAddPlan={onAddPlan}
-                onDeletePlan={onDeletePlan}
-                onUpdatePlanDuration={onUpdatePlanDuration}
-                onToggleProductMethod={onToggleProductMethod}
-                onUpdateOfficialPrice={onUpdateOfficialPrice}
-                onUpdateWarranty={onUpdateWarranty}
-                requestConfirm={requestConfirm}
-                setActivationModalProduct={(p) => setActivationModalProductId(p ? p.id : null)}
-                setCompetitorsModalProduct={setCompetitorsModalProduct}
-                setDetailModalProduct={(p) => setDetailModalProductId(p ? p.id : null)}
-                getDurationLabel={getDurationLabel}
-                getAvailableDurations={getAvailableDurations}
-                onAddBranch={onAddBranch}
-                parentProduct={parentProduct}
-                allProducts={products}
+                sharedCardProps={sharedCardProps}
+                onDetachBranch={onDetachBranch}
+                onOpenMoveModal={(branch, parentId) => setMovingBranchCtx({ branch, parentId })}
+                onOpenAttachModal={(parent) => setAttachParentCtx(parent)}
               />
             );
           })}
@@ -585,6 +904,23 @@ function ProductTable({
         onAddCategory={onAddCategory}
         onUpdateCategory={onUpdateProductCategory}
       />
+      {movingBranchCtx && (
+        <MoveBranchModal
+          branch={movingBranchCtx.branch}
+          allProducts={products}
+          currentParentId={movingBranchCtx.parentId}
+          onConfirm={onMoveBranch}
+          onClose={() => setMovingBranchCtx(null)}
+        />
+      )}
+      {attachParentCtx && (
+        <AttachProductModal
+          parent={attachParentCtx}
+          allProducts={products}
+          onConfirm={onAttachAsBranch}
+          onClose={() => setAttachParentCtx(null)}
+        />
+      )}
     </div>
   );
 }
