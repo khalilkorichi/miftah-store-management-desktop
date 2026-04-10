@@ -467,16 +467,11 @@ function ParentBranchesCard({
 }) {
   const {
     editingName, setEditingName, editNameValue, setEditNameValue,
-    onUpdateProductName, onUpdateProductAccountType, onDeleteProduct,
-    onDuplicateProduct, getDurationLabel, setDetailModalProduct,
-    setActivationModalProduct, setCompetitorsModalProduct,
-    exchangeRate, activationMethods, requestConfirm,
+    onUpdateProductName, onDeleteProduct,
+    onDuplicateProduct, setDetailModalProduct,
+    exchangeRate, requestConfirm,
     onUpdateProductColor
   } = sharedCardProps;
-
-  const assignedMethods = (parent.activationMethods || [])
-    .map((mId) => activationMethods.find((x) => x.id === mId))
-    .filter(Boolean);
 
   const handleStartEditName = () => {
     setEditingName(parent.id);
@@ -486,13 +481,7 @@ function ParentBranchesCard({
     if (editNameValue.trim()) onUpdateProductName(parent.id, editNameValue.trim());
     setEditingName(null);
   };
-  const handleCycleAccountType = () => {
-    const current = parent.accountType || 'none';
-    const next = current === 'none' ? 'individual' : current === 'individual' ? 'team' : 'none';
-    if (onUpdateProductAccountType) onUpdateProductAccountType(parent.id, next);
-  };
 
-  const totalPlans = (parent.plans?.length || 0) + branches.reduce((s, b) => s + (b.plans?.length || 0), 0);
   const cardColor = parent.cardColor || null;
   const cardStyle = cardColor ? { '--card-accent': cardColor, borderInlineEnd: `3px solid ${cardColor}` } : {};
 
@@ -524,11 +513,6 @@ function ParentBranchesCard({
             ) : (
               <h3 className="pbc-name" onClick={handleStartEditName} title="انقر للتعديل">{parent.name}</h3>
             )}
-            <div className={`account-type-badge type-${parent.accountType || 'none'}`} onClick={handleCycleAccountType} title="تغيير نوع الحساب">
-              {(parent.accountType || 'none') === 'none' && <UserIcon className="icon-xs" style={{ opacity: 0.5 }} />}
-              {parent.accountType === 'individual' && <><UserIcon className="icon-xs" /> <span>فردي</span></>}
-              {parent.accountType === 'team' && <><UsersIcon className="icon-xs" /> <span>فريق</span></>}
-            </div>
           </div>
         </div>
         <div className="pbc-header-actions">
@@ -546,64 +530,6 @@ function ParentBranchesCard({
             <TrashIcon className="icon-sm" />
           </button>
         </div>
-      </div>
-
-      <div className="pbc-stats-row">
-        <div className="pbc-stat">
-          <GitBranchIcon className="icon-sm" />
-          <span className="pbc-stat-val">{branches.length}</span>
-          <span className="pbc-stat-label">فرع</span>
-        </div>
-        <div className="pbc-stat">
-          <TagIcon className="icon-sm" />
-          <span className="pbc-stat-val">{totalPlans}</span>
-          <span className="pbc-stat-label">خطة</span>
-        </div>
-        {assignedMethods.length > 0 && (
-          <div className="pbc-methods">
-            {assignedMethods.map((m) => (
-              <span key={m.id} className="act-chip" style={{ '--act-color': m.color }}>{m.icon} {m.label}</span>
-            ))}
-          </div>
-        )}
-        <div className="pbc-stat-actions">
-          <button className="btn-chip-action" onClick={() => setActivationModalProduct({ id: parent.id })} title="إدارة طرق التفعيل">
-            <SettingsIcon className="icon-xs" /> التفعيل
-          </button>
-          <button className="btn-chip-action competitors" onClick={() => setCompetitorsModalProduct(parent)} title="المنافسين">
-            <EyeIcon className="icon-xs" /> المنافسين
-          </button>
-        </div>
-      </div>
-
-      <div className="pbc-parent-plans">
-        <div className="pbc-plans-header">
-          <TagIcon className="icon-xs" />
-          <span>خطط المنتج الأساسي ({parent.plans?.length || 0})</span>
-          <button className="btn-toggle-plans" onClick={() => setDetailModalProduct(parent)}>
-            عرض التفاصيل <ChevronLeftIcon className="icon-sm" />
-          </button>
-        </div>
-        {parent.plans?.length > 0 && (
-          <div className="plans-summary">
-            {parent.plans.map((plan) => {
-              let bestPrice = null;
-              for (const price of Object.values(plan.prices || {})) {
-                if (price > 0 && (bestPrice === null || price < bestPrice)) bestPrice = price;
-              }
-              return (
-                <div key={plan.id} className="plan-summary-chip">
-                  <span className="plan-chip-duration">{getDurationLabel(plan.durationId)}</span>
-                  {bestPrice ? (
-                    <span className="plan-chip-price best">{fmtNum(bestPrice * (exchangeRate || 1))} ر.س</span>
-                  ) : (
-                    <span className="plan-chip-price empty">غير مسعّر</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       <div className="pbc-branches-section">
