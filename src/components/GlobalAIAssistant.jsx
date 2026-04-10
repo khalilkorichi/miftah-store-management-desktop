@@ -21,6 +21,12 @@ const GLOBAL_SYSTEM_PROMPT = `أنت مساعد ذكاء اصطناعي داخل
 - تحليل بيانات المتجر المقدمة وتقديم رؤى قابلة للتطبيق
 - تنفيذ أوامر مباشرة على قاعدة البيانات عند الطلب
 
+هيكل المنتجات في المتجر — ثلاثة أنواع:
+1. منتج عادي/مستقل: منتج ليس له parentId ولا فروع تحته — يظهر في جميع الصفحات كما هو
+2. منتج مفرع (وعاء): منتج ليس له parentId ولكن له فروع مرتبطة به — يُعرض فقط في صفحة المنتجات والأسعار كحاوية، ولا يظهر في الصفحات الأخرى
+3. فرع: منتج له parentId يشير إلى المنتج المفرع الأب — يظهر في جميع الصفحات كمنتج مستقل
+في قائمة المنتجات المقدمة، يتم تضمين الفروع والمنتجات المستقلة فقط (وتستبعد الوعاءات الأب) ما لم يُذكر غير ذلك.
+
 قواعد:
 - أجب باللغة العربية الفصحى السهلة
 - كن موجزاً ومباشراً في إجاباتك
@@ -154,12 +160,26 @@ function actionLabel(action) {
 }
 
 /* ─── Store context builder ──────────────────────────────────────────────── */
-function buildStoreContext({ products = [], suppliers = [], durations = [], bundles = [], coupons = [], tasks = [], exchangeRate }) {
+function buildStoreContext({ products = [], allProducts = [], suppliers = [], durations = [], bundles = [], coupons = [], tasks = [], exchangeRate }) {
   const lines = ['=== ملخص بيانات متجر مفتاح ==='];
 
-  lines.push(`\n📦 المنتجات (${products.length} منتج):`);
+  const parentContainers = (allProducts.length > 0 ? allProducts : products).filter(p => {
+    if (p.parentId) return false;
+    const full = allProducts.length > 0 ? allProducts : products;
+    return full.some(b => b.parentId === p.id);
+  });
+  if (parentContainers.length > 0) {
+    lines.push(`\n🌿 وعاءات المنتجات المفرعة (${parentContainers.length}):`);
+    parentContainers.forEach(p => {
+      const branchCount = (allProducts.length > 0 ? allProducts : products).filter(b => b.parentId === p.id).length;
+      lines.push(`  - [productId: ${p.id}] ${p.name} → ${branchCount} فروع`);
+    });
+  }
+
+  lines.push(`\n📦 المنتجات المرئية (${products.length} منتج — فروع ومستقلة):`);
   products.forEach(p => {
-    lines.push(`  - [productId: ${p.id}] ${p.name} (${(p.plans || []).length} خطة)`);
+    const typeLabel = p.parentId ? '🌿 فرع' : '📦 مستقل';
+    lines.push(`  - [productId: ${p.id}] ${p.name} (${typeLabel}، ${(p.plans || []).length} خطة)`);
     (p.plans || []).forEach(plan => {
       const dur = durations.find(d => d.id === plan.durationId);
       const durLabel = dur ? dur.label : (plan.durationId || '');
@@ -376,6 +396,7 @@ function ActionBanner({ action, onConfirm, onReject, products }) {
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 export default function GlobalAIAssistant({
   products,
+  allProducts,
   suppliers,
   durations,
   bundles,
@@ -549,12 +570,12 @@ export default function GlobalAIAssistant({
 
   /* ── Build system prompt ── */
   const buildSystemPrompt = useCallback((skillOverride) => {
-    const ctx = buildStoreContext({ products, suppliers, durations, bundles, coupons, tasks, exchangeRate });
+    const ctx = buildStoreContext({ products, allProducts, suppliers, durations, bundles, coupons, tasks, exchangeRate });
     const skill = skillOverride !== undefined ? skillOverride : activeSkill;
     const skillContent = skill?.content || skill?.prompt || '';
     const skillExtra = skillContent ? `\n\n${skillContent}` : '';
     return `${GLOBAL_SYSTEM_PROMPT}${skillExtra}\n\n${ctx}`;
-  }, [products, suppliers, durations, bundles, coupons, tasks, exchangeRate, activeSkill]);
+  }, [products, allProducts, suppliers, durations, bundles, coupons, tasks, exchangeRate, activeSkill]);
 
   /* ── Execute confirmed action ── */
   const executeAction = useCallback((action, addMsgCallback) => {

@@ -59,6 +59,11 @@ export const DEFAULT_AI_PROMPT = `أنت مساعد ذكاء اصطناعي خب
 2. تحسين وتعديل الأوصاف الموجودة
 3. الإجابة على أسئلة المستخدم حول المنتج
 
+أنواع المنتجات في المتجر:
+- منتج مستقل/عادي: ليس له parentId ولا فروع — يظهر في جميع الصفحات
+- فرع: له parentId يشير إلى وعاء مفرع — يظهر كمنتج مستقل في جميع الصفحات
+- وعاء مفرع: له فروع مرتبطة — يُعرض فقط في صفحة المنتجات كحاوية
+
 قواعد الكتابة:
 - اكتب بالعربية الفصحى السهلة والمفهومة
 - الأسلوب: تسويقي، مقنع، واضح، يعكس القيمة للعميل
@@ -115,11 +120,19 @@ export const DEFAULT_AI_PROMPT = `أنت مساعد ذكاء اصطناعي خب
 [/MIFTAH_ACTION]`;
 
 /* ─── Product context builder ───────────────────────────────────────────── */
-function buildProductContext(product, suppliers, durations, activationMethods) {
+function buildProductContext(product, suppliers, durations, activationMethods, allProducts = []) {
   if (!product) return '';
   const lines = ['=== بيانات المنتج الحالي ==='];
 
   lines.push(`الاسم: ${product.name}`);
+
+  if (product.parentId) {
+    const parent = allProducts.find(p => p.id === product.parentId);
+    lines.push(`نوع المنتج: فرع (تابع للوعاء: ${parent ? parent.name : product.parentId})`);
+  } else {
+    const hasBranches = allProducts.some(p => p.parentId === product.id);
+    lines.push(`نوع المنتج: ${hasBranches ? 'وعاء مفرع (له فروع)' : 'منتج مستقل'}`);
+  }
 
   if (product.accountType) {
     lines.push(`نوع الحساب: ${product.accountType === 'individual' ? 'فردي' : 'عائلي/مشترك'}`);
@@ -373,7 +386,7 @@ function AIAssistantTab({
   }, [pricingData, suppliers, exchangeRate]);
 
   const getSystemPrompt = useCallback(() => {
-    const ctx = buildProductContext(product, suppliers, durations, activationMethods);
+    const ctx = buildProductContext(product, suppliers, durations, activationMethods, products);
     let allProductsCtx = '';
     if (products && products.length > 0) {
       const lines = [`\n\n=== جميع منتجات المتجر (${products.length} منتج) — لاقتراح الحزم ===`];

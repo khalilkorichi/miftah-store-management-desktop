@@ -135,3 +135,71 @@ ipcMain.handle('updater:install', () => {
   if (!autoUpdater) return;
   autoUpdater.quitAndInstall(false, true);
 });
+
+ipcMain.handle('updater:check-github-api', async (_event, repoUrl) => {
+  if (!repoUrl) return { success: false, reason: 'no-repo-url' };
+
+  const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+  if (!match) return { success: false, reason: 'invalid-url' };
+
+  const owner = match[1];
+  const repo = match[2].replace(/\.git$/, '');
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
+
+  return new Promise((resolve) => {
+    const https = require('https');
+    const req = https.get(apiUrl, {
+      headers: {
+        'User-Agent': 'MiftahStore-Updater',
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      timeout: 15000
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          if (res.statusCode === 404) {
+            resolve({ success: false, reason: 'no-releases' });
+            return;
+          }
+          if (res.statusCode !== 200) {
+            resolve({ success: false, reason: `github-api-${res.statusCode}` });
+            return;
+          }
+          const release = JSON.parse(data);
+          resolve({
+            success: true,
+            version: (release.tag_name || '').replace(/^v/, ''),
+            tagName: release.tag_name,
+            publishedAt: release.published_at,
+            htmlUrl: release.html_url,
+            releasesUrl: `https://github.com/${owner}/${repo}/releases`,
+            body: (release.body || '').substring(0, 1000),
+            hasAssets: (release.assets || []).length > 0
+          });
+        } catch (e) {
+          resolve({ success: false, reason: 'parse-error' });
+        }
+      });
+    });
+    req.on('error', (err) => {
+      resolve({ success: false, reason: err.message });
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ success: false, reason: 'timeout' });
+    });
+  });
+});
+
+ipcMain.handle('updater:open-external', (_event, url) => {
+  if (!url || typeof url !== 'string') return;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return;
+    if (!parsed.hostname.endsWith('github.com')) return;
+    const { shell } = require('electron');
+    shell.openExternal(url);
+  } catch {}
+});

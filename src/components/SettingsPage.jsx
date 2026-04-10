@@ -5,7 +5,7 @@ import {
   DownloadIcon, RefreshIcon, InfoIcon, XIcon, PlusIcon,
   AlertTriangleIcon, CheckCircleIcon, PackageIcon, ImageIcon,
   ExternalLinkIcon, SparklesIcon, KeyIcon, EyeIcon, ChevronDownIcon,
-  ZapIcon, DownloadCloudIcon, LinkIcon,
+  ZapIcon, DownloadCloudIcon, LinkIcon, GitBranchIcon, CalendarIcon,
 } from './Icons';
 import { GEMINI_MODELS, OPENROUTER_MODELS, AGENTROUTER_MODELS } from '../utils/aiProvider';
 import SkillsTab from './SkillsTab';
@@ -55,21 +55,116 @@ function SettingsPage({
     return cleanup;
   }, [isElectron]);
 
+  const isValidGithubUrl = (url) => {
+    if (!url) return null;
+    return /^https:\/\/github\.com\/[^/]+\/[^/]/.test(url.trim());
+  };
+
+  const repoUrlValidState = updateRepoUrl.trim() === ''
+    ? 'empty'
+    : isValidGithubUrl(updateRepoUrl)
+      ? 'valid'
+      : 'invalid';
+
   const handleSaveRepoUrl = useCallback(() => {
     try { localStorage.setItem('miftah_update_repo_url', updateRepoUrl.trim()); } catch {}
     setRepoUrlSaved(true);
     setTimeout(() => setRepoUrlSaved(false), 2000);
   }, [updateRepoUrl]);
 
+  const translateUpdateError = useCallback((msg) => {
+    if (!msg) return 'حدث خطأ غير معروف';
+    const m = msg.toLowerCase();
+    if (m.includes('no published versions') || m.includes('no-releases'))
+      return 'لا توجد إصدارات منشورة بعد في هذا المستودع';
+    if (m.includes('404') || m.includes('not found'))
+      return 'المستودع غير موجود أو لا يحتوي على إصدارات';
+    if (m.includes('403') || m.includes('rate limit'))
+      return 'تم تجاوز حد الطلبات لـ GitHub API — حاول مجدداً بعد قليل';
+    if (m.includes('timeout') || m.includes('timed out'))
+      return 'انتهت مهلة الاتصال — تأكد من اتصال الإنترنت';
+    if (m.includes('getaddrinfo') || m.includes('enotfound') || m.includes('network'))
+      return 'لا يمكن الاتصال بالإنترنت — تحقق من الشبكة';
+    if (m.includes('invalid-url'))
+      return 'رابط GitHub غير صحيح — تأكد من صيغة الرابط';
+    if (m.includes('no-repo-url'))
+      return 'لم يتم تحديد رابط مستودع GitHub — أدخل الرابط أولاً';
+    if (m.includes('dev-mode') || m.includes('dev mode'))
+      return 'غير متاح في وضع التطوير';
+    if (m.includes('parse-error'))
+      return 'خطأ في قراءة بيانات الإصدار من GitHub';
+    return msg;
+  }, []);
+
+  const isNewerVersion = useCallback((remote, local) => {
+    if (!remote || !local) return true;
+    const rParts = remote.replace(/^v/, '').split('.').map(Number);
+    const lParts = local.replace(/^v/, '').split('.').map(Number);
+    for (let i = 0; i < Math.max(rParts.length, lParts.length); i++) {
+      const r = rParts[i] || 0;
+      const l = lParts[i] || 0;
+      if (r > l) return true;
+      if (r < l) return false;
+    }
+    return false;
+  }, []);
+
+  const getReleasesUrl = useCallback(() => {
+    const url = updateRepoUrl.trim();
+    if (!url) return null;
+    const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+    if (!match) return null;
+    return `https://github.com/${match[1]}/${match[2].replace(/\.git$/, '')}/releases`;
+  }, [updateRepoUrl]);
+
   const handleCheckUpdate = useCallback(async () => {
     if (!isElectron) return;
     setUpdateStatus({ state: 'checking' });
     const repoUrl = updateRepoUrl.trim() || undefined;
-    const result = await window.electronUpdater.checkForUpdates(repoUrl);
-    if (result && !result.success) {
-      setUpdateStatus({ state: 'error', message: result.reason || 'غير متاح في وضع التطوير' });
+
+    let githubInfo = null;
+    if (repoUrl) {
+      try {
+        githubInfo = await window.electronUpdater.checkGithubReleases(repoUrl);
+      } catch {}
     }
-  }, [isElectron, updateRepoUrl]);
+
+    if (githubInfo && githubInfo.success && !isNewerVersion(githubInfo.version, appVersion)) {
+      setUpdateStatus({ state: 'up-to-date' });
+      return;
+    }
+
+    const shouldTryElectron = !githubInfo || !githubInfo.success || isNewerVersion(githubInfo.version, appVersion);
+
+    if (shouldTryElectron) {
+      const result = await window.electronUpdater.checkForUpdates(repoUrl);
+
+      if (result && !result.success) {
+        if (githubInfo && githubInfo.success && isNewerVersion(githubInfo.version, appVersion)) {
+          setUpdateStatus({
+            state: 'github-available',
+            version: githubInfo.version,
+            tagName: githubInfo.tagName,
+            publishedAt: githubInfo.publishedAt,
+            htmlUrl: githubInfo.htmlUrl,
+            releasesUrl: githubInfo.releasesUrl,
+            body: githubInfo.body,
+            hasAssets: githubInfo.hasAssets,
+            electronError: translateUpdateError(result.reason)
+          });
+        } else {
+          const errorMsg = translateUpdateError(
+            result.reason || (githubInfo && !githubInfo.success ? githubInfo.reason : '') || 'غير متاح في وضع التطوير'
+          );
+          setUpdateStatus({
+            state: 'error',
+            message: errorMsg,
+            releasesUrl: getReleasesUrl()
+          });
+        }
+      }
+    }
+  }, [isElectron, updateRepoUrl, appVersion, translateUpdateError, getReleasesUrl, isNewerVersion]);
 
   const handleDownloadUpdate = useCallback(async () => {
     if (!isElectron) return;
@@ -863,15 +958,80 @@ function SettingsPage({
                     </div>
                   )}
 
+                  {updateStatus.state === 'github-available' && (
+                    <div className="upd-github-available">
+                      <div className="upd-available-badge upd-github-badge">
+                        <GitBranchIcon className="icon-sm" />
+                        <span>إصدار متاح على GitHub</span>
+                      </div>
+                      <div className="upd-available-ver">
+                        الإصدار <strong>{updateStatus.tagName || updateStatus.version}</strong>
+                      </div>
+                      {updateStatus.publishedAt && (
+                        <div className="upd-github-date">
+                          <CalendarIcon className="icon-xs" />
+                          <span>تاريخ النشر: {new Date(updateStatus.publishedAt).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        </div>
+                      )}
+                      {updateStatus.body && (
+                        <div className="upd-github-notes">
+                          <p>{updateStatus.body}</p>
+                        </div>
+                      )}
+                      {updateStatus.electronError && (
+                        <div className="upd-info-banner upd-info-banner--warn">
+                          <div className="upd-info-banner-icon"><InfoIcon className="icon-sm" /></div>
+                          <div>
+                            <strong>التحميل التلقائي غير متاح</strong>
+                            <p>{updateStatus.electronError}</p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="upd-github-actions">
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => {
+                            const url = updateStatus.htmlUrl || updateStatus.releasesUrl;
+                            if (url) {
+                              if (window.electronUpdater?.openExternal) window.electronUpdater.openExternal(url);
+                              else window.open(url, '_blank');
+                            }
+                          }}
+                        >
+                          <ExternalLinkIcon className="icon-xs" />
+                          <span>فتح في GitHub</span>
+                        </button>
+                        <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
+                          <RefreshIcon className="icon-xs" />
+                          <span>فحص مجدداً</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {updateStatus.state === 'error' && (
                     <div className="upd-error">
                       <div className="upd-error-icon"><AlertTriangleIcon /></div>
                       <strong>فشل التحديث</strong>
                       <p>{updateStatus.message}</p>
-                      <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
-                        <RefreshIcon className="icon-xs" />
-                        <span>إعادة المحاولة</span>
-                      </button>
+                      <div className="upd-error-actions">
+                        <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
+                          <RefreshIcon className="icon-xs" />
+                          <span>إعادة المحاولة</span>
+                        </button>
+                        {updateStatus.releasesUrl && (
+                          <button
+                            className="btn btn-sm btn-ghost"
+                            onClick={() => {
+                              if (window.electronUpdater?.openExternal) window.electronUpdater.openExternal(updateStatus.releasesUrl);
+                              else window.open(updateStatus.releasesUrl, '_blank');
+                            }}
+                          >
+                            <ExternalLinkIcon className="icon-xs" />
+                            <span>فتح صفحة الإصدارات</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -886,17 +1046,32 @@ function SettingsPage({
               <div className="upd-repo-section">
                 <label className="upd-repo-label">رابط مشروع GitHub</label>
                 <div className="upd-repo-input-row">
-                  <input
-                    type="text"
-                    className="input upd-repo-input"
-                    placeholder="https://github.com/user/repo"
-                    value={updateRepoUrl}
-                    onChange={e => setUpdateRepoUrl(e.target.value)}
-                    dir="ltr"
-                  />
+                  <div className={`upd-repo-input-wrapper upd-repo-input-wrapper--${repoUrlValidState}`}>
+                    <LinkIcon className="upd-repo-prefix-icon icon-xs" />
+                    <input
+                      type="text"
+                      className="input upd-repo-input"
+                      placeholder="https://github.com/user/repo"
+                      value={updateRepoUrl}
+                      onChange={e => setUpdateRepoUrl(e.target.value)}
+                      dir="ltr"
+                    />
+                    {updateRepoUrl && (
+                      <button
+                        type="button"
+                        className="upd-repo-clear-btn"
+                        onClick={() => setUpdateRepoUrl('')}
+                        title="مسح"
+                      >
+                        <XIcon className="icon-xs" />
+                      </button>
+                    )}
+                  </div>
                   <button
                     className={`btn btn-sm ${repoUrlSaved ? 'upd-saved-btn' : 'btn-primary'}`}
                     onClick={handleSaveRepoUrl}
+                    disabled={repoUrlValidState === 'invalid'}
+                    title={repoUrlValidState === 'invalid' ? 'الرابط غير صحيح' : ''}
                   >
                     {repoUrlSaved ? <><CheckCircleIcon className="icon-xs" /><span>تم</span></> : <span>حفظ</span>}
                   </button>

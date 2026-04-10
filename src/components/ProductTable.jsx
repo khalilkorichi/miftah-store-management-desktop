@@ -7,6 +7,8 @@ import ImportSallaModal from './ImportSallaModal';
 import ConfirmModal from './ConfirmModal';
 import CompetitorsModal from './CompetitorsModal';
 import ProductDetailModal from './ProductDetailModal';
+import CreateBranchedProductModal from './CreateBranchedProductModal';
+import ProductTypeSelector from './ProductTypeSelector';
 import {
   MessageCircleIcon, SendIcon, ShoppingCartIcon, EditIcon, XIcon,
   TagIcon, ChevronDownIcon, ChevronLeftIcon, TrashIcon, PlusCircleIcon,
@@ -692,7 +694,7 @@ function ProductGroup({ parent, branches, index, sharedCardProps, onDetachBranch
 function ProductTable({
   products, suppliers, durations, exchangeRate, activationMethods = [],
   categories = [], onAddCategory, onUpdateProductCategory,
-  onUpdatePrice, onAddProduct, onDeleteProduct, onDuplicateProduct,
+  onUpdatePrice, onAddProduct, onAddBranchedProduct, onDeleteProduct, onDuplicateProduct,
   onUpdateProductName, onUpdateProductUrl, onUpdateProductAccountType, onAddPlan, onDeletePlan,
   onUpdatePlanDuration, onUpdateSupplier, onDeleteSupplier, onAddSupplier,
   onToggleProductMethod, onAddActivationMethodType, onDeleteActivationMethodType,
@@ -707,7 +709,9 @@ function ProductTable({
   const [editNameValue, setEditNameValue] = useState('');
   const [editingSupplierField, setEditingSupplierField] = useState(null);
   const [editSupplierValue, setEditSupplierValue] = useState('');
+  const [showProductTypeSelector, setShowProductTypeSelector] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showAddBranchedProduct, setShowAddBranchedProduct] = useState(false);
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [competitorsModalProduct, setCompetitorsModalProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -808,7 +812,7 @@ function ProductTable({
     <div className="product-cards-container">
       <div className="cards-toolbar">
         <div className="toolbar-actions">
-          <button className="btn-add-product" onClick={() => setShowAddProduct(true)}>
+          <button className="btn-add-product" onClick={() => setShowProductTypeSelector(true)}>
             <PlusIcon className="icon-sm" /> إضافة منتج
           </button>
           <button className="btn-import-salla" onClick={() => setShowImport(true)}>
@@ -976,7 +980,14 @@ function ProductTable({
         </div>
       )}
 
+      <ProductTypeSelector
+        isOpen={showProductTypeSelector}
+        onClose={() => setShowProductTypeSelector(false)}
+        onSelectNormal={() => { setShowProductTypeSelector(false); setShowAddProduct(true); }}
+        onSelectBranched={() => { setShowProductTypeSelector(false); setShowAddBranchedProduct(true); }}
+      />
       <AddProductModal isOpen={showAddProduct} onClose={() => setShowAddProduct(false)} onConfirm={(productData) => onAddProduct(productData.name, productData.plans, productData.activationMethods, productData.accountType || 'none', productData.storeUrl || '', productData.categoryId || null)} durations={durations} suppliers={suppliers} allMethods={activationMethods} categories={categories} onCreateCategory={onAddCategory} />
+      <CreateBranchedProductModal isOpen={showAddBranchedProduct} onClose={() => setShowAddBranchedProduct(false)} onConfirm={onAddBranchedProduct} durations={durations} suppliers={suppliers} allMethods={activationMethods} categories={categories} />
       <AddSupplierModal isOpen={showAddSupplier} onClose={() => setShowAddSupplier(false)} onConfirm={(supplierData) => onAddSupplier(supplierData)} />
       <ActivationMethodsModal isOpen={!!activationModalProduct} product={activationModalProduct} onClose={() => setActivationModalProductId(null)} allMethods={activationMethods} onToggleMethod={onToggleProductMethod} onAddMethodType={onAddActivationMethodType} onDeleteMethodType={onDeleteActivationMethodType} />
       <CompetitorsModal isOpen={!!competitorsModalProduct} product={competitorsModalProduct} onClose={() => setCompetitorsModalProduct(null)} onAddCompetitor={onAddCompetitor} onUpdateCompetitor={onUpdateCompetitor} onDeleteCompetitor={onDeleteCompetitor} />

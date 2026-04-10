@@ -70,7 +70,14 @@ State-based routing: `dashboard` (default), `products`, `pricing`, `bundles`, `f
 ### Products & Prices Page
 - **Card Grid Layout:** Products displayed as responsive cards (1 col mobile, 2 tablet, 3+ desktop)
 - **Product Cards:** Show product name, account type, activation methods, plan summaries with best prices
-- **Branch Products:** Products can have child "branches" (parentId); branch cards show indent + green left-border + parent name indicator; main cards show branch count badge
+- **Three Product Types:**
+  1. منتج عادي/مستقل (Standalone): no parentId and no branches — visible in ALL pages
+  2. منتج مفرع/وعاء (Branched Container): no parentId but HAS branch children — visible ONLY in ProductTable (hidden from Dashboard, Pricing, Bundles, Features, Reports, Operations)
+  3. فرع (Branch): has parentId pointing to its container — visible in ALL pages as a standalone product
+- **Smart Filtering:** `visibleProducts` in App.jsx = branches + standalone products; parent containers excluded. All non-ProductTable components use `visibleProducts`. ProductTable receives full `products` for hierarchical view.
+- **Add Product Flow:** "إضافة منتج" button → ProductTypeSelector dialog → choose "منتج عادي" (opens AddProductModal) or "منتج مفرع" (opens CreateBranchedProductModal)
+- **CreateBranchedProductModal:** Multi-branch creation modal — sets parent name, adds multiple branches (each with name, duration plans, activation methods, prices), creates parent+all branches atomically in one state update via `handleAddBranchedProduct`
+- **Branch Products:** branch cards show indent + green left-border + parent name indicator; parent cards show branch count badge
 - **Add Branch Button:** Each product card has a branch button (GitBranchIcon) to create a child branch product
 - **Advanced Filter Panel:** Toggle button next to search reveals: product type filter (all/main/branches), supplier filter, category filter, sort by (name/price asc/desc); active filter count badge shown on button
 - **Expandable Plans:** Click "عرض التفاصيل" to see full supplier price breakdowns per plan
@@ -99,6 +106,22 @@ npm run dev   # Runs on http://localhost:5000
 npm run electron:dev    # Dev mode with hot reload
 npm run electron:build  # Build .exe installer (output in /release)
 ```
+
+## Update System (Electron)
+The update system in Settings → "التحديثات" tab provides two-tier update checking:
+1. **GitHub API check** (`updater:check-github-api`): Queries `api.github.com/repos/{owner}/{repo}/releases/latest` directly. Works even without `latest.yml` or electron-builder artifacts.
+2. **electron-updater check** (`updater:check`): Standard electron-updater for auto-download/install when build artifacts exist.
+
+**Flow:** User clicks "البحث عن تحديثات" → GitHub API is queried first, then electron-updater. If electron-updater fails but GitHub API finds a release, the `github-available` state shows release info with a "فتح في GitHub" button.
+
+**Error translation:** `translateUpdateError()` in SettingsPage.jsx maps English error messages to Arabic (e.g., "No published versions" → "لا توجد إصدارات منشورة بعد في هذا المستودع").
+
+**States:** idle, checking, available, downloading, downloaded, up-to-date, github-available, error.
+
+**Files:**
+- `electron/main.js` — IPC handlers: `updater:check`, `updater:check-github-api`, `updater:download`, `updater:install`, `updater:open-external`
+- `electron/preload.js` — Bridge: `checkForUpdates`, `checkGithubReleases`, `downloadUpdate`, `installUpdate`, `openExternal`, `getVersion`, `onUpdateStatus`
+- `src/components/SettingsPage.jsx` — Update UI with all states, `translateUpdateError()`, `getReleasesUrl()`
 
 ## Deployment
 Configured as a static site:

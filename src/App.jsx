@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   DEFAULT_EXCHANGE_RATE,
   DEFAULT_SUPPLIERS,
@@ -371,6 +371,55 @@ function App() {
     setProducts((prev) => [...prev, newProduct]);
     toast(`تمت إضافة المنتج "${name}" بنجاح`, 'success');
   }, [products, suppliers, toast]);
+
+  const handleAddBranchedProduct = useCallback(({ parentName, branches }) => {
+    setProducts((prev) => {
+      let maxId = prev.length > 0 ? Math.max(...prev.map((p) => p.id)) : 0;
+      const parentId = ++maxId;
+      const parentProduct = {
+        id: parentId,
+        name: parentName,
+        plans: [{ id: 1, durationId: durations[0]?.id || 'month_1', prices: Object.fromEntries(suppliers.map(s => [s.id, 0])), supplierWarranty: {}, supplierLinks: {} }],
+        activationMethods: [],
+        supplierActivationMethods: {},
+        supplierLinks: {},
+        accountType: 'none',
+        categoryId: null,
+        parentId: null,
+        description: '',
+        descriptionStyles: {},
+        cardColor: null,
+        competitors: [],
+        storeUrl: '',
+      };
+      const branchProducts = branches.map((b) => {
+        const bId = ++maxId;
+        const plans = b.plans.map((plan, idx) => {
+          const prices = {};
+          suppliers.forEach(s => { prices[s.id] = plan.prices?.[s.id] ?? 0; });
+          return { id: idx + 1, durationId: plan.durationId, prices, supplierWarranty: {}, supplierLinks: {}, warrantyDays: 0 };
+        });
+        return {
+          id: bId,
+          name: b.name,
+          plans,
+          activationMethods: b.activationMethods || [],
+          supplierActivationMethods: {},
+          supplierLinks: {},
+          accountType: b.accountType || 'none',
+          categoryId: b.categoryId || null,
+          parentId: parentId,
+          description: '',
+          descriptionStyles: {},
+          cardColor: null,
+          competitors: [],
+          storeUrl: '',
+        };
+      });
+      return [...prev, parentProduct, ...branchProducts];
+    });
+    toast(`تم إنشاء المنتج المفرع "${parentName}" مع ${branches.length} فروع بنجاح`, 'success');
+  }, [suppliers, durations, toast]);
 
   const handleAddCategory = useCallback((cat) => {
     setCategories((prev) => [...prev, cat]);
@@ -806,6 +855,14 @@ function App() {
     URL.revokeObjectURL(url);
   }, [products, suppliers, exchangeRate, durations, tasks, activationGuides]);
 
+  const visibleProducts = useMemo(() => {
+    const branchParentIds = new Set(products.filter(p => p.parentId).map(p => p.parentId));
+    return products.filter(p => {
+      if (p.parentId) return true;
+      return !branchParentIds.has(p.id);
+    });
+  }, [products]);
+
   return (
     <div className="app-container" dir="rtl">
       {/* Skip to Content Link */}
@@ -901,7 +958,7 @@ function App() {
         {activeTab === 'dashboard' && (
           <div role="tabpanel" id="panel-dashboard" aria-labelledby="tab-dashboard">
           <Dashboard
-            products={products}
+            products={visibleProducts}
             suppliers={suppliers}
             durations={durations}
             exchangeRate={exchangeRate}
@@ -928,6 +985,7 @@ function App() {
             categories={categories}
             onUpdatePrice={handleUpdatePrice}
             onAddProduct={handleAddProduct}
+            onAddBranchedProduct={handleAddBranchedProduct}
             onDeleteProduct={handleDeleteProduct}
             onUpdateProductName={handleUpdateProductName}
             onUpdateProductUrl={handleUpdateProductUrl}
@@ -964,7 +1022,7 @@ function App() {
         {activeTab === 'reports' && (
           <div role="tabpanel" id="panel-reports" aria-labelledby="tab-reports">
           <ReportsExport
-            products={products}
+            products={visibleProducts}
             suppliers={suppliers}
             durations={durations}
             exchangeRate={exchangeRate}
@@ -979,7 +1037,7 @@ function App() {
         {activeTab === 'pricing' && (
           <div role="tabpanel" id="panel-pricing" aria-labelledby="tab-pricing">
           <PricingDashboard
-            products={products}
+            products={visibleProducts}
             suppliers={suppliers}
             durations={durations}
             exchangeRate={exchangeRate}
@@ -999,7 +1057,7 @@ function App() {
           <BundleManager
             bundles={bundles}
             setBundles={setBundles}
-            products={products}
+            products={visibleProducts}
             suppliers={suppliers}
             exchangeRate={exchangeRate}
             pricingData={pricingData}
@@ -1012,7 +1070,7 @@ function App() {
         {activeTab === 'features' && (
           <div role="tabpanel" id="panel-features" aria-labelledby="tab-features">
           <ProductFeatures
-            products={products}
+            products={visibleProducts}
             setProducts={setProducts}
             durations={durations}
             suppliers={suppliers}
@@ -1039,7 +1097,7 @@ function App() {
             setRenewalReminders={setRenewalReminders}
             warrantyOrders={warrantyOrders}
             setWarrantyOrders={setWarrantyOrders}
-            products={products}
+            products={visibleProducts}
             durations={durations}
             suppliers={suppliers}
             exchangeRate={exchangeRate}
@@ -1100,7 +1158,8 @@ function App() {
       )}
 
       <GlobalAIAssistant
-        products={products}
+        products={visibleProducts}
+        allProducts={products}
         suppliers={suppliers}
         durations={durations}
         bundles={bundles}
