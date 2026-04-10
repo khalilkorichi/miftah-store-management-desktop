@@ -3677,163 +3677,304 @@ body {
 .settings-action-danger:hover { border-color: var(--accent-red); background: rgba(249, 75, 96, 0.06); }
 
 /* ── Updates tab ── */
-.update-repo-field {
+.upd-hero {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.update-repo-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.update-repo-input-row {
-  display: flex;
-  gap: 8px;
   align-items: center;
-}
-.update-repo-input {
-  flex: 1;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
-  direction: ltr;
-  text-align: left;
-}
-.update-repo-hint {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-.update-version-info {
+  gap: 14px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-blue) 12%, var(--bg-card)), color-mix(in srgb, var(--accent-purple) 8%, var(--bg-card)));
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 18%, transparent);
+  border-radius: var(--radius-lg, 12px);
   margin-bottom: 16px;
 }
-.update-version-badge {
-  display: inline-flex;
+.upd-hero-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-blue) 15%, transparent);
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  justify-content: center;
+  color: var(--accent-blue);
+  flex-shrink: 0;
+}
+.upd-hero-icon-wrap .icon { width: 22px; height: 22px; }
+.upd-hero-text { flex: 1; }
+.upd-hero-text h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+.upd-hero-text p {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.upd-hero-version {
+  padding: 5px 12px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: 99px;
   font-size: 13px;
-  color: var(--text-secondary);
-}
-.update-version-badge strong {
-  color: var(--accent-blue);
   font-weight: 700;
-  font-size: 14px;
+  color: var(--accent-blue);
+  font-family: 'Consolas', 'Monaco', monospace;
+  direction: ltr;
 }
-.update-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  background: color-mix(in srgb, var(--accent-blue) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-blue) 20%, transparent);
-  border-radius: var(--radius-md);
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: var(--text-secondary);
+
+.upd-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
 }
-.update-notice .icon { color: var(--accent-blue); flex-shrink: 0; margin-top: 2px; }
-.update-controls {
+@media (max-width: 800px) {
+  .upd-grid { grid-template-columns: 1fr; }
+}
+
+.upd-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg, 12px);
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
-.update-status-row {
+.upd-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.upd-panel-header .icon { color: var(--accent-blue); }
+
+.upd-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--accent-blue) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 15%, transparent);
+  border-radius: var(--radius-md);
+}
+.upd-info-banner-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-blue) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue);
+  flex-shrink: 0;
+}
+.upd-info-banner strong { font-size: 13px; color: var(--text-primary); display: block; margin-bottom: 4px; }
+.upd-info-banner p { font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.6; }
+
+.upd-state-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  flex: 1;
+}
+
+.upd-idle, .upd-checking, .upd-uptodate, .upd-available, .upd-downloading, .upd-downloaded, .upd-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+}
+.upd-idle-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue);
+  margin-bottom: 4px;
+}
+.upd-idle-icon .icon { width: 22px; height: 22px; }
+.upd-idle p, .upd-checking p, .upd-uptodate p { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+.upd-spinner-lg {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-blue);
+  border-radius: 50%;
+  animation: upd-spin 0.7s linear infinite;
+  margin-bottom: 6px;
+}
+@keyframes upd-spin { to { transform: rotate(360deg); } }
+
+.upd-success-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-green) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-green);
+  margin-bottom: 4px;
+}
+.upd-success-icon .icon { width: 24px; height: 24px; }
+.upd-uptodate strong, .upd-downloaded strong { font-size: 14px; color: var(--text-primary); }
+
+.upd-available-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: color-mix(in srgb, var(--accent-blue) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 25%, transparent);
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+.upd-available-badge .icon { color: var(--accent-blue); }
+.upd-available-ver {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.upd-available-ver strong { color: var(--accent-blue); font-size: 15px; }
+
+.upd-warning-banner {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: var(--bg-input);
+  background: color-mix(in srgb, var(--accent-orange) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-orange) 20%, transparent);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
+  line-height: 1.5;
+  width: 100%;
+  text-align: start;
 }
-.update-status-row.update-success { color: var(--accent-green); }
-.update-status-row.update-success .icon { color: var(--accent-green); }
-.update-status-row.update-error { color: var(--accent-red); }
-.update-status-row.update-error .icon { color: var(--accent-red); }
-.update-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--accent-blue);
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.update-available-card {
-  padding: 16px;
-  background: color-mix(in srgb, var(--accent-blue) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-blue) 25%, transparent);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.update-available-header {
+.upd-warning-banner .icon { color: var(--accent-orange); flex-shrink: 0; }
+
+.upd-downloading { max-width: 100%; }
+.upd-dl-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--accent-blue);
-}
-.update-available-header .icon { color: var(--accent-blue); }
-.update-available-version {
   font-size: 13px;
   color: var(--text-secondary);
-}
-.update-download-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.update-progress-bar {
   width: 100%;
-  height: 6px;
+}
+.upd-dl-header .icon { color: var(--accent-blue); }
+.upd-dl-header strong { margin-inline-start: auto; color: var(--accent-blue); font-size: 14px; }
+.upd-progress-track {
+  width: 100%;
+  height: 8px;
   background: var(--bg-input);
   border-radius: 99px;
   overflow: hidden;
 }
-.update-progress-fill {
+.upd-progress-bar {
   height: 100%;
-  background: var(--accent-blue);
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
   border-radius: 99px;
   transition: width 0.3s ease;
 }
-.update-ready-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.update-how-it-works {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.update-step {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-.update-step-num {
-  width: 24px;
-  height: 24px;
+
+.upd-install-btn { width: 100%; justify-content: center; }
+
+.upd-error-icon {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: var(--accent-blue);
-  color: #fff;
+  background: color-mix(in srgb, var(--accent-red) 12%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  color: var(--accent-red);
+  margin-bottom: 4px;
+}
+.upd-error-icon .icon { width: 24px; height: 24px; }
+.upd-error strong { font-size: 14px; color: var(--accent-red); }
+.upd-error p { font-size: 12px; color: var(--text-muted); margin: 0; word-break: break-word; }
+
+.upd-repo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.upd-repo-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.upd-repo-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.upd-repo-input {
+  flex: 1;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12.5px;
+  direction: ltr;
+  text-align: left;
+}
+.upd-repo-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+.upd-saved-btn {
+  background: var(--accent-green) !important;
+  color: #fff !important;
+  border: none;
+  border-radius: 8px;
+}
+.upd-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 0;
+}
+.upd-steps-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.upd-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.upd-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.upd-step-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
+  color: var(--accent-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
   font-weight: 700;
   flex-shrink: 0;
 }
