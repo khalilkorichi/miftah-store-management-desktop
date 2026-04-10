@@ -10,7 +10,11 @@ import {
   DEFAULT_COUPONS,
   DEFAULT_PRICING_DATA,
   DEFAULT_CATEGORIES,
+  DEFAULT_TASKS,
+  DEFAULT_ACTIVATION_GUIDES,
+  DEFAULT_AI_SETTINGS,
 } from './data/initialData';
+import OperationsHub from './components/operations/OperationsHub';
 import ProductTable from './components/ProductTable';
 import ImportSallaModal from './components/ImportSallaModal';
 import ExchangeRateBar from './components/ExchangeRateBar';
@@ -23,8 +27,10 @@ import Dashboard from './components/Dashboard';
 import ProductFeatures from './components/ProductFeatures';
 import {
   PackageIcon, DollarSignIcon, GiftIcon, BarChartIcon, SettingsIcon,
-  SunIcon, MoonIcon, CheckCircleIcon, HomeIcon, FileTextIcon, ExternalLinkIcon
+  SunIcon, MoonIcon, CheckCircleIcon, HomeIcon, FileTextIcon, ExternalLinkIcon,
+  CheckSquareIcon,
 } from './components/Icons';
+import GlobalAIAssistant from './components/GlobalAIAssistant';
 
 const STORAGE_KEY = 'miftah_store_data';
 const DATA_VERSION = 2;
@@ -36,6 +42,7 @@ const TAB_LIST = [
   { id: 'bundles', label: 'الحزم والمجموعات', icon: GiftIcon },
   { id: 'features', label: 'وصف المنتجات', icon: FileTextIcon },
   { id: 'reports', label: 'التقارير', icon: BarChartIcon },
+  { id: 'tasks', label: 'العمليات', icon: CheckSquareIcon },
   { id: 'settings', label: 'الإعدادات', icon: SettingsIcon },
 ];
 
@@ -50,7 +57,8 @@ function migrateData(data) {
     const productsNeedV3 = data.products.some(p =>
       !('parentId' in p) || !('supplierActivationMethods' in p) || !('supplierLinks' in p)
     );
-    if (productsNeedFeatures || productsNeedCategory || productsNeedSupplierWarranty || productsNeedV3) {
+    const productsNeedCardColor = data.products.some(p => !('cardColor' in p));
+    if (productsNeedFeatures || productsNeedCategory || productsNeedSupplierWarranty || productsNeedV3 || productsNeedCardColor) {
       data = { ...data, products: data.products.map(p => ({
         ...p,
         description: p.description || '',
@@ -59,6 +67,7 @@ function migrateData(data) {
         parentId: 'parentId' in p ? p.parentId : null,
         supplierActivationMethods: p.supplierActivationMethods || {},
         supplierLinks: p.supplierLinks || {},
+        cardColor: 'cardColor' in p ? p.cardColor : null,
         plans: (p.plans || []).map(plan => ({
           ...plan,
           supplierWarranty: plan.supplierWarranty || {},
@@ -66,7 +75,14 @@ function migrateData(data) {
         })),
       })) };
     }
-    return data;
+    // Always seed new top-level fields for any existing payload
+    return {
+      ...data,
+      tasks: Array.isArray(data.tasks) ? data.tasks : DEFAULT_TASKS,
+      activationGuides: Array.isArray(data.activationGuides) ? data.activationGuides : DEFAULT_ACTIVATION_GUIDES,
+      renewalReminders: Array.isArray(data.renewalReminders) ? data.renewalReminders : [],
+      warrantyOrders: Array.isArray(data.warrantyOrders) ? data.warrantyOrders : [],
+    };
   }
 
   const migratedProducts = data.products.map((product) => {
@@ -100,6 +116,10 @@ function migrateData(data) {
     bundles: data.bundles || DEFAULT_BUNDLES,
     coupons: data.coupons || DEFAULT_COUPONS,
     pricingData: data.pricingData || DEFAULT_PRICING_DATA,
+    tasks: Array.isArray(data.tasks) ? data.tasks : DEFAULT_TASKS,
+    activationGuides: Array.isArray(data.activationGuides) ? data.activationGuides : DEFAULT_ACTIVATION_GUIDES,
+    renewalReminders: Array.isArray(data.renewalReminders) ? data.renewalReminders : [],
+    warrantyOrders: Array.isArray(data.warrantyOrders) ? data.warrantyOrders : [],
   };
 }
 
@@ -168,6 +188,10 @@ function App() {
   const [categories, setCategories] = useState(savedData?.categories || DEFAULT_CATEGORIES);
   const [finalPrices, setFinalPrices] = useState(savedData?.finalPrices || {});
   const [customLogo, setCustomLogo] = useState(savedData?.customLogo || null);
+  const [tasks, setTasks] = useState(savedData?.tasks || DEFAULT_TASKS);
+  const [activationGuides, setActivationGuides] = useState(savedData?.activationGuides || DEFAULT_ACTIVATION_GUIDES);
+  const [renewalReminders, setRenewalReminders] = useState(savedData?.renewalReminders || []);
+  const [warrantyOrders, setWarrantyOrders] = useState(savedData?.warrantyOrders || []);
   const [appSettings, setAppSettings] = useState({
     accentColor: 'purple',
     fontSize: 'medium',
@@ -178,13 +202,14 @@ function App() {
       { id: 'dz', label: 'الجزائر', tz: 'Africa/Algiers', flag: '🇩🇿', enabled: true },
       { id: 'sa', label: 'السعودية', tz: 'Asia/Riyadh', flag: '🇸🇦', enabled: true },
     ],
+    ...DEFAULT_AI_SETTINGS,
     ...(savedData?.appSettings || {}),
   });
   
   // Custom hook logic for hash-based routing
   const getInitialTab = () => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'settings'];
+    const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'tasks', 'settings'];
     return validTabs.includes(hash) ? hash : 'dashboard';
   };
   
@@ -196,11 +221,11 @@ function App() {
 
   // Save data whenever it changes
   useEffect(() => {
-    saveData({ products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices });
+    saveData({ products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices, tasks, activationGuides, renewalReminders, warrantyOrders });
     setSaveIndicator(true);
     const timer = setTimeout(() => setSaveIndicator(false), 1500);
     return () => clearTimeout(timer);
-  }, [products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices]);
+  }, [products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices, tasks, activationGuides, renewalReminders, warrantyOrders]);
 
   // Apply dark mode class
   useEffect(() => {
@@ -232,7 +257,7 @@ function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'settings'];
+      const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'tasks', 'settings'];
       if (validTabs.includes(hash)) {
         setPageTransition(true);
         setTimeout(() => {
@@ -405,6 +430,12 @@ function App() {
   const handleUpdateProductAccountType = useCallback((productId, accountType) => {
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, accountType } : p))
+    );
+  }, []);
+
+  const handleUpdateProductColor = useCallback((productId, color) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, cardColor: color } : p))
     );
   }, []);
 
@@ -603,6 +634,35 @@ function App() {
   }, []);
 
   // === Branch Management ===
+  const handleMoveBranch = useCallback((branchId, newParentId) => {
+    setProducts((prev) => {
+      const branch = prev.find((p) => p.id === branchId);
+      const newParent = prev.find((p) => p.id === newParentId);
+      if (!branch || !newParent) return prev;
+      toast(`تم نقل "${branch.name}" إلى "${newParent.name}"`, 'success');
+      return prev.map((p) => p.id === branchId ? { ...p, parentId: newParentId } : p);
+    });
+  }, [toast]);
+
+  const handleDetachBranch = useCallback((branchId) => {
+    setProducts((prev) => {
+      const branch = prev.find((p) => p.id === branchId);
+      if (!branch) return prev;
+      toast(`تم تحويل "${branch.name}" إلى منتج مستقل`, 'success');
+      return prev.map((p) => p.id === branchId ? { ...p, parentId: null } : p);
+    });
+  }, [toast]);
+
+  const handleAttachAsBranch = useCallback((productId, newParentId) => {
+    setProducts((prev) => {
+      const product = prev.find((p) => p.id === productId);
+      const parent = prev.find((p) => p.id === newParentId);
+      if (!product || !parent) return prev;
+      toast(`تم إرفاق "${product.name}" كفرع لـ "${parent.name}"`, 'success');
+      return prev.map((p) => p.id === productId ? { ...p, parentId: newParentId } : p);
+    });
+  }, [toast]);
+
   const handleAddBranch = useCallback((parentId) => {
     setProducts((prev) => {
       const parent = prev.find((p) => p.id === parentId);
@@ -644,13 +704,13 @@ function App() {
   }, []);
 
   // === Competitors Management ===
-  const handleAddCompetitor = useCallback((productId, name, url) => {
+  const handleAddCompetitor = useCallback((productId, name, url, price) => {
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id !== productId) return p;
         const current = p.competitors || [];
         const newId = Math.max(0, ...current.map((c) => c.id)) + 1;
-        return { ...p, competitors: [...current, { id: newId, name, url }] };
+        return { ...p, competitors: [...current, { id: newId, name, url, price: price != null ? price : null }] };
       })
     );
   }, []);
@@ -701,12 +761,24 @@ function App() {
     );
   }, []);
 
+  // === Global AI Assistant Actions ===
+  const handleUpdateProductById = useCallback((productId, updater) => {
+    setProducts(prev => prev.map(p => p.id === productId ? updater(p) : p));
+  }, []);
+
+  const handleCreateCouponFromGAA = useCallback((coupon) => {
+    setCoupons(prev => [...prev, coupon]);
+    toast(`تم إنشاء الكوبون "${coupon.code}" بنجاح`, 'success');
+  }, [toast]);
+
   // === Data Management ===
   const handleResetData = useCallback(() => {
     setProducts(DEFAULT_PRODUCTS);
     setSuppliers(DEFAULT_SUPPLIERS);
     setExchangeRate(DEFAULT_EXCHANGE_RATE);
     setDurations(DEFAULT_DURATIONS);
+    setTasks(DEFAULT_TASKS);
+    setActivationGuides(DEFAULT_ACTIVATION_GUIDES);
   }, []);
 
   const handleImportData = useCallback((data) => {
@@ -719,10 +791,12 @@ function App() {
     if (migrated.bundles) setBundles(migrated.bundles);
     if (migrated.coupons) setCoupons(migrated.coupons);
     if (migrated.pricingData) setPricingData(migrated.pricingData);
+    if (Array.isArray(migrated.tasks)) setTasks(migrated.tasks);
+    if (Array.isArray(migrated.activationGuides)) setActivationGuides(migrated.activationGuides);
   }, []);
 
   const handleExportJson = useCallback(() => {
-    const data = { products, suppliers, exchangeRate, durations, activationMethods, costs, bundles, coupons, pricingData };
+    const data = { products, suppliers, exchangeRate, durations, activationMethods, costs, bundles, coupons, pricingData, tasks, activationGuides };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -730,7 +804,7 @@ function App() {
     a.download = 'miftah_store_data.json';
     a.click();
     URL.revokeObjectURL(url);
-  }, [products, suppliers, exchangeRate, durations]);
+  }, [products, suppliers, exchangeRate, durations, tasks, activationGuides]);
 
   return (
     <div className="app-container" dir="rtl">
@@ -838,6 +912,8 @@ function App() {
             activationMethods={activationMethods}
             onNavigate={handleTabChange}
             appSettings={appSettings}
+            tasks={tasks}
+            activationGuides={activationGuides}
           />
           </div>
         )}
@@ -878,6 +954,10 @@ function App() {
             onUpdateSupplierActivationMethod={handleUpdateSupplierActivationMethod}
             onAddBranch={handleAddBranch}
             onUpdateSupplierPlanLink={handleUpdateSupplierPlanLink}
+            onUpdateProductColor={handleUpdateProductColor}
+            onMoveBranch={handleMoveBranch}
+            onDetachBranch={handleDetachBranch}
+            onAttachAsBranch={handleAttachAsBranch}
           />
           </div>
         )}
@@ -924,6 +1004,8 @@ function App() {
             exchangeRate={exchangeRate}
             pricingData={pricingData}
             costs={costs}
+            appSettings={appSettings}
+            onNavigateToSettings={() => setActiveTab('settings')}
           />
           </div>
         )}
@@ -936,6 +1018,31 @@ function App() {
             suppliers={suppliers}
             exchangeRate={exchangeRate}
             activationMethods={activationMethods}
+            appSettings={appSettings}
+            onAppSettingsChange={setAppSettings}
+            onNavigateToSettings={() => setActiveTab('settings')}
+            bundles={bundles}
+            setBundles={setBundles}
+            costs={costs}
+            pricingData={pricingData}
+          />
+          </div>
+        )}
+        {activeTab === 'tasks' && (
+          <div role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks">
+          <OperationsHub
+            tasks={tasks}
+            setTasks={setTasks}
+            activationGuides={activationGuides}
+            setActivationGuides={setActivationGuides}
+            renewalReminders={renewalReminders}
+            setRenewalReminders={setRenewalReminders}
+            warrantyOrders={warrantyOrders}
+            setWarrantyOrders={setWarrantyOrders}
+            products={products}
+            durations={durations}
+            suppliers={suppliers}
+            exchangeRate={exchangeRate}
           />
           </div>
         )}
@@ -991,6 +1098,29 @@ function App() {
           ↑
         </button>
       )}
+
+      <GlobalAIAssistant
+        products={products}
+        suppliers={suppliers}
+        durations={durations}
+        bundles={bundles}
+        coupons={coupons}
+        tasks={tasks}
+        appSettings={appSettings}
+        exchangeRate={exchangeRate}
+        pricingData={pricingData}
+        onNavigateToSettings={() => setActiveTab('settings')}
+        onCreateProduct={(name, durationId, officialPriceUsd) => {
+          const plans = durationId
+            ? [{ id: 1, durationId, officialPriceUsd: parseFloat(officialPriceUsd) || 0, prices: {} }]
+            : [];
+          handleAddProduct(name, plans);
+        }}
+        onCreateSupplier={handleAddSupplier}
+        onUpdateProduct={handleUpdateProductById}
+        onCreateCoupon={handleCreateCouponFromGAA}
+        onCreateBundle={(bundle) => setBundles(prev => [...prev, bundle])}
+      />
     </div>
   );
 }
