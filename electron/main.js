@@ -107,17 +107,6 @@ ipcMain.handle('updater:check', async () => {
   }
 });
 
-ipcMain.handle('updater:download', async () => {
-  const au = getAutoUpdater();
-  if (!au) return { success: false };
-  try {
-    await au.downloadUpdate();
-    return { success: true };
-  } catch (err) {
-    return { success: false, reason: err.message };
-  }
-});
-
 ipcMain.handle('updater:install', () => {
   const au = getAutoUpdater();
   if (!au) return;
