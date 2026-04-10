@@ -570,6 +570,7 @@ function ProductDetailModal({
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </div>
