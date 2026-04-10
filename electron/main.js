@@ -24,6 +24,14 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173');
   }
 
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (app.isPackaged) {
+      const appUrl = `file://${path.join(__dirname, '../dist/index.html')}`;
+      if (!url.startsWith(appUrl)) event.preventDefault();
+    }
+  });
+
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
@@ -43,7 +51,7 @@ function getAutoUpdater() {
   if (!autoUpdater && app.isPackaged) {
     try {
       const { autoUpdater: au } = require('electron-updater');
-      au.autoDownload = false;
+      au.autoDownload = true;
       au.autoInstallOnAppQuit = true;
 
       au.on('checking-for-update', () => {
@@ -51,7 +59,7 @@ function getAutoUpdater() {
       });
 
       au.on('update-available', (info) => {
-        sendStatus({ state: 'available', version: info.version, releaseDate: info.releaseDate });
+        sendStatus({ state: 'downloading', version: info.version, releaseDate: info.releaseDate, percent: 0 });
       });
 
       au.on('update-not-available', () => {
