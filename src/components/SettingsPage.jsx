@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   SettingsIcon, GlobeIcon, ClockIcon, PaletteIcon, 
   MoonIcon, SunIcon, DatabaseIcon, UploadIcon, 
   DownloadIcon, RefreshIcon, InfoIcon, XIcon, PlusIcon,
   AlertTriangleIcon, CheckCircleIcon, PackageIcon, ImageIcon,
   ExternalLinkIcon, SparklesIcon, KeyIcon, EyeIcon, ChevronDownIcon,
-  ZapIcon,
+  ZapIcon, DownloadCloudIcon,
 } from './Icons';
 import { GEMINI_MODELS, OPENROUTER_MODELS, AGENTROUTER_MODELS } from '../utils/aiProvider';
 import SkillsTab from './SkillsTab';
@@ -39,6 +39,33 @@ function SettingsPage({
   const [settingsTab, setSettingsTab] = useState('store');
   const fileInputRef = useRef(null);
   const logoInputRef = useRef(null);
+
+  const isElectron = typeof window !== 'undefined' && !!window.electronUpdater;
+  const [updateStatus, setUpdateStatus] = useState({ state: 'idle' });
+  const [appVersion, setAppVersion] = useState('2.1.0');
+
+  useEffect(() => {
+    if (!isElectron) return;
+    window.electronUpdater.getVersion().then(v => { if (v) setAppVersion(v); });
+    const cleanup = window.electronUpdater.onUpdateStatus(setUpdateStatus);
+    return cleanup;
+  }, [isElectron]);
+
+  const handleCheckUpdate = useCallback(() => {
+    if (!isElectron) return;
+    setUpdateStatus({ state: 'checking' });
+    window.electronUpdater.checkForUpdates();
+  }, [isElectron]);
+
+  const handleDownloadUpdate = useCallback(() => {
+    if (!isElectron) return;
+    window.electronUpdater.downloadUpdate();
+  }, [isElectron]);
+
+  const handleInstallUpdate = useCallback(() => {
+    if (!isElectron) return;
+    window.electronUpdater.installUpdate();
+  }, [isElectron]);
 
   const handleSaveRate = () => {
     const rate = parseFloat(tempRate);
@@ -120,6 +147,7 @@ function SettingsPage({
     { id: 'ai',         label: 'الذكاء الاصطناعي',  icon: <SparklesIcon className="icon-xs" /> },
     { id: 'skills',     label: 'المهارات',           icon: <ZapIcon className="icon-xs" /> },
     { id: 'data',       label: 'البيانات',           icon: <DatabaseIcon className="icon-xs" /> },
+    { id: 'updates',    label: 'التحديثات',          icon: <DownloadCloudIcon className="icon-xs" /> },
   ];
 
   return (
@@ -706,9 +734,144 @@ function SettingsPage({
         </div>
       )}
 
+      {settingsTab === 'updates' && (
+        <div className="settings-section">
+          <div className="settings-card">
+            <div className="settings-card-title">
+              <DownloadCloudIcon className="icon-sm" />
+              <span>تحديثات البرنامج</span>
+            </div>
+            <div className="settings-card-body">
+              <div className="update-version-info">
+                <div className="update-version-badge">
+                  <PackageIcon className="icon-sm" />
+                  <span>الإصدار الحالي</span>
+                  <strong>{appVersion}</strong>
+                </div>
+              </div>
+
+              {!isElectron && (
+                <div className="update-notice">
+                  <InfoIcon className="icon-sm" />
+                  <span>التحديث التلقائي متاح فقط في نسخة سطح المكتب (Windows). في المتصفح، قم بتحديث الصفحة للحصول على آخر التعديلات.</span>
+                </div>
+              )}
+
+              {isElectron && (
+                <div className="update-controls">
+                  {updateStatus.state === 'idle' && (
+                    <button className="btn btn-primary" onClick={handleCheckUpdate}>
+                      <RefreshIcon className="icon-xs" />
+                      <span>البحث عن تحديثات</span>
+                    </button>
+                  )}
+
+                  {updateStatus.state === 'checking' && (
+                    <div className="update-status-row">
+                      <div className="update-spinner" />
+                      <span>جاري البحث عن تحديثات...</span>
+                    </div>
+                  )}
+
+                  {updateStatus.state === 'up-to-date' && (
+                    <div className="update-status-row update-success">
+                      <CheckCircleIcon className="icon-sm" />
+                      <span>البرنامج محدّث — لديك أحدث إصدار</span>
+                      <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
+                        <RefreshIcon className="icon-xs" />
+                        <span>فحص مجدداً</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {updateStatus.state === 'available' && (
+                    <div className="update-available-card">
+                      <div className="update-available-header">
+                        <DownloadCloudIcon className="icon-sm" />
+                        <span>تحديث جديد متاح!</span>
+                      </div>
+                      <div className="update-available-version">
+                        <span>الإصدار الجديد: <strong>{updateStatus.version}</strong></span>
+                      </div>
+                      <button className="btn btn-primary" onClick={handleDownloadUpdate}>
+                        <DownloadIcon className="icon-xs" />
+                        <span>تحميل التحديث</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {updateStatus.state === 'downloading' && (
+                    <div className="update-download-progress">
+                      <div className="update-status-row">
+                        <DownloadIcon className="icon-sm" />
+                        <span>جاري تحميل التحديث... {updateStatus.percent || 0}%</span>
+                      </div>
+                      <div className="update-progress-bar">
+                        <div className="update-progress-fill" style={{ width: `${updateStatus.percent || 0}%` }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {updateStatus.state === 'downloaded' && (
+                    <div className="update-ready-card">
+                      <div className="update-status-row update-success">
+                        <CheckCircleIcon className="icon-sm" />
+                        <span>تم تحميل التحديث بنجاح — الإصدار {updateStatus.version}</span>
+                      </div>
+                      <button className="btn btn-primary" onClick={handleInstallUpdate}>
+                        <RefreshIcon className="icon-xs" />
+                        <span>تثبيت وإعادة التشغيل</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {updateStatus.state === 'error' && (
+                    <div className="update-status-row update-error">
+                      <AlertTriangleIcon className="icon-sm" />
+                      <span>خطأ: {updateStatus.message}</span>
+                      <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
+                        <RefreshIcon className="icon-xs" />
+                        <span>إعادة المحاولة</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="settings-card">
+            <div className="settings-card-title">
+              <InfoIcon className="icon-sm" />
+              <span>كيف يعمل التحديث التلقائي</span>
+            </div>
+            <div className="settings-card-body">
+              <div className="update-how-it-works">
+                <div className="update-step">
+                  <div className="update-step-num">1</div>
+                  <span>يتم رفع التعديلات إلى GitHub</span>
+                </div>
+                <div className="update-step">
+                  <div className="update-step-num">2</div>
+                  <span>GitHub Actions يبني المثبّت تلقائياً</span>
+                </div>
+                <div className="update-step">
+                  <div className="update-step-num">3</div>
+                  <span>اضغط "البحث عن تحديثات" لتحميل النسخة الجديدة</span>
+                </div>
+                <div className="update-step">
+                  <div className="update-step-num">4</div>
+                  <span>التثبيت وإعادة التشغيل بضغطة واحدة</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="settings-info-footer">
         <InfoIcon className="icon-sm" />
-        <span>الإصدار 2.0.0</span>
+        <span>الإصدار {appVersion}</span>
         <span className="settings-info-sep">•</span>
         <span>الحفظ تلقائي (متصفح محلي)</span>
         <span className="settings-info-sep">•</span>
