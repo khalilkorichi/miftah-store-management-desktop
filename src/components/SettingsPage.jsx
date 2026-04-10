@@ -51,15 +51,13 @@ function SettingsPage({
     return cleanup;
   }, [isElectron]);
 
-  const handleCheckUpdate = useCallback(() => {
+  const handleCheckUpdate = useCallback(async () => {
     if (!isElectron) return;
     setUpdateStatus({ state: 'checking' });
-    window.electronUpdater.checkForUpdates();
-  }, [isElectron]);
-
-  const handleDownloadUpdate = useCallback(() => {
-    if (!isElectron) return;
-    window.electronUpdater.downloadUpdate();
+    const result = await window.electronUpdater.checkForUpdates();
+    if (result && !result.success) {
+      setUpdateStatus({ state: 'error', message: result.reason || 'غير متاح في وضع التطوير' });
+    }
   }, [isElectron]);
 
   const handleInstallUpdate = useCallback(() => {
@@ -788,15 +786,11 @@ function SettingsPage({
                     <div className="update-available-card">
                       <div className="update-available-header">
                         <DownloadCloudIcon className="icon-sm" />
-                        <span>تحديث جديد متاح!</span>
+                        <span>تحديث جديد متاح — جاري التحميل تلقائياً...</span>
                       </div>
                       <div className="update-available-version">
                         <span>الإصدار الجديد: <strong>{updateStatus.version}</strong></span>
                       </div>
-                      <button className="btn btn-primary" onClick={handleDownloadUpdate}>
-                        <DownloadIcon className="icon-xs" />
-                        <span>تحميل التحديث</span>
-                      </button>
                     </div>
                   )}
 
