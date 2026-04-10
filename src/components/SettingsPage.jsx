@@ -5,7 +5,7 @@ import {
   DownloadIcon, RefreshIcon, InfoIcon, XIcon, PlusIcon,
   AlertTriangleIcon, CheckCircleIcon, PackageIcon, ImageIcon,
   ExternalLinkIcon, SparklesIcon, KeyIcon, EyeIcon, ChevronDownIcon,
-  ZapIcon, DownloadCloudIcon,
+  ZapIcon, DownloadCloudIcon, LinkIcon,
 } from './Icons';
 import { GEMINI_MODELS, OPENROUTER_MODELS, AGENTROUTER_MODELS } from '../utils/aiProvider';
 import SkillsTab from './SkillsTab';
@@ -43,6 +43,10 @@ function SettingsPage({
   const isElectron = typeof window !== 'undefined' && !!window.electronUpdater;
   const [updateStatus, setUpdateStatus] = useState({ state: 'idle' });
   const [appVersion, setAppVersion] = useState('');
+  const [updateRepoUrl, setUpdateRepoUrl] = useState(() => {
+    try { return localStorage.getItem('miftah_update_repo_url') || ''; } catch { return ''; }
+  });
+  const [repoUrlSaved, setRepoUrlSaved] = useState(false);
 
   useEffect(() => {
     if (!isElectron) return;
@@ -51,12 +55,27 @@ function SettingsPage({
     return cleanup;
   }, [isElectron]);
 
+  const handleSaveRepoUrl = useCallback(() => {
+    try { localStorage.setItem('miftah_update_repo_url', updateRepoUrl.trim()); } catch {}
+    setRepoUrlSaved(true);
+    setTimeout(() => setRepoUrlSaved(false), 2000);
+  }, [updateRepoUrl]);
+
   const handleCheckUpdate = useCallback(async () => {
     if (!isElectron) return;
     setUpdateStatus({ state: 'checking' });
-    const result = await window.electronUpdater.checkForUpdates();
+    const repoUrl = updateRepoUrl.trim() || undefined;
+    const result = await window.electronUpdater.checkForUpdates(repoUrl);
     if (result && !result.success) {
       setUpdateStatus({ state: 'error', message: result.reason || 'غير متاح في وضع التطوير' });
+    }
+  }, [isElectron, updateRepoUrl]);
+
+  const handleDownloadUpdate = useCallback(async () => {
+    if (!isElectron) return;
+    const result = await window.electronUpdater.downloadUpdate();
+    if (result && !result.success) {
+      setUpdateStatus({ state: 'error', message: result.reason || 'فشل التحميل' });
     }
   }, [isElectron]);
 
@@ -736,6 +755,32 @@ function SettingsPage({
         <div className="settings-section">
           <div className="settings-card">
             <div className="settings-card-title">
+              <LinkIcon className="icon-sm" />
+              <span>مصدر التحديثات</span>
+            </div>
+            <div className="settings-card-body">
+              <div className="update-repo-field">
+                <label className="update-repo-label">رابط مشروع GitHub</label>
+                <div className="update-repo-input-row">
+                  <input
+                    type="text"
+                    className="input update-repo-input"
+                    placeholder="https://github.com/username/repo"
+                    value={updateRepoUrl}
+                    onChange={e => setUpdateRepoUrl(e.target.value)}
+                    dir="ltr"
+                  />
+                  <button className="btn btn-primary btn-sm" onClick={handleSaveRepoUrl}>
+                    {repoUrlSaved ? <><CheckCircleIcon className="icon-xs" /><span>تم الحفظ</span></> : <span>حفظ</span>}
+                  </button>
+                </div>
+                <span className="update-repo-hint">أدخل رابط مشروع GitHub الذي تريد استيراد التحديثات منه. إذا تُرك فارغاً، سيتم استخدام المصدر الافتراضي.</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="settings-card">
+            <div className="settings-card-title">
               <DownloadCloudIcon className="icon-sm" />
               <span>تحديثات البرنامج</span>
             </div>
@@ -751,7 +796,7 @@ function SettingsPage({
               {!isElectron && (
                 <div className="update-notice">
                   <InfoIcon className="icon-sm" />
-                  <span>التحديث التلقائي متاح فقط في نسخة سطح المكتب (Windows). في المتصفح، قم بتحديث الصفحة للحصول على آخر التعديلات.</span>
+                  <span>التحديث متاح فقط في نسخة سطح المكتب (Windows). في المتصفح، قم بتحديث الصفحة للحصول على آخر التعديلات.</span>
                 </div>
               )}
 
@@ -782,6 +827,26 @@ function SettingsPage({
                     </div>
                   )}
 
+                  {updateStatus.state === 'available' && (
+                    <div className="update-available-card">
+                      <div className="update-available-header">
+                        <DownloadCloudIcon className="icon-sm" />
+                        <span>تحديث جديد متاح!</span>
+                      </div>
+                      <div className="update-available-version">
+                        <span>الإصدار الجديد: <strong>{updateStatus.version}</strong></span>
+                      </div>
+                      <div className="update-notice">
+                        <AlertTriangleIcon className="icon-sm" />
+                        <span>يُنصح بعمل نسخة احتياطية من بياناتك قبل التحديث لتجنب أي ضياع محتمل.</span>
+                      </div>
+                      <button className="btn btn-primary" onClick={handleDownloadUpdate}>
+                        <DownloadIcon className="icon-xs" />
+                        <span>تحميل التحديث</span>
+                      </button>
+                    </div>
+                  )}
+
                   {updateStatus.state === 'downloading' && (
                     <div className="update-download-progress">
                       <div className="update-status-row">
@@ -799,6 +864,10 @@ function SettingsPage({
                       <div className="update-status-row update-success">
                         <CheckCircleIcon className="icon-sm" />
                         <span>تم تحميل التحديث بنجاح — الإصدار {updateStatus.version}</span>
+                      </div>
+                      <div className="update-notice">
+                        <AlertTriangleIcon className="icon-sm" />
+                        <span>سيتم إغلاق البرنامج وإعادة تشغيله. تأكد من حفظ عملك قبل المتابعة.</span>
                       </div>
                       <button className="btn btn-primary" onClick={handleInstallUpdate}>
                         <RefreshIcon className="icon-xs" />
@@ -825,25 +894,25 @@ function SettingsPage({
           <div className="settings-card">
             <div className="settings-card-title">
               <InfoIcon className="icon-sm" />
-              <span>كيف يعمل التحديث التلقائي</span>
+              <span>كيف يعمل التحديث</span>
             </div>
             <div className="settings-card-body">
               <div className="update-how-it-works">
                 <div className="update-step">
                   <div className="update-step-num">1</div>
-                  <span>يتم رفع التعديلات إلى GitHub</span>
+                  <span>أدخل رابط مشروع GitHub أو استخدم المصدر الافتراضي</span>
                 </div>
                 <div className="update-step">
                   <div className="update-step-num">2</div>
-                  <span>GitHub Actions يبني المثبّت تلقائياً</span>
+                  <span>اضغط "البحث عن تحديثات" للتحقق من النسخ الجديدة</span>
                 </div>
                 <div className="update-step">
                   <div className="update-step-num">3</div>
-                  <span>اضغط "البحث عن تحديثات" لتحميل النسخة الجديدة</span>
+                  <span>إذا وُجد تحديث، اختر تحميله يدوياً بعد حفظ بياناتك</span>
                 </div>
                 <div className="update-step">
                   <div className="update-step-num">4</div>
-                  <span>التثبيت وإعادة التشغيل بضغطة واحدة</span>
+                  <span>بعد التحميل، اضغط "تثبيت وإعادة التشغيل" عندما تكون جاهزاً</span>
                 </div>
               </div>
             </div>
