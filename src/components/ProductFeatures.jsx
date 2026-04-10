@@ -7,9 +7,10 @@ import {
   BoldIcon, ItalicIcon, MinusIcon,
   ChevronDownIcon, TagIcon, XIcon,
   UnderlineIcon, AlignRightIcon, AlignCenterIcon, AlignLeftIcon, AlignJustifyIcon, EraserIcon,
-  UndoIcon, RedoIcon
+  UndoIcon, RedoIcon, SparklesIcon
 } from './Icons';
 import { FEATURE_ICONS, FEATURE_BADGES, PRODUCT_TEMPLATES } from '../data/productTemplates';
+import AIAssistantTab from './AIAssistantTab';
 
 
 function useClickOutside(ref, handler, excludeRef) {
@@ -165,13 +166,15 @@ function BadgePicker({ currentBadge, onSelect, onClose, triggerRef }) {
   );
 }
 
-function ProductFeatures({ products, setProducts, durations, suppliers, exchangeRate, activationMethods = [] }) {
+function ProductFeatures({ products, setProducts, durations, suppliers, exchangeRate, activationMethods = [], appSettings, onAppSettingsChange, onNavigateToSettings, bundles, setBundles, costs, pricingData }) {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [featureSearch, setFeatureSearch] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(null);
   const [showBadgePicker, setShowBadgePicker] = useState(null);
   const [copyFromPlan, setCopyFromPlan] = useState(null);
+  const [expandedDesc, setExpandedDesc] = useState(new Set());
+  const [activeSubTab, setActiveSubTab] = useState('editor');
   const featureInputRefs = useRef({});
   const iconBtnRefs = useRef({});
   const badgeBtnRefs = useRef({});
@@ -416,6 +419,14 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
     }));
   }, [product, updateProduct]);
 
+  const toggleDesc = useCallback((featureId) => {
+    setExpandedDesc(prev => {
+      const next = new Set(prev);
+      if (next.has(featureId)) next.delete(featureId); else next.add(featureId);
+      return next;
+    });
+  }, []);
+
   const removeFeature = useCallback((planId, featureId) => {
     if (!product) return;
     updateProduct(product.id, (p) => ({
@@ -621,13 +632,103 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
         </select>
       </div>
 
-      {!product ? (
+      {/* Sub-tab switcher */}
+      <div className="pf-subtab-bar">
+        <button
+          className={`pf-subtab-btn ${activeSubTab === 'editor' ? 'pf-subtab-active' : ''}`}
+          onClick={() => setActiveSubTab('editor')}
+        >
+          <FileTextIcon className="icon-xs" />
+          محرر الوصف
+        </button>
+        <button
+          className={`pf-subtab-btn ${activeSubTab === 'ai' ? 'pf-subtab-active' : ''}`}
+          onClick={() => setActiveSubTab('ai')}
+        >
+          <SparklesIcon className="icon-xs" />
+          مساعد الذكاء الاصطناعي
+        </button>
+      </div>
+
+      {/* AI Assistant Tab */}
+      {activeSubTab === 'ai' && (
+        <AIAssistantTab
+          product={product}
+          products={products}
+          suppliers={suppliers}
+          durations={durations}
+          activationMethods={activationMethods}
+          appSettings={appSettings}
+          onAppSettingsChange={onAppSettingsChange}
+          updateProduct={updateProduct}
+          onNavigateToSettings={onNavigateToSettings}
+          onSelectProduct={setSelectedProductId}
+          bundles={bundles}
+          setBundles={setBundles}
+          costs={costs}
+          pricingData={pricingData}
+          exchangeRate={exchangeRate}
+        />
+      )}
+
+      {activeSubTab === 'editor' && !product && products.length === 0 ? (
         <div className="pf-empty-state">
           <div className="pf-empty-icon"><FileTextIcon className="icon-xl" /></div>
-          <h3>يرجى اختيار منتج للبدء</h3>
-          <p>اختر منتجاً من القائمة أعلاه لإضافة الوصف والمزايا لخططه</p>
+          <h3>لا توجد منتجات بعد</h3>
+          <p>أضف منتجات من صفحة "المنتجات والأسعار" ثم عد هنا لإضافة الأوصاف والمزايا</p>
         </div>
-      ) : (
+      ) : activeSubTab === 'editor' && !product ? (
+        <div className="pf-products-grid">
+          {products.map((p, i) => {
+            const hasDesc = !!(p.description && p.description.replace(/<[^>]*>/g, '').trim());
+            const totalFeatures = (p.plans || []).reduce((sum, pl) => sum + (pl.features || []).length, 0);
+            const planCount = (p.plans || []).length;
+            const cardColor = p.cardColor || null;
+            const cardStyle = cardColor ? { '--card-accent': cardColor, borderInlineEnd: `3px solid ${cardColor}` } : {};
+            return (
+              <div
+                key={p.id}
+                className={`pf-product-card ${cardColor ? 'pf-product-card--colored' : ''}`}
+                style={cardStyle}
+                onClick={() => setSelectedProductId(String(p.id))}
+              >
+                {cardColor && (
+                  <div className="pf-product-card-color-bar" style={{ background: `linear-gradient(135deg, ${cardColor}22 0%, transparent 60%)` }} />
+                )}
+                <div className="pf-product-card-header">
+                  <span className="pf-product-card-index">{i + 1}</span>
+                  <h4 className="pf-product-card-name">{p.name}</h4>
+                  {hasDesc ? (
+                    <span className="pf-product-card-badge pf-badge-complete"><CheckCircleIcon className="icon-xs" /> مكتمل</span>
+                  ) : (
+                    <span className="pf-product-card-badge pf-badge-pending"><AlertTriangleIcon className="icon-xs" /> بدون وصف</span>
+                  )}
+                </div>
+                <div className="pf-product-card-meta">
+                  <span className="pf-product-card-chip"><TagIcon className="icon-xs" /> {planCount} خطة</span>
+                  <span className="pf-product-card-chip"><ListIcon className="icon-xs" /> {totalFeatures} ميزة</span>
+                  {(p.accountType && p.accountType !== 'none') && (
+                    <span className="pf-product-card-chip">{p.accountType === 'individual' ? '👤 فردي' : '👥 فريق'}</span>
+                  )}
+                </div>
+                {hasDesc && (
+                  <div className="pf-product-card-preview">
+                    {p.description.replace(/<[^>]*>/g, '').substring(0, 80)}...
+                  </div>
+                )}
+                <div className="pf-product-card-footer">
+                  <button className="pf-product-card-btn" onClick={(e) => { e.stopPropagation(); setSelectedProductId(String(p.id)); setActiveSubTab('editor'); }}>
+                    <FileTextIcon className="icon-xs" /> تحرير الوصف
+                  </button>
+                  <button className="pf-product-card-btn pf-btn-ai" onClick={(e) => { e.stopPropagation(); setSelectedProductId(String(p.id)); setActiveSubTab('ai'); }}>
+                    <SparklesIcon className="icon-xs" /> المساعد الذكي
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : activeSubTab === 'editor' ? (
         <div className="pf-editor-area">
           <div className="pf-editor-header">
             <div className="pf-editor-title-row">
@@ -786,57 +887,48 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
                 <span className="pf-product-info-label">الضمان</span>
                 <div className="pf-product-info-value-cell">
                   {product.plans.length > 0 ? (
-                    <div className="pf-warranty-table-wrap">
-                      <table className="pf-warranty-table">
-                        <thead>
-                          <tr>
-                            <th>المورد</th>
-                            {product.plans.map(plan => (
-                              <th key={plan.id}>{getDurationLabel(plan.durationId)}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {suppliers.map(sup => (
-                            <tr key={sup.id}>
-                              <td className="pf-warranty-sup-name">{sup.name}</td>
-                              {product.plans.map(plan => {
-                                const days = (plan.supplierWarranty || {})[sup.id] || 0;
-                                const isEditing = editingWarranty?.planId === plan.id && editingWarranty?.supplierId === sup.id;
-                                return (
-                                  <td
-                                    key={plan.id}
-                                    className={`pf-warranty-cell pf-warranty-cell--editable ${days > 0 ? 'has-warranty' : ''}`}
-                                    onClick={() => { if (!isEditing) { setEditingWarranty({ planId: plan.id, supplierId: sup.id }); setWarrantyInput(days > 0 ? String(days) : ''); } }}
-                                  >
-                                    {isEditing ? (
-                                      <div className="pf-warranty-edit-wrap" onClick={e => e.stopPropagation()}>
-                                        <input
-                                          className="pf-warranty-input"
-                                          type="number"
-                                          min="0"
-                                          value={warrantyInput}
-                                          autoFocus
-                                          onChange={e => setWarrantyInput(e.target.value)}
-                                          onKeyDown={e => { if (e.key === 'Enter') saveWarrantyLocal(plan.id, sup.id, warrantyInput); if (e.key === 'Escape') setEditingWarranty(null); }}
-                                        />
-                                        <div className="pf-warranty-presets">
-                                          {[{ label: 'شهر', days: 30 }, { label: '6 أشهر', days: 180 }, { label: 'سنة', days: 365 }].map(p => (
-                                            <button key={p.days} className="pf-warranty-preset-btn" onClick={() => saveWarrantyLocal(plan.id, sup.id, p.days)}>{p.label}</button>
-                                          ))}
-                                          <button className="pf-warranty-preset-btn pf-warranty-preset-btn--clear" onClick={() => saveWarrantyLocal(plan.id, sup.id, 0)}>✕</button>
-                                        </div>
+                    <div className="pf-warranty-cards">
+                      {suppliers.map(sup => (
+                        <div key={sup.id} className="pf-wc-card">
+                          <div className="pf-wc-sup">{sup.name}</div>
+                          <div className="pf-wc-plans">
+                            {product.plans.map(plan => {
+                              const days = (plan.supplierWarranty || {})[sup.id] || 0;
+                              const isEditing = editingWarranty?.planId === plan.id && editingWarranty?.supplierId === sup.id;
+                              return (
+                                <div
+                                  key={plan.id}
+                                  className={`pf-wc-plan-row${isEditing ? ' is-editing' : ''}`}
+                                  onClick={() => { if (!isEditing) { setEditingWarranty({ planId: plan.id, supplierId: sup.id }); setWarrantyInput(days > 0 ? String(days) : ''); } }}
+                                >
+                                  <span className="pf-wc-dur">{getDurationLabel(plan.durationId)}</span>
+                                  {isEditing ? (
+                                    <div className="pf-warranty-edit-wrap" onClick={e => e.stopPropagation()}>
+                                      <input
+                                        className="pf-warranty-input"
+                                        type="number"
+                                        min="0"
+                                        value={warrantyInput}
+                                        autoFocus
+                                        onChange={e => setWarrantyInput(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') saveWarrantyLocal(plan.id, sup.id, warrantyInput); if (e.key === 'Escape') setEditingWarranty(null); }}
+                                      />
+                                      <div className="pf-warranty-presets">
+                                        {[{ label: 'شهر', days: 30 }, { label: '6 أشهر', days: 180 }, { label: 'سنة', days: 365 }].map(p => (
+                                          <button key={p.days} className="pf-warranty-preset-btn" onClick={() => saveWarrantyLocal(plan.id, sup.id, p.days)}>{p.label}</button>
+                                        ))}
+                                        <button className="pf-warranty-preset-btn pf-warranty-preset-btn--clear" onClick={() => saveWarrantyLocal(plan.id, sup.id, 0)}>✕</button>
                                       </div>
-                                    ) : (
-                                      <span className="pf-warranty-cell-value">{days > 0 ? `${days} يوم` : '—'}</span>
-                                    )}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                    </div>
+                                  ) : (
+                                    <span className={`pf-wc-days${days > 0 ? ' has-warranty' : ''}`}>{days > 0 ? `${days} ي` : '—'}</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : <span className="pf-info-empty">لا توجد خطط</span>}
                 </div>
@@ -1142,9 +1234,11 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
                       const badgeInfo = feature.badge ? getBadgeInfo(feature.badge) : null;
                       const isIconOpen = showIconPicker === feature.id;
                       const isBadgeOpen = showBadgePicker === feature.id;
+                      const isDescExpanded = expandedDesc.has(feature.id);
 
                       return (
-                        <div key={feature.id} className={`pf-feature-row ${isIconOpen || isBadgeOpen ? 'pf-feature-row--active' : ''}`}>
+                        <div key={feature.id} className="pf-feature-item">
+                        <div className={`pf-feature-row ${isIconOpen || isBadgeOpen ? 'pf-feature-row--active' : ''}`}>
                           <div className="pf-feature-icon-wrap">
                             <button
                               ref={el => iconBtnRefs.current[feature.id] = el}
@@ -1221,10 +1315,31 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
                             <button className="pf-move-btn" onClick={() => moveFeature(plan.id, feature.id, 'down')} disabled={idx === filteredFeatures.length - 1} title="نقل لأسفل">
                               <ArrowDownIcon className="icon-xs" />
                             </button>
+                            <button
+                              className={`pf-move-btn pf-desc-toggle-btn ${isDescExpanded ? 'active' : ''} ${feature.desc ? 'has-desc' : ''}`}
+                              onClick={() => toggleDesc(feature.id)}
+                              title={isDescExpanded ? 'إخفاء الوصف' : 'إضافة وصف للميزة'}
+                              type="button"
+                            >
+                              <AlignLeftIcon className="icon-xs" />
+                            </button>
                             <button className="pf-remove-btn" onClick={() => removeFeature(plan.id, feature.id)} title="حذف">
                               <TrashIcon className="icon-xs" />
                             </button>
                           </div>
+                        </div>
+                        {isDescExpanded && (
+                          <div className="pf-feature-desc-area">
+                            <textarea
+                              className="pf-feature-desc-input"
+                              value={feature.desc || ''}
+                              onChange={(e) => updateFeature(plan.id, feature.id, { desc: e.target.value })}
+                              placeholder="أضف وصفاً تفصيلياً لهذه الميزة..."
+                              rows={2}
+                              autoFocus
+                            />
+                          </div>
+                        )}
                         </div>
                       );
                     })}
@@ -1245,7 +1360,7 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
             })}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
