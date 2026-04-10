@@ -4,7 +4,7 @@ import {
   TrendingUpIcon, TrendingDownIcon, AlertTriangleIcon, CheckCircleIcon,
   PlusIcon, TagIcon, StarIcon, ActivityIcon, PercentIcon,
   SettingsIcon, LayersIcon, ArrowLeftIcon, ZapIcon, AwardIcon,
-  ExternalLinkIcon, GlobeIcon, CalendarIcon
+  ExternalLinkIcon, GlobeIcon, CalendarIcon, CheckSquareIcon, BookOpenIcon, ClockIcon
 } from './Icons';
 
 const MOTIVATIONAL_QUOTES = [
@@ -34,7 +34,7 @@ const fmtPct = (val) => {
 function Dashboard({
   products, suppliers, durations, exchangeRate, bundles,
   costs, pricingData, coupons, activationMethods,
-  onNavigate, appSettings
+  onNavigate, appSettings, tasks, activationGuides
 }) {
   const todayQuote = useMemo(() => {
     const idx = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
@@ -79,6 +79,27 @@ function Dashboard({
       return '--:--:--';
     }
   };
+  const tasksList = tasks || [];
+  const guidesList = activationGuides || [];
+
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const todayTasks = tasksList.filter(t => {
+    if (t.status === 'done') return false;
+    if (!t.dueDate) return false;
+    return t.dueDate === todayStr;
+  }).length;
+
+  const urgentTasks = tasksList.filter(t => t.priority === 'urgent' && t.status !== 'done').length;
+  const totalGuides = guidesList.length;
+  const linkedProductIds = [...new Set(guidesList.filter(g => g.productTag).map(g => g.productTag))];
+  const guideProductCount = linkedProductIds.length;
+  const guideProductNames = linkedProductIds
+    .map(id => products.find(p => String(p.id) === String(id))?.name)
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('، ');
+
   const totalProducts = products.length;
   const totalSuppliers = suppliers.length;
   const totalBundles = bundles.length;
@@ -245,8 +266,8 @@ function Dashboard({
           <div className="dash-stat-info">
             <span className="dash-stat-value">{fmt(totalProducts)}</span>
             <span className="dash-stat-label">المنتجات</span>
+            <span className="dash-stat-sub">{fmt(totalPlans)} خطة</span>
           </div>
-          <span className="dash-stat-sub">{fmt(totalPlans)} خطة</span>
         </div>
 
         <div className="dash-stat-card stat-accent-green" onClick={() => onNavigate('products')}>
@@ -254,8 +275,8 @@ function Dashboard({
           <div className="dash-stat-info">
             <span className="dash-stat-value">{fmt(totalSuppliers)}</span>
             <span className="dash-stat-label">الموردين</span>
+            {bestSupplier && <span className="dash-stat-sub"><AwardIcon className="icon-xs" /> {bestSupplier.name}</span>}
           </div>
-          {bestSupplier && <span className="dash-stat-sub"><AwardIcon className="icon-xs" /> {bestSupplier.name}</span>}
         </div>
 
         <div className="dash-stat-card stat-accent-purple" onClick={() => onNavigate('bundles')}>
@@ -263,8 +284,8 @@ function Dashboard({
           <div className="dash-stat-info">
             <span className="dash-stat-value">{fmt(totalBundles)}</span>
             <span className="dash-stat-label">الحزم</span>
+            <span className="dash-stat-sub">{fmt(activeCoupons)} كوبون فعّال</span>
           </div>
-          <span className="dash-stat-sub">{fmt(activeCoupons)} كوبون فعّال</span>
         </div>
 
         <div className="dash-stat-card stat-accent-orange" onClick={() => onNavigate('pricing')}>
@@ -272,10 +293,36 @@ function Dashboard({
           <div className="dash-stat-info">
             <span className="dash-stat-value">{fmtPct(avgMargin)}%</span>
             <span className="dash-stat-label">متوسط الهامش</span>
+            <span className="dash-stat-sub">
+              {avgMargin >= 20 ? <><TrendingUpIcon className="icon-xs" /> جيد</> : <><TrendingDownIcon className="icon-xs" /> يحتاج تحسين</>}
+            </span>
           </div>
-          <span className="dash-stat-sub">
-            {avgMargin >= 20 ? <><TrendingUpIcon className="icon-xs" /> جيد</> : <><TrendingDownIcon className="icon-xs" /> يحتاج تحسين</>}
-          </span>
+        </div>
+
+        <div className="dash-stat-card stat-accent-red" onClick={() => onNavigate('tasks')}>
+          <div className="dash-stat-icon"><CheckSquareIcon /></div>
+          <div className="dash-stat-info">
+            <span className="dash-stat-value">{fmt(todayTasks)}</span>
+            <span className="dash-stat-label">مهام اليوم</span>
+            <span className="dash-stat-sub">
+              {urgentTasks > 0
+                ? <><ClockIcon className="icon-xs" /> {urgentTasks} عاجلة</>
+                : <><CheckCircleIcon className="icon-xs" /> لا توجد عاجلة</>}
+            </span>
+          </div>
+        </div>
+
+        <div className="dash-stat-card stat-accent-teal" onClick={() => onNavigate('tasks')}>
+          <div className="dash-stat-icon"><BookOpenIcon /></div>
+          <div className="dash-stat-info">
+            <span className="dash-stat-value">{fmt(totalGuides)}</span>
+            <span className="dash-stat-label">الأدلة المحفوظة</span>
+            <span className="dash-stat-sub">
+              {guideProductCount > 0
+                ? <><TagIcon className="icon-xs" /> {guideProductNames}{guideProductCount > 2 ? ` +${guideProductCount - 2}` : ''}</>
+                : 'لا يوجد ربط بعد'}
+            </span>
+          </div>
         </div>
       </div>
 
