@@ -3677,6 +3677,34 @@ body {
 .settings-action-danger:hover { border-color: var(--accent-red); background: rgba(249, 75, 96, 0.06); }
 
 /* ── Updates tab ── */
+.update-repo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.update-repo-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.update-repo-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.update-repo-input {
+  flex: 1;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  direction: ltr;
+  text-align: left;
+}
+.update-repo-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 .update-version-info {
   margin-bottom: 16px;
 }
