@@ -501,6 +501,14 @@ function ParentBranchesCard({
     return min === Infinity ? null : min;
   };
 
+  const getLowestOfficialPrice = (product) => {
+    let min = Infinity;
+    for (const plan of product.plans || []) {
+      if (plan.officialPriceUsd > 0 && plan.officialPriceUsd < min) min = plan.officialPriceUsd;
+    }
+    return min === Infinity ? null : min;
+  };
+
   return (
     <div className={`pbc-card ${cardColor ? 'pbc-card--colored' : ''}`} style={cardStyle}>
       {cardColor && (
@@ -548,6 +556,7 @@ function ParentBranchesCard({
             const bType = branch.accountType === 'individual' ? 'فردي' : branch.accountType === 'team' ? 'فريق' : null;
             const bPlans = branch.plans?.length || 0;
             const bLowest = getLowestPrice(branch);
+            const bOfficialLowest = getLowestOfficialPrice(branch);
             return (
               <div key={branch.id} className="pbc-branch-item">
                 <button className="pbc-branch-info" onClick={() => setDetailModalProduct(branch)} title={`عرض تفاصيل ${branch.name}`}>
@@ -564,6 +573,9 @@ function ParentBranchesCard({
                     <span className="pbc-branch-detail"><TagIcon className="icon-xs" /> {bPlans} خطط</span>
                     {bLowest && (
                       <span className="pbc-branch-detail price">{fmtNum(bLowest * (exchangeRate || 1))} ر.س</span>
+                    )}
+                    {bOfficialLowest && (
+                      <span className="pbc-branch-detail official-price">{fmtNum(bOfficialLowest * (exchangeRate || 1))} ر.س</span>
                     )}
                   </div>
                 </button>

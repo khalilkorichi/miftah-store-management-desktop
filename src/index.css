@@ -7476,6 +7476,10 @@ button.pbc-branch-info:focus-visible {
   color: var(--accent-green);
   font-weight: 600;
 }
+.pbc-branch-detail.official-price {
+  color: #f59e0b;
+  font-weight: 600;
+}
 .pbc-branch-actions {
   display: flex;
   gap: 3px;
