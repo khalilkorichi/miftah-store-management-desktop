@@ -20,7 +20,7 @@ export default function ProductTypeSelector({ isOpen, onClose, onSelectNormal, o
       style={{ zIndex: 3000 }}
     >
       <div className="modal-box pts-modal" dir="rtl" style={{ maxWidth: 460, padding: 0, overflow: 'hidden' }}>
-        <div className="modal-header" style={{ background: 'linear-gradient(135deg, #1A51F4 0%, #5E4FDE 100%)' }}>
+        <div className="modal-header" style={{ background: 'linear-gradient(135deg, #1A51F4 0%, #5E4FDE 100%)', color: '#fff' }}>
           <div className="modal-header-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <PlusIcon />
           </div>

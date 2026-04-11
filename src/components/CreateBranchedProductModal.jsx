@@ -322,7 +322,7 @@ export default function CreateBranchedProductModal({ isOpen, onClose, onConfirm,
       aria-label="إنشاء منتج مفرع"
     >
       <div className="modal-box cbpm-modal-box" dir="rtl">
-        <div className="modal-header" style={{ background: 'linear-gradient(135deg, #5E4FDE 0%, #7C6FEB 100%)' }}>
+        <div className="modal-header" style={{ background: 'linear-gradient(135deg, #5E4FDE 0%, #7C6FEB 100%)', color: '#fff' }}>
           <div className="modal-header-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <GitBranchIcon />
           </div>
