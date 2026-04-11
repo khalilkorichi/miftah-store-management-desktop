@@ -476,8 +476,24 @@ function ParentBranchesCard({
     onUpdateProductName, onDeleteProduct,
     onDuplicateProduct, setDetailModalProduct,
     exchangeRate, requestConfirm,
-    onUpdateProductColor
+    onUpdateProductColor,
+    activationMethods,
+    setActivationModalProduct, setCompetitorsModalProduct
   } = sharedCardProps;
+
+  const [activationDropdown, setActivationDropdown] = useState(false);
+  const [competitorsDropdown, setCompetitorsDropdown] = useState(false);
+  const activationRef = useRef(null);
+  const competitorsRef = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (activationRef.current && !activationRef.current.contains(e.target)) setActivationDropdown(false);
+      if (competitorsRef.current && !competitorsRef.current.contains(e.target)) setCompetitorsDropdown(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const handleStartEditName = () => {
     setEditingName(parent.id);
@@ -543,6 +559,42 @@ function ParentBranchesCard({
           <button className="btn-card-action danger" onClick={() => requestConfirm('حذف منتج', `هل أنت متأكد من حذف "${parent.name}" وجميع فروعه؟`, () => onDeleteProduct(parent.id))} title="حذف">
             <TrashIcon className="icon-sm" />
           </button>
+        </div>
+      </div>
+
+      <div className="pbc-meta-actions">
+        <div className="pbc-dropdown-wrap" ref={activationRef}>
+          <button className="btn-chip-action" onClick={() => { setActivationDropdown(!activationDropdown); setCompetitorsDropdown(false); }} title="إدارة طرق التفعيل">
+            <SettingsIcon className="icon-xs" /> طريقة التفعيل
+          </button>
+          {activationDropdown && (
+            <div className="pbc-dropdown-menu">
+              {branches.map((b) => {
+                const methods = (b.activationMethods || []).map(mId => activationMethods.find(x => x.id === mId)).filter(Boolean);
+                return (
+                  <button key={b.id} className="pbc-dropdown-item" onClick={() => { setActivationModalProduct({ id: b.id }); setActivationDropdown(false); }}>
+                    <span className="pbc-dropdown-item-name">{b.name}</span>
+                    {methods.length > 0 && <span className="pbc-dropdown-item-badge">{methods.length}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div className="pbc-dropdown-wrap" ref={competitorsRef}>
+          <button className="btn-chip-action competitors" onClick={() => { setCompetitorsDropdown(!competitorsDropdown); setActivationDropdown(false); }} title="مراقبة المنافسين">
+            <EyeIcon className="icon-xs" /> المنافسين
+          </button>
+          {competitorsDropdown && (
+            <div className="pbc-dropdown-menu">
+              {branches.map((b) => (
+                <button key={b.id} className="pbc-dropdown-item" onClick={() => { setCompetitorsModalProduct(b); setCompetitorsDropdown(false); }}>
+                  <span className="pbc-dropdown-item-name">{b.name}</span>
+                  {(b.competitors?.length > 0) && <span className="pbc-dropdown-item-badge">{b.competitors.length}</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
