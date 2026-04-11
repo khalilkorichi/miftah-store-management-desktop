@@ -27,12 +27,27 @@ const GLOBAL_SYSTEM_PROMPT = `أنت مساعد ذكاء اصطناعي داخل
 3. فرع: منتج له parentId يشير إلى المنتج المفرع الأب — يظهر في جميع الصفحات كمنتج مستقل
 في قائمة المنتجات المقدمة، يتم تضمين الفروع والمنتجات المستقلة فقط (وتستبعد الوعاءات الأب) ما لم يُذكر غير ذلك.
 
+فهم الأسعار في المتجر:
+- السعر الرسمي (officialPriceUsd): هو سعر المنتج المعلن من الشركة المصنعة بالدولار — يُستخدم للمقارنة فقط وليس سعر البيع
+- أسعار الموردين (prices): هي تكلفة شراء المنتج من الموردين بالدولار
+- سعر البيع النهائي (finalPrice): هو السعر الفعلي الذي يبيع به المتجر للعملاء بالريال السعودي — يحدده المستخدم في صفحة إدارة التسعير (تبويبة الأسعار النهائية)
+- عند سؤالك عن سعر بيع منتج، استخدم سعر البيع النهائي (finalPrice) إن وُجد
+- إذا لم يُحدد سعر البيع النهائي بعد لخطة معينة، قم بتحليل البيانات المتاحة واقترح سعر بيع مناسب بالريال السعودي بناءً على:
+  1. تكلفة المورد (أقل سعر مورد × سعر الصرف)
+  2. التكاليف التشغيلية المفعّلة (ثابتة ونسبية) المذكورة في بيانات المتجر
+  3. هامش ربح معقول (عادة 20-35% حسب نوع المنتج)
+  4. أسعار المنافسين إن وُجدت
+  5. آلية التسعير المستخدمة للمنتج إن وُجدت (تكلفة+هامش، قيمة مدركة، تسعير نفسي)
+  اشرح كيف وصلت للسعر المقترح بشكل مختصر
+- لا تعتبر السعر الرسمي سعر بيع أبداً
+
 قواعد:
 - أجب باللغة العربية الفصحى السهلة
 - كن موجزاً ومباشراً في إجاباتك
 - استند إلى بيانات المتجر الفعلية المقدمة في Context
 - لا تختلق أرقاماً أو بيانات غير موجودة
 - عند اقتراح أسعار بيع أو تسعير، استخدم الريال السعودي (ر.س) كعملة افتراضية. لا تستخدم الدولار إلا إذا طلب المستخدم ذلك صراحةً
+- عند ذكر السعر الرسمي، وضّح دائماً أنه سعر مرجعي للمقارنة وليس سعر البيع
 
 إذا طلب المستخدم تنفيذ أمر على قاعدة البيانات، أجب بشكل طبيعي ثم أضف كتلة GLOBAL_ACTION واحدة في نهاية ردك:
 
@@ -160,7 +175,7 @@ function actionLabel(action) {
 }
 
 /* ─── Store context builder ──────────────────────────────────────────────── */
-function buildStoreContext({ products = [], allProducts = [], suppliers = [], durations = [], bundles = [], coupons = [], tasks = [], exchangeRate }) {
+function buildStoreContext({ products = [], allProducts = [], suppliers = [], durations = [], bundles = [], coupons = [], tasks = [], exchangeRate, finalPrices = {}, costs = [], pricingData = {} }) {
   const lines = ['=== ملخص بيانات متجر مفتاح ==='];
 
   const parentContainers = (allProducts.length > 0 ? allProducts : products).filter(p => {
@@ -187,8 +202,12 @@ function buildStoreContext({ products = [], allProducts = [], suppliers = [], du
         .map(([sid, v]) => v > 0 ? `مورد ${sid}: $${v}` : null)
         .filter(Boolean);
       const priceStr = prices.length ? prices.join('، ') : 'بدون سعر';
-      const officialStr = plan.officialPriceUsd ? ` | رسمي: $${plan.officialPriceUsd}` : '';
-      lines.push(`    • [planId: ${plan.id}] ${durLabel}: ${priceStr}${officialStr}`);
+      const officialStr = plan.officialPriceUsd ? ` | السعر الرسمي (للمقارنة فقط): $${plan.officialPriceUsd}` : '';
+      const planKey = `${p.id}_${plan.id}`;
+      const finalPrice = finalPrices[planKey];
+      const hasFinal = finalPrice !== undefined && finalPrice !== null;
+      const finalStr = hasFinal ? ` | سعر البيع النهائي: ${finalPrice} ر.س` : ' | سعر البيع النهائي: لم يُحدد بعد';
+      lines.push(`    • [planId: ${plan.id}] ${durLabel}: ${priceStr}${officialStr}${finalStr}`);
     });
     const comps = p.competitors || [];
     if (comps.length > 0) {
@@ -233,6 +252,18 @@ function buildStoreContext({ products = [], allProducts = [], suppliers = [], du
       lines.push(`  - ${t.title || t.text || 'مهمة'}`);
     });
     if (openTasks.length > 5) lines.push(`  ... و ${openTasks.length - 5} مهام أخرى`);
+  }
+
+  const activeCosts = (costs || []).filter(c => c.active !== false);
+  if (activeCosts.length > 0) {
+    lines.push(`\n💰 التكاليف التشغيلية المفعّلة (${activeCosts.length}):`);
+    activeCosts.forEach(c => {
+      if (c.type === 'fixed') {
+        lines.push(`  - ${c.name}: ${c.value} ر.س (ثابت)`);
+      } else if (c.type === 'percentage') {
+        lines.push(`  - ${c.name}: ${c.value}% (نسبي)`);
+      }
+    });
   }
 
   if (exchangeRate) {
@@ -405,6 +436,8 @@ export default function GlobalAIAssistant({
   appSettings,
   exchangeRate,
   pricingData,
+  finalPrices,
+  costs,
   onNavigateToSettings,
   onCreateProduct,
   onCreateSupplier,
@@ -570,12 +603,12 @@ export default function GlobalAIAssistant({
 
   /* ── Build system prompt ── */
   const buildSystemPrompt = useCallback((skillOverride) => {
-    const ctx = buildStoreContext({ products, allProducts, suppliers, durations, bundles, coupons, tasks, exchangeRate });
+    const ctx = buildStoreContext({ products, allProducts, suppliers, durations, bundles, coupons, tasks, exchangeRate, finalPrices, costs, pricingData });
     const skill = skillOverride !== undefined ? skillOverride : activeSkill;
     const skillContent = skill?.content || skill?.prompt || '';
     const skillExtra = skillContent ? `\n\n${skillContent}` : '';
     return `${GLOBAL_SYSTEM_PROMPT}${skillExtra}\n\n${ctx}`;
-  }, [products, allProducts, suppliers, durations, bundles, coupons, tasks, exchangeRate, activeSkill]);
+  }, [products, allProducts, suppliers, durations, bundles, coupons, tasks, exchangeRate, finalPrices, costs, pricingData, activeSkill]);
 
   /* ── Execute confirmed action ── */
   const executeAction = useCallback((action, addMsgCallback) => {

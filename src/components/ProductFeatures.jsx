@@ -166,7 +166,7 @@ function BadgePicker({ currentBadge, onSelect, onClose, triggerRef }) {
   );
 }
 
-function ProductFeatures({ products, setProducts, durations, suppliers, exchangeRate, activationMethods = [], appSettings, onAppSettingsChange, onNavigateToSettings, bundles, setBundles, costs, pricingData }) {
+function ProductFeatures({ products, setProducts, durations, suppliers, exchangeRate, activationMethods = [], appSettings, onAppSettingsChange, onNavigateToSettings, bundles, setBundles, costs, pricingData, finalPrices }) {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [featureSearch, setFeatureSearch] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
@@ -668,6 +668,7 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
           costs={costs}
           pricingData={pricingData}
           exchangeRate={exchangeRate}
+          finalPrices={finalPrices}
         />
       )}
 

@@ -1138,6 +1138,7 @@ function App() {
             setBundles={setBundles}
             costs={costs}
             pricingData={pricingData}
+            finalPrices={finalPrices}
           />
           </div>
         )}
@@ -1227,6 +1228,8 @@ function App() {
         appSettings={appSettings}
         exchangeRate={exchangeRate}
         pricingData={pricingData}
+        finalPrices={finalPrices}
+        costs={costs}
         onNavigateToSettings={() => setActiveTab('settings')}
         onCreateProduct={(name, durationId, officialPriceUsd) => {
           const plans = durationId

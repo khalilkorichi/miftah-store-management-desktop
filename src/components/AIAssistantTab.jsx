@@ -64,12 +64,27 @@ export const DEFAULT_AI_PROMPT = `أنت مساعد ذكاء اصطناعي خب
 - فرع: له parentId يشير إلى وعاء مفرع — يظهر كمنتج مستقل في جميع الصفحات
 - وعاء مفرع: له فروع مرتبطة — يُعرض فقط في صفحة المنتجات كحاوية
 
+فهم الأسعار في المتجر:
+- السعر الرسمي (officialPriceUsd): هو سعر المنتج المعلن من الشركة المصنعة بالدولار — يُستخدم للمقارنة فقط وليس سعر البيع
+- أسعار الموردين (prices): هي تكلفة شراء المنتج من الموردين بالدولار
+- سعر البيع النهائي (finalPrice): هو السعر الفعلي الذي يبيع به المتجر للعملاء بالريال السعودي — يحدده المستخدم في صفحة إدارة التسعير (تبويبة الأسعار النهائية)
+- عند سؤالك عن سعر بيع منتج، استخدم سعر البيع النهائي (finalPrice) إن وُجد
+- إذا لم يُحدد سعر البيع النهائي بعد لخطة معينة، قم بتحليل البيانات المتاحة واقترح سعر بيع مناسب بالريال السعودي بناءً على:
+  1. تكلفة المورد (أقل سعر مورد × سعر الصرف)
+  2. التكاليف التشغيلية المفعّلة (ثابتة ونسبية) المذكورة في بيانات المنتج
+  3. هامش ربح معقول (عادة 20-35% حسب نوع المنتج)
+  4. أسعار المنافسين إن وُجدت
+  5. آلية التسعير المستخدمة للمنتج إن وُجدت (تكلفة+هامش، قيمة مدركة، تسعير نفسي)
+  اشرح كيف وصلت للسعر المقترح بشكل مختصر
+- لا تعتبر السعر الرسمي سعر بيع أبداً
+
 قواعد الكتابة:
 - اكتب بالعربية الفصحى السهلة والمفهومة
 - الأسلوب: تسويقي، مقنع، واضح، يعكس القيمة للعميل
 - تجنب المبالغة والادعاءات الكاذبة
 - استخدم البيانات المقدمة عن المنتج فقط
 - عند اقتراح أسعار بيع أو تسعير، استخدم الريال السعودي (ر.س) كعملة افتراضية. لا تستخدم الدولار إلا إذا طلب المستخدم ذلك صراحةً
+- عند ذكر السعر الرسمي، وضّح دائماً أنه سعر مرجعي للمقارنة وليس سعر البيع
 
 عند توليد وصف للمتجر:
 - ابدأ بجملة تعريفية قوية تبرز قيمة المنتج
@@ -120,7 +135,7 @@ export const DEFAULT_AI_PROMPT = `أنت مساعد ذكاء اصطناعي خب
 [/MIFTAH_ACTION]`;
 
 /* ─── Product context builder ───────────────────────────────────────────── */
-function buildProductContext(product, suppliers, durations, activationMethods, allProducts = []) {
+function buildProductContext(product, suppliers, durations, activationMethods, allProducts = [], finalPrices = {}, costs = [], exchangeRate = 1) {
   if (!product) return '';
   const lines = ['=== بيانات المنتج الحالي ==='];
 
@@ -181,7 +196,14 @@ function buildProductContext(product, suppliers, durations, activationMethods, a
         .filter(Boolean);
       if (prices.length > 0) lines.push(`  الأسعار من الموردين: ${prices.join('، ')}`);
 
-      if (plan.officialPriceUsd) lines.push(`  السعر الرسمي: $${plan.officialPriceUsd}`);
+      if (plan.officialPriceUsd) lines.push(`  السعر الرسمي (للمقارنة فقط — ليس سعر البيع): $${plan.officialPriceUsd}`);
+      const planKey = `${product.id}_${plan.id}`;
+      const finalPrice = finalPrices[planKey];
+      if (finalPrice !== undefined && finalPrice !== null) {
+        lines.push(`  سعر البيع النهائي: ${finalPrice} ر.س`);
+      } else {
+        lines.push(`  سعر البيع النهائي: لم يُحدد بعد (يُحدد من صفحة إدارة التسعير → الأسعار النهائية)`);
+      }
 
       const warrantyEntries = Object.entries(plan.supplierWarranty || {})
         .map(([supId, days]) => {
@@ -199,6 +221,22 @@ function buildProductContext(product, suppliers, durations, activationMethods, a
         .map(f => `• [featureId: ${f.id}] ${f.text}`);
       if (features.length > 0) lines.push(`  المزايا:\n  ${features.join('\n  ')}`);
     });
+  }
+
+  const activeCosts = (costs || []).filter(c => c.active !== false);
+  if (activeCosts.length > 0) {
+    lines.push('\n=== التكاليف التشغيلية المفعّلة ===');
+    activeCosts.forEach(c => {
+      if (c.type === 'fixed') {
+        lines.push(`  - ${c.name}: ${c.value} ر.س (ثابت)`);
+      } else if (c.type === 'percentage') {
+        lines.push(`  - ${c.name}: ${c.value}% (نسبي من السعر)`);
+      }
+    });
+  }
+
+  if (exchangeRate) {
+    lines.push(`\nسعر صرف الدولار: 1 USD = ${exchangeRate} ر.س`);
   }
 
   return lines.join('\n');
@@ -303,6 +341,7 @@ function AIAssistantTab({
   costs,
   pricingData,
   exchangeRate,
+  finalPrices,
 }) {
   const [messages, setMessages] = useState([]);
   const [conversations, setConversations] = useState([]);
@@ -386,7 +425,7 @@ function AIAssistantTab({
   }, [pricingData, suppliers, exchangeRate]);
 
   const getSystemPrompt = useCallback(() => {
-    const ctx = buildProductContext(product, suppliers, durations, activationMethods, products);
+    const ctx = buildProductContext(product, suppliers, durations, activationMethods, products, finalPrices, costs, exchangeRate);
     let allProductsCtx = '';
     if (products && products.length > 0) {
       const lines = [`\n\n=== جميع منتجات المتجر (${products.length} منتج) — لاقتراح الحزم ===`];
@@ -403,7 +442,7 @@ function AIAssistantTab({
       allProductsCtx = lines.join('\n');
     }
     return `${customPrompt}\n\n${ctx}${allProductsCtx}`;
-  }, [product, suppliers, durations, activationMethods, customPrompt, products, bundles, getSupplierPrice]);
+  }, [product, suppliers, durations, activationMethods, customPrompt, products, bundles, getSupplierPrice, finalPrices, costs, exchangeRate]);
 
   /* ── Conversation management ── */
   const startNewConversation = useCallback(() => {
