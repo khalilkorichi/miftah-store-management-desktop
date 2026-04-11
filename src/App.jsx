@@ -1197,7 +1197,7 @@ function App() {
             )}
             <span>متجر مفتاح</span>
             <span className="footer-dot">·</span>
-            <span className="footer-copy">v2.4.0</span>
+            <span className="footer-copy">v2.4.1</span>
           </div>
           <p className="footer-copy">© {new Date().getFullYear()} متجر مفتاح — إدارة المنتجات والأسعار الرقمية</p>
           <div className="footer-stats">
