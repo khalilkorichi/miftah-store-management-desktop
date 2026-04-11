@@ -354,9 +354,8 @@ function ProductDetailModal({
                                 onClick={(e) => {
                                   if (isPickerOpen) { setOpenMethodPicker(null); return; }
                                   const rect = e.currentTarget.getBoundingClientRect();
-                                  const vw = window.innerWidth;
-                                  const top = rect.bottom + 6;
-                                  const right = vw - rect.right;
+                                  const top = rect.top;
+                                  const right = window.innerWidth - rect.left + 6;
                                   const clampedTop = Math.min(top, window.innerHeight - 260);
                                   setPickerPos({ top: clampedTop, right });
                                   setOpenMethodPicker(supplier.id);
