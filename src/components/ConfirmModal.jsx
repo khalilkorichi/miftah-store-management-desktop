@@ -128,7 +128,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
             onClick={onConfirm}
             style={{
               backgroundColor: 'var(--accent-red)',
-              color: 'var(--text-primary)',
+              color: '#fff',
               flex: 1,
               justifyContent: 'center',
             }}
