@@ -115,6 +115,7 @@ function NoteModal({ note, onSave, onClose, categories, onAddCategory }) {
   const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState('#6366f1');
   const contentRef = useRef(null);
+  const overlayRef = useRef(null);
 
   useEffect(() => {
     if (contentRef.current && !note) {
@@ -148,61 +149,115 @@ function NoteModal({ note, onSave, onClose, categories, onAddCategory }) {
   const selColor = getNoteColor(color);
 
   return (
-    <div className="keep-modal-overlay" onClick={onClose}>
-      <div className="keep-modal" onClick={e => e.stopPropagation()} style={{ background: selColor.bg, borderColor: selColor.border }}>
-        <div className="keep-modal-header">
-          <input
-            className="keep-modal-title-input"
-            placeholder="عنوان الملاحظة..."
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-          />
-          <button className="keep-modal-close" onClick={onClose}><XIcon className="icon-sm" /></button>
+    <div className="modal-overlay" ref={overlayRef} onClick={e => { if (e.target === overlayRef.current) onClose(); }} onKeyDown={e => e.key === 'Escape' && onClose()} role="dialog" aria-modal="true">
+      <div className="modal-box keep-modal-box" dir="rtl" onClick={e => e.stopPropagation()}>
+        <div className="modal-header" style={{ background: 'linear-gradient(135deg, #5E4FDE 0%, #7b6ff0 100%)', color: '#fff' }}>
+          <div className="modal-header-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <EditIcon />
+          </div>
+          <div className="modal-header-text">
+            <h2>{note ? 'تعديل الملاحظة' : 'ملاحظة جديدة'}</h2>
+            <p>{note ? 'قم بتعديل محتوى الملاحظة' : 'أنشئ ملاحظة جديدة لتنظيم أفكارك'}</p>
+          </div>
+          <button className="modal-close-btn" onClick={onClose} title="إغلاق" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <XIcon className="icon-sm" />
+          </button>
         </div>
 
-        <textarea
-          ref={contentRef}
-          className="keep-modal-content"
-          placeholder="اكتب ملاحظتك هنا...&#10;يمكنك كتابة قائمة مهام:&#10;[ ] مهمة غير مكتملة&#10;[x] مهمة مكتملة"
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          rows={8}
-        />
-
-        <div className="keep-modal-colors">
-          {NOTE_COLORS.map(c => (
-            <button
-              key={c.id}
-              className={`keep-color-btn ${color === c.id ? 'keep-color-active' : ''}`}
-              style={{ background: getNoteColor(c.id).bg, borderColor: color === c.id ? 'var(--accent-blue)' : getNoteColor(c.id).border }}
-              onClick={() => setColor(c.id)}
-              title={c.label}
+        <div className="keep-modal-body" style={{ background: selColor.bg, borderColor: selColor.border }}>
+          <div className="modal-field">
+            <label className="modal-label">
+              <span className="label-icon" style={{ display: 'flex' }}><TagIcon className="icon-xs" /></span>
+              عنوان الملاحظة
+            </label>
+            <input
+              className="modal-input"
+              placeholder="عنوان الملاحظة..."
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              dir="rtl"
+              maxLength={120}
             />
-          ))}
-        </div>
+          </div>
 
-        <div className="keep-modal-meta">
-          <div className="keep-modal-cat-row">
-            <TagIcon className="icon-xs" />
-            <select className="keep-cat-select" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
-              <option value="">بدون تصنيف</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+          <div className="modal-field">
+            <label className="modal-label">
+              <span className="label-icon" style={{ display: 'flex' }}><EditIcon className="icon-xs" /></span>
+              المحتوى
+              <span className="modal-hint">يمكنك كتابة قوائم مهام باستخدام [ ] و [x]</span>
+            </label>
+            <textarea
+              ref={contentRef}
+              className="modal-input keep-modal-textarea"
+              placeholder={"اكتب ملاحظتك هنا...\nيمكنك كتابة قائمة مهام:\n[ ] مهمة غير مكتملة\n[x] مهمة مكتملة"}
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              rows={10}
+              dir="rtl"
+            />
+          </div>
+
+          <div className="modal-field">
+            <label className="modal-label">
+              <span className="label-icon" style={{ display: 'flex' }}>🎨</span>
+              لون الملاحظة
+            </label>
+            <div className="keep-modal-colors">
+              {NOTE_COLORS.map(c => (
+                <button
+                  key={c.id}
+                  className={`keep-color-btn ${color === c.id ? 'keep-color-active' : ''}`}
+                  style={{ background: getNoteColor(c.id).bg, borderColor: color === c.id ? 'var(--accent-blue)' : getNoteColor(c.id).border }}
+                  onClick={() => setColor(c.id)}
+                  title={c.label}
+                />
               ))}
-            </select>
-            <button className="keep-add-cat-btn" onClick={() => setShowNewCat(!showNewCat)} title="تصنيف جديد">
-              <PlusIcon className="icon-xs" />
-            </button>
+            </div>
+          </div>
+
+          <div className="keep-modal-options-row">
+            <div className="modal-field keep-modal-cat-field">
+              <label className="modal-label">
+                <span className="label-icon" style={{ display: 'flex' }}><TagIcon className="icon-xs" /></span>
+                التصنيف
+              </label>
+              <div className="keep-modal-cat-row">
+                <select className="keep-cat-select" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
+                  <option value="">بدون تصنيف</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <button className="keep-add-cat-btn" onClick={() => setShowNewCat(!showNewCat)} title="تصنيف جديد">
+                  <PlusIcon className="icon-xs" />
+                </button>
+              </div>
+            </div>
+
+            <div className="modal-field keep-modal-pin-field">
+              <label className="modal-label">
+                <span className="label-icon" style={{ display: 'flex' }}><PinIcon className="icon-xs" /></span>
+                التثبيت
+              </label>
+              <button
+                className={`keep-pin-toggle ${pinned ? 'keep-pin-active' : ''}`}
+                onClick={() => setPinned(!pinned)}
+              >
+                <PinIcon className="icon-xs" />
+                <span>{pinned ? 'مثبّتة' : 'غير مثبّتة'}</span>
+              </button>
+            </div>
           </div>
 
           {showNewCat && (
-            <div className="keep-new-cat-row">
+            <div className="keep-new-cat-row" style={{ animation: 'fadeIn 0.15s ease-out' }}>
               <input
                 className="keep-new-cat-input"
                 placeholder="اسم التصنيف..."
                 value={newCatName}
                 onChange={e => setNewCatName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                autoFocus
               />
               <input
                 type="color"
@@ -210,25 +265,17 @@ function NoteModal({ note, onSave, onClose, categories, onAddCategory }) {
                 value={newCatColor}
                 onChange={e => setNewCatColor(e.target.value)}
               />
-              <button className="keep-add-cat-confirm" onClick={handleAddCategory}>إضافة</button>
+              <button className="keep-add-cat-confirm" onClick={handleAddCategory} disabled={!newCatName.trim()}>إضافة</button>
             </div>
           )}
-
-          <button
-            className={`keep-pin-toggle ${pinned ? 'keep-pin-active' : ''}`}
-            onClick={() => setPinned(!pinned)}
-          >
-            <PinIcon className="icon-xs" />
-            <span>{pinned ? 'مثبّتة' : 'تثبيت'}</span>
-          </button>
         </div>
 
-        <div className="keep-modal-footer">
-          <button className="keep-modal-save" onClick={handleSave}>
-            <CheckCircleIcon className="icon-xs" />
-            <span>{note ? 'حفظ التعديلات' : 'إضافة الملاحظة'}</span>
+        <div className="modal-footer">
+          <button className="modal-btn modal-btn-ghost" onClick={onClose}>إلغاء</button>
+          <button className="modal-btn modal-btn-primary" onClick={handleSave} disabled={!title.trim() && !content.trim()}>
+            <CheckCircleIcon className="icon-sm" style={{ display: 'flex' }} />
+            {note ? 'حفظ التعديلات' : 'إضافة الملاحظة'}
           </button>
-          <button className="keep-modal-cancel" onClick={onClose}>إلغاء</button>
         </div>
       </div>
     </div>
