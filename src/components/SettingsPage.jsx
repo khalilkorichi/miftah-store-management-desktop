@@ -954,9 +954,13 @@ function SettingsPage({
                     ))}
 
                     <div className="upd-action-area">
-                      <div className="upd-backup-row">
+                      <div className="upd-action-buttons">
+                        <button className="btn upd-btn upd-btn-apply" onClick={handleApplyUpdate}>
+                          <DownloadCloudIcon className="icon-xs" />
+                          <span>تطبيق التحديث</span>
+                        </button>
                         <button
-                          className="btn btn-sm btn-ghost"
+                          className="btn upd-btn upd-btn-backup"
                           onClick={handleCreateBackup}
                           disabled={updateStatus.backupInProgress}
                         >
@@ -968,26 +972,19 @@ function SettingsPage({
                             <><DownloadIcon className="icon-xs" /><span>نسخة احتياطية أولاً</span></>
                           )}
                         </button>
-                        {updateStatus.backupDone && updateStatus.backupPath && (
-                          <span className="upd-backup-path" dir="ltr" title={updateStatus.backupPath}>
-                            {updateStatus.backupPath.length > 50 ? '...' + updateStatus.backupPath.slice(-47) : updateStatus.backupPath}
-                          </span>
-                        )}
-                        {updateStatus.backupError && (
-                          <span className="upd-backup-error">{updateStatus.backupError}</span>
-                        )}
-                      </div>
-
-                      <div className="upd-apply-row">
-                        <button className="btn btn-primary" onClick={handleApplyUpdate}>
-                          <DownloadCloudIcon className="icon-xs" />
-                          <span>تطبيق التحديث</span>
-                        </button>
-                        <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
+                        <button className="btn upd-btn upd-btn-rescan" onClick={handleCheckUpdate}>
                           <RefreshIcon className="icon-xs" />
                           <span>إعادة الفحص</span>
                         </button>
                       </div>
+                      {updateStatus.backupDone && updateStatus.backupPath && (
+                        <span className="upd-backup-path" dir="ltr" title={updateStatus.backupPath}>
+                          {updateStatus.backupPath.length > 50 ? '...' + updateStatus.backupPath.slice(-47) : updateStatus.backupPath}
+                        </span>
+                      )}
+                      {updateStatus.backupError && (
+                        <span className="upd-backup-error">{updateStatus.backupError}</span>
+                      )}
                     </div>
                   </div>
                 )}

@@ -4109,27 +4109,66 @@ input, select, textarea, button, optgroup {
 .upd-action-area {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 12px;
+  gap: 10px;
+  padding-top: 14px;
   border-top: 1px solid var(--border-color);
   margin-top: 4px;
 }
-.upd-backup-row {
+.upd-action-buttons {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  justify-content: flex-start;
 }
-.upd-backup-row .btn-ghost,
-.upd-apply-row .btn-ghost {
-  background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-blue) 25%, transparent);
-  color: var(--accent-blue);
+.upd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  white-space: nowrap;
 }
-.upd-backup-row .btn-ghost:hover,
-.upd-apply-row .btn-ghost:hover {
-  background: color-mix(in srgb, var(--accent-blue) 18%, transparent);
-  border-color: color-mix(in srgb, var(--accent-blue) 40%, transparent);
+.upd-btn .icon-xs { color: inherit; }
+.upd-btn-apply {
+  background: var(--accent-blue);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(94, 79, 222, 0.35);
+}
+.upd-btn-apply:hover {
+  background: var(--accent-blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(94, 79, 222, 0.45);
+}
+.upd-btn-backup {
+  background: #0d9488;
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(13, 148, 136, 0.3);
+}
+.upd-btn-backup:hover {
+  background: #0f766e;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(13, 148, 136, 0.4);
+}
+.upd-btn-rescan {
+  background: #475569;
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(71, 85, 105, 0.25);
+}
+.upd-btn-rescan:hover {
+  background: #334155;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(71, 85, 105, 0.35);
+}
+.upd-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
 }
 .upd-backup-path {
   font-size: 11px;
@@ -4143,11 +4182,6 @@ input, select, textarea, button, optgroup {
 .upd-backup-error {
   font-size: 11px;
   color: var(--accent-red);
-}
-.upd-apply-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 .upd-spinner-sm {
   width: 14px;
