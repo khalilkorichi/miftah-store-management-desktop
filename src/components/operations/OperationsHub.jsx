@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { CheckSquareIcon, BookOpenIcon, ActivityIcon, CalendarIcon, ShieldCheckIcon } from '../Icons';
+import { CheckSquareIcon, BookOpenIcon, ActivityIcon, CalendarIcon, ShieldCheckIcon, EditIcon } from '../Icons';
 import TaskManager from './TaskManager';
 import ActivationGuidesManager from './ActivationGuidesManager';
 import RenewalReminders from './RenewalReminders';
 import WarrantyManager from './WarrantyManager';
+import NotesManager from './NotesManager';
 
 const SUB_TABS = [
   { id: 'tasks', label: 'المهام', Icon: CheckSquareIcon },
+  { id: 'notes', label: 'الملاحظات', Icon: EditIcon },
   { id: 'guides', label: 'أدلة التفعيل', Icon: BookOpenIcon },
   { id: 'renewals', label: 'تذكيرات التجديد', Icon: CalendarIcon },
   { id: 'warranty', label: 'الضمان', Icon: ShieldCheckIcon },
@@ -14,6 +16,7 @@ const SUB_TABS = [
 
 export default function OperationsHub({
   tasks, setTasks,
+  notes, setNotes,
   activationGuides, setActivationGuides,
   renewalReminders, setRenewalReminders,
   warrantyOrders, setWarrantyOrders,
@@ -29,7 +32,7 @@ export default function OperationsHub({
         </div>
         <div>
           <h1 className="ops-hub-title">قسم العمليات</h1>
-          <p className="ops-hub-subtitle">إدارة المهام اليومية وأدلة تفعيل المنتجات وتذكيرات التجديد وسجلات الضمان</p>
+          <p className="ops-hub-subtitle">إدارة المهام اليومية والملاحظات وأدلة تفعيل المنتجات وتذكيرات التجديد وسجلات الضمان</p>
         </div>
       </div>
 
@@ -49,6 +52,9 @@ export default function OperationsHub({
       <div className="ops-hub-content">
         {activeSubTab === 'tasks' && (
           <TaskManager tasks={tasks} setTasks={setTasks} />
+        )}
+        {activeSubTab === 'notes' && (
+          <NotesManager notes={notes} setNotes={setNotes} />
         )}
         {activeSubTab === 'guides' && (
           <ActivationGuidesManager

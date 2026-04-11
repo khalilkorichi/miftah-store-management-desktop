@@ -82,6 +82,7 @@ function migrateData(data) {
       activationGuides: Array.isArray(data.activationGuides) ? data.activationGuides : DEFAULT_ACTIVATION_GUIDES,
       renewalReminders: Array.isArray(data.renewalReminders) ? data.renewalReminders : [],
       warrantyOrders: Array.isArray(data.warrantyOrders) ? data.warrantyOrders : [],
+      notes: Array.isArray(data.notes) ? data.notes : [],
     };
   }
 
@@ -120,6 +121,7 @@ function migrateData(data) {
     activationGuides: Array.isArray(data.activationGuides) ? data.activationGuides : DEFAULT_ACTIVATION_GUIDES,
     renewalReminders: Array.isArray(data.renewalReminders) ? data.renewalReminders : [],
     warrantyOrders: Array.isArray(data.warrantyOrders) ? data.warrantyOrders : [],
+    notes: Array.isArray(data.notes) ? data.notes : [],
   };
 }
 
@@ -192,6 +194,7 @@ function App() {
   const [activationGuides, setActivationGuides] = useState(savedData?.activationGuides || DEFAULT_ACTIVATION_GUIDES);
   const [renewalReminders, setRenewalReminders] = useState(savedData?.renewalReminders || []);
   const [warrantyOrders, setWarrantyOrders] = useState(savedData?.warrantyOrders || []);
+  const [notes, setNotes] = useState(savedData?.notes || []);
   const [appSettings, setAppSettings] = useState({
     accentColor: 'purple',
     fontSize: 'medium',
@@ -221,11 +224,11 @@ function App() {
 
   // Save data whenever it changes
   useEffect(() => {
-    saveData({ products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices, tasks, activationGuides, renewalReminders, warrantyOrders });
+    saveData({ products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices, tasks, activationGuides, renewalReminders, warrantyOrders, notes });
     setSaveIndicator(true);
     const timer = setTimeout(() => setSaveIndicator(false), 1500);
     return () => clearTimeout(timer);
-  }, [products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices, tasks, activationGuides, renewalReminders, warrantyOrders]);
+  }, [products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices, tasks, activationGuides, renewalReminders, warrantyOrders, notes]);
 
   // Apply dark mode class
   useEffect(() => {
@@ -845,7 +848,7 @@ function App() {
   }, []);
 
   const handleExportJson = useCallback(() => {
-    const data = { products, suppliers, exchangeRate, durations, activationMethods, costs, bundles, coupons, pricingData, tasks, activationGuides };
+    const data = { products, suppliers, exchangeRate, durations, activationMethods, costs, bundles, coupons, pricingData, tasks, activationGuides, renewalReminders, warrantyOrders, notes };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -853,7 +856,7 @@ function App() {
     a.download = 'miftah_store_data.json';
     a.click();
     URL.revokeObjectURL(url);
-  }, [products, suppliers, exchangeRate, durations, tasks, activationGuides]);
+  }, [products, suppliers, exchangeRate, durations, tasks, activationGuides, renewalReminders, warrantyOrders, notes]);
 
   const visibleProducts = useMemo(() => {
     const branchParentIds = new Set(products.filter(p => p.parentId).map(p => p.parentId));
@@ -1091,6 +1094,8 @@ function App() {
           <OperationsHub
             tasks={tasks}
             setTasks={setTasks}
+            notes={notes}
+            setNotes={setNotes}
             activationGuides={activationGuides}
             setActivationGuides={setActivationGuides}
             renewalReminders={renewalReminders}
