@@ -158,7 +158,7 @@ function BranchForm({ branch, index, durations, suppliers, allMethods, categorie
                       type="button"
                       className={`duration-chip ${isSelected ? 'duration-chip-selected' : ''}`}
                       onClick={() => toggleMethod(m.id)}
-                      style={isSelected ? { border: `1px solid ${m.color}`, backgroundColor: `${m.color}15`, color: m.color } : {}}
+                      style={isSelected ? { borderColor: m.color, backgroundColor: m.color, boxShadow: `0 2px 10px ${m.color}4d` } : {}}
                     >
                       {isSelected && <span className="chip-check" style={{ display: 'flex' }}><CheckIcon className="icon-xs" /></span>}
                       {m.icon} {m.label}

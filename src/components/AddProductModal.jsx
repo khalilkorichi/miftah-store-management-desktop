@@ -415,11 +415,11 @@ function AddProductModal({ isOpen, onClose, onConfirm, durations, suppliers, all
                           type="button"
                           className={`duration-chip ${isSelected ? 'duration-chip-selected' : ''}`}
                           onClick={() => toggleMethod(m.id)}
-                          style={{
-                            border: isSelected ? `1px solid ${m.color}` : undefined,
-                            backgroundColor: isSelected ? `${m.color}15` : undefined,
-                            color: isSelected ? m.color : undefined
-                          }}
+                          style={isSelected ? {
+                            borderColor: m.color,
+                            backgroundColor: m.color,
+                            boxShadow: `0 2px 10px ${m.color}4d`
+                          } : undefined}
                         >
                           {isSelected && <span className="chip-check" style={{ display: 'flex' }}><CheckIcon className="icon-xs" /></span>}
                           {m.icon} {m.label}
