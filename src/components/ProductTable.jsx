@@ -439,6 +439,7 @@ function ProductCard({
           {product.plans.map((plan) => {
             const bestSupplierId = findBestPriceForPlan(plan);
             const bestPrice = bestSupplierId ? plan.prices[bestSupplierId] : null;
+            const officialSar = plan.officialPriceUsd ? plan.officialPriceUsd * (exchangeRate || 1) : null;
             return (
               <div key={plan.id} className="plan-summary-chip">
                 <span className="plan-chip-duration">{getDurationLabel(plan.durationId)}</span>
@@ -447,6 +448,9 @@ function ProductCard({
                 ) : (
                   <span className="plan-chip-price empty">غير مسعّر</span>
                 )}
+                {officialSar ? (
+                  <span className="plan-chip-price official">{fmtNum(officialSar)} ر.س</span>
+                ) : null}
                 {(plan.warrantyDays > 0) && (
                   <span className="plan-chip-warranty" title={`ضمان ${plan.warrantyDays} يوم`}>
                     <ShieldCheckIcon className="icon-xs" /> {plan.warrantyDays}
