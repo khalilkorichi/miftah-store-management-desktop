@@ -7841,7 +7841,8 @@ button.pbc-branch-info:focus-visible {
   color: var(--accent-blue);
   background: var(--chip-hover-bg, rgba(94, 79, 222, 0.06));
 }
-.duration-chip-selected {
+.duration-chip-selected,
+.duration-chip-selected:hover {
   border-color: var(--accent-blue);
   background: var(--accent-blue);
   color: #fff !important;
