@@ -969,11 +969,14 @@ function ProductTable({
           })}
         </div>
       ) : (
-        <div className="empty-state">
-          <PackageIcon className="empty-icon icon-xl" />
-          <p>{searchQuery || activeFiltersCount > 0 ? 'لا توجد نتائج مطابقة للفلتر المحدد' : 'لا توجد منتجات حالياً. أضف منتجاً جديداً للبدء!'}</p>
+        <div className="unified-empty">
+          <div className="unified-empty-icon">
+            <PackageIcon className="icon-xl" />
+          </div>
+          <h4>{searchQuery || activeFiltersCount > 0 ? 'لا توجد نتائج مطابقة' : 'لا توجد منتجات بعد'}</h4>
+          <p>{searchQuery || activeFiltersCount > 0 ? 'جرّب تغيير معايير البحث أو الفلترة' : 'أضف منتجاً جديداً للبدء!'}</p>
           {activeFiltersCount > 0 && (
-            <button className="filter-reset-btn" style={{ margin: '12px auto 0', display: 'flex' }} onClick={() => { setFilterSupplier(''); setFilterCategory(''); setFilterType('all'); setSortBy('default'); }}>
+            <button className="unified-empty-action" onClick={() => { setFilterSupplier(''); setFilterCategory(''); setFilterType('all'); setSortBy('default'); }}>
               <XIcon className="icon-xs" /> إزالة الفلاتر
             </button>
           )}

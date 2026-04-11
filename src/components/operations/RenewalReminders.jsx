@@ -165,19 +165,19 @@ export default function RenewalReminders({
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="ops-empty-state">
-          <CalendarIcon className="icon-xl" />
+        <div className="unified-empty">
+          <div className="unified-empty-icon"><CalendarIcon className="icon-xl" /></div>
           {active.length === 0 ? (
             <>
-              <h3>لا توجد تذكيرات تجديد بعد</h3>
+              <h4>لا توجد تذكيرات تجديد بعد</h4>
               <p>أضف تذكيرات لتجديد اشتراكاتك مع الموردين وتتبّع مواعيدها تلقائياً</p>
-              <button className="ops-btn ops-btn-primary" onClick={openNew}>
+              <button className="unified-empty-action" onClick={openNew}>
                 <PlusIcon className="icon-sm" /> إضافة أول تذكير
               </button>
             </>
           ) : (
             <>
-              <h3>لا توجد نتائج</h3>
+              <h4>لا توجد نتائج</h4>
               <p>جرّب تغيير الفلتر أو كلمة البحث</p>
             </>
           )}

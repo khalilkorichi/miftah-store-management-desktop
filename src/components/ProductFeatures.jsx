@@ -672,9 +672,9 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
       )}
 
       {activeSubTab === 'editor' && !product && products.length === 0 ? (
-        <div className="pf-empty-state">
-          <div className="pf-empty-icon"><FileTextIcon className="icon-xl" /></div>
-          <h3>لا توجد منتجات بعد</h3>
+        <div className="unified-empty">
+          <div className="unified-empty-icon"><FileTextIcon className="icon-xl" /></div>
+          <h4>لا توجد منتجات بعد</h4>
           <p>أضف منتجات من صفحة "المنتجات والأسعار" ثم عد هنا لإضافة الأوصاف والمزايا</p>
         </div>
       ) : activeSubTab === 'editor' && !product ? (

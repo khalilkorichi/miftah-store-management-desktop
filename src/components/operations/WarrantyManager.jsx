@@ -134,19 +134,19 @@ export default function WarrantyManager({ warranties, setWarranties, products, s
       </div>
 
       {filtered.length === 0 ? (
-        <div className="ops-empty-state">
-          <ShieldCheckIcon className="icon-xl" />
+        <div className="unified-empty">
+          <div className="unified-empty-icon"><ShieldCheckIcon className="icon-xl" /></div>
           {(warranties || []).length === 0 ? (
             <>
-              <h3>لا توجد سجلات ضمان بعد</h3>
+              <h4>لا توجد سجلات ضمان بعد</h4>
               <p>أضف سجلات ضمان لتتبّع ضمانات عملائك وحالتها تلقائياً</p>
-              <button className="ops-btn ops-btn-primary" onClick={openNew}>
+              <button className="unified-empty-action" onClick={openNew}>
                 <PlusIcon className="icon-sm" /> إضافة أول ضمان
               </button>
             </>
           ) : (
             <>
-              <h3>لا توجد نتائج</h3>
+              <h4>لا توجد نتائج</h4>
               <p>جرّب تغيير الفلتر أو كلمة البحث</p>
             </>
           )}

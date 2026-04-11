@@ -248,9 +248,9 @@ export default function TaskManager({ tasks, setTasks }) {
       {viewMode === 'list' && (
         <div className="task-list-view">
           {sortTasks(filtered).length === 0 ? (
-            <div className="ops-empty-state">
-              <CheckSquareIcon className="icon-xl" />
-              <h3>لا توجد مهام</h3>
+            <div className="unified-empty">
+              <div className="unified-empty-icon"><CheckSquareIcon className="icon-xl" /></div>
+              <h4>لا توجد مهام</h4>
               <p>أضف مهمة جديدة أو جرّب تغيير الفلتر</p>
             </div>
           ) : (

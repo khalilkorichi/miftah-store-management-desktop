@@ -427,14 +427,14 @@ export default function NotesManager({ notes, setNotes }) {
       )}
 
       {filtered.pinned.length === 0 && filtered.unpinned.length === 0 ? (
-        <div className="keep-empty">
-          <div className="keep-empty-icon">
+        <div className="unified-empty">
+          <div className="unified-empty-icon">
             <EditIcon className="icon-xl" />
           </div>
-          <h3>لا توجد ملاحظات{search || filterCategory !== 'all' ? ' تطابق البحث' : ''}</h3>
+          <h4>لا توجد ملاحظات{search || filterCategory !== 'all' ? ' تطابق البحث' : ''}</h4>
           <p>{search || filterCategory !== 'all' ? 'جرّب تغيير معايير البحث أو الفلترة' : 'ابدأ بإنشاء ملاحظتك الأولى لتنظيم أفكارك'}</p>
           {!search && filterCategory === 'all' && (
-            <button className="ops-btn ops-btn-primary" onClick={() => { setEditingNote(null); setShowModal(true); }}>
+            <button className="unified-empty-action" onClick={() => { setEditingNote(null); setShowModal(true); }}>
               <PlusIcon className="icon-xs" />
               <span>إنشاء ملاحظة</span>
             </button>

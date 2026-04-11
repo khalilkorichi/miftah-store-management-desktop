@@ -105,20 +105,20 @@ export default function ActivationGuidesManager({ guides, setGuides, products, d
 
       {/* Guides list */}
       {filtered.length === 0 ? (
-        <div className="ops-empty-state">
+        <div className="unified-empty">
           {guides.length === 0 ? (
             <>
-              <SparklesIcon className="icon-xl" />
-              <h3>لا توجد أدلة بعد</h3>
+              <div className="unified-empty-icon"><SparklesIcon className="icon-xl" /></div>
+              <h4>لا توجد أدلة بعد</h4>
               <p>أنشئ أدلة التفعيل لمنتجاتك وتوفير الوقت عند خدمة عملائك</p>
-              <button className="ops-btn ops-btn-primary" onClick={openNew}>
+              <button className="unified-empty-action" onClick={openNew}>
                 <PlusIcon className="icon-sm" /> إنشاء أول دليل
               </button>
             </>
           ) : (
             <>
-              <BookOpenIcon className="icon-xl" />
-              <h3>لا توجد نتائج</h3>
+              <div className="unified-empty-icon"><BookOpenIcon className="icon-xl" /></div>
+              <h4>لا توجد نتائج</h4>
               <p>جرّب تغيير كلمة البحث أو الفلتر</p>
             </>
           )}

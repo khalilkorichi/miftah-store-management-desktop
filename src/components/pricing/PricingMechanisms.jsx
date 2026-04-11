@@ -131,9 +131,9 @@ function PricingMechanisms({ products, suppliers, costs, pricingData, setPricing
       </div>
 
       {!product ? (
-        <div className="pm-empty-state">
-          <span className="pm-empty-icon flex-row align-center justify-center"><SearchIcon className="icon-xl" /></span>
-          <h3>يرجى اختيار منتج للبدء بالتسعير</h3>
+        <div className="unified-empty">
+          <div className="unified-empty-icon"><SearchIcon className="icon-xl" /></div>
+          <h4>يرجى اختيار منتج للبدء بالتسعير</h4>
           <p>اختر منتجاً من القائمة أعلاه لعرض آليات التسعير المتاحة</p>
         </div>
       ) : (

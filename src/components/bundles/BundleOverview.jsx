@@ -110,13 +110,13 @@ function BundleOverview({ bundles, setBundles, products, getSupplierPrice, costs
       </div>
 
       {bundles.length === 0 ? (
-        <div className="bo-empty-state">
-          <div className="bo-empty-icon-wrap">
+        <div className="unified-empty">
+          <div className="unified-empty-icon">
             <PackageIcon className="icon-xl" />
           </div>
           <h4>لم تقم بإنشاء أي حزم بعد</h4>
           <p>انتقل إلى "تكوين الحزم" لإضافة حزمة جديدة</p>
-          <button className="bo-empty-action" onClick={() => setActiveSubTab('builder')}>
+          <button className="unified-empty-action" onClick={() => setActiveSubTab('builder')}>
             <PackageIcon className="icon-sm" /> إنشاء حزمة جديدة
           </button>
         </div>
