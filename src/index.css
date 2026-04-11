@@ -7170,9 +7170,9 @@ input, select, textarea, button, optgroup {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(245,158,11,.07);
-  border: 1px solid rgba(245,158,11,.22);
-  color: #d97706;
+  background: color-mix(in srgb, var(--act-color, #d97706) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--act-color, #d97706) 25%, transparent);
+  color: var(--act-color, #d97706);
   border-radius: 8px;
   padding: 3px 8px;
   font-size: 11px;
@@ -7181,11 +7181,13 @@ input, select, textarea, button, optgroup {
 .pdm-sup-method-remove {
   background: none;
   border: none;
-  color: rgba(217,119,6,.6);
+  color: color-mix(in srgb, var(--act-color, #d97706) 60%, transparent);
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
+  font-size: 10px;
+  margin-right: 2px;
 }
 .pdm-sup-method-remove:hover { color: var(--accent-red); }
 .pdm-sup-method-add-btn {
@@ -7206,12 +7208,16 @@ input, select, textarea, button, optgroup {
   color: var(--accent-blue);
 }
 
+.pdm-method-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: transparent;
+}
 /* ── PDM method picker dropdown ── */
 .pdm-method-picker {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: 200;
+  position: fixed;
+  z-index: 10000;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;

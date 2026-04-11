@@ -41,7 +41,8 @@ function ProductDetailModal({
   const [urlValue, setUrlValue] = useState('');
   const [editingSupplierLink, setEditingSupplierLink] = useState(null); // supplierId
   const [supplierLinkInput, setSupplierLinkInput] = useState('');
-  const [openMethodPicker, setOpenMethodPicker] = useState(null); // supplierId
+  const [openMethodPicker, setOpenMethodPicker] = useState(null);
+  const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
 
   const sanitizeUrl = (raw) => {
     const trimmed = (raw || '').trim();
@@ -344,29 +345,19 @@ function ProductDetailModal({
                           {/* Row 2: avg + method button */}
                           <div className="pdm-supplier-avg-row">
                             {count > 0 ? (
-                              <span className="pdm-supplier-avg" dir="ltr">متوسط: ${fmtNum(total / count)}</span>
+                              <span className="pdm-supplier-avg" dir="ltr">متوسط: {fmtNum((total / count) * (exchangeRate || 1))} ر.س</span>
                             ) : <span className="pdm-supplier-avg">—</span>}
                             <div style={{ position: 'relative' }}>
                               <button
                                 className={`pdm-sup-icon-btn ${effectiveMethods.length > 0 ? 'has-methods' : ''}`}
                                 title="طرق التفعيل"
-                                onClick={() => setOpenMethodPicker(isPickerOpen ? null : supplier.id)}
+                                onClick={(e) => {
+                                  if (isPickerOpen) { setOpenMethodPicker(null); return; }
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setPickerPos({ top: rect.bottom + 4, left: rect.left });
+                                  setOpenMethodPicker(supplier.id);
+                                }}
                               >⚙</button>
-                              {isPickerOpen && (
-                                <div className="pdm-method-picker">
-                                  {activationMethods.map(m => {
-                                    const active = supplierMethods.includes(m.id);
-                                    return (
-                                      <button key={m.id} className={`pdm-method-picker-item ${active ? 'active' : ''}`}
-                                        onClick={() => onUpdateSupplierActivationMethod?.(product.id, supplier.id, m.id, !active)}>
-                                        {m.icon} {m.label}
-                                        {active && <span className="pdm-method-check">✓</span>}
-                                      </button>
-                                    );
-                                  })}
-                                  <button className="pdm-method-picker-close" onClick={() => setOpenMethodPicker(null)}>إغلاق</button>
-                                </div>
-                              )}
                             </div>
                           </div>
                           {/* Link edit / display */}
@@ -400,8 +391,8 @@ function ProductDetailModal({
                               {effectiveMethods.map(mId => {
                                 const m = activationMethods.find(x => x.id === mId);
                                 return m ? (
-                                  <span key={mId} className="pdm-sup-method-chip">
-                                    {m.icon}
+                                  <span key={mId} className="pdm-sup-method-chip" style={{ '--act-color': m.color }}>
+                                    {m.icon} {m.label}
                                     <button className="pdm-sup-method-remove" onClick={() => onUpdateSupplierActivationMethod?.(product.id, supplier.id, mId, false)}>✕</button>
                                   </span>
                                 ) : null;
@@ -574,6 +565,29 @@ function ProductDetailModal({
           </div>
         </div>
       </div>
+
+      {openMethodPicker && (() => {
+        const supplierId = openMethodPicker;
+        const supplierMethods = (product.supplierActivationMethods || {})[supplierId] || [];
+        return (
+          <>
+            <div className="pdm-method-picker-backdrop" onClick={() => setOpenMethodPicker(null)} />
+            <div className="pdm-method-picker" style={{ top: pickerPos.top, left: pickerPos.left }}>
+              {activationMethods.map(m => {
+                const active = supplierMethods.includes(m.id);
+                return (
+                  <button key={m.id} className={`pdm-method-picker-item ${active ? 'active' : ''}`}
+                    onClick={() => onUpdateSupplierActivationMethod?.(product.id, supplierId, m.id, !active)}>
+                    {m.icon} {m.label}
+                    {active && <span className="pdm-method-check">✓</span>}
+                  </button>
+                );
+              })}
+              <button className="pdm-method-picker-close" onClick={() => setOpenMethodPicker(null)}>إغلاق</button>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }
