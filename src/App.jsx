@@ -1144,6 +1144,8 @@ function App() {
               <img src="/logo.png" alt="" className="footer-logo" />
             )}
             <span>متجر مفتاح</span>
+            <span className="footer-dot">·</span>
+            <span className="footer-copy">v2.4.0</span>
           </div>
           <p className="footer-copy">© {new Date().getFullYear()} متجر مفتاح — إدارة المنتجات والأسعار الرقمية</p>
           <div className="footer-stats">
