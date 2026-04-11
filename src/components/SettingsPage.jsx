@@ -1022,11 +1022,11 @@ function SettingsPage({
                       <span>يجب إعادة تشغيل البرنامج لتطبيق التغييرات</span>
                     </div>
                     <div className="upd-complete-actions">
-                      <button className="btn btn-primary" onClick={handleRestartApp}>
+                      <button className="btn upd-btn upd-btn-apply" onClick={handleRestartApp}>
                         <RefreshIcon className="icon-xs" />
                         <span>إعادة التشغيل الآن</span>
                       </button>
-                      <button className="btn btn-sm btn-ghost" onClick={() => setUpdateStatus({ state: 'idle' })}>
+                      <button className="btn upd-btn upd-btn-rescan" onClick={() => setUpdateStatus({ state: 'idle' })}>
                         <span>لاحقاً</span>
                       </button>
                     </div>
