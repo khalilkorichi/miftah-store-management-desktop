@@ -310,8 +310,8 @@ function ProductDetailModal({
                             );
                           })()}
                           {plan.officialPriceUsd > 0 && (
-                            <span className="pdm-plan-official" dir="ltr">
-                              الرسمي: ${fmtNum(plan.officialPriceUsd)}
+                            <span className="pdm-plan-official" dir="rtl">
+                              الرسمي: {fmtNum(plan.officialPriceUsd * (exchangeRate || 1))} ر.س
                             </span>
                           )}
                         </div>
