@@ -15,6 +15,7 @@
   "build": {
     "appId": "com.miftah.store",
     "productName": "مفتاح - إدارة المتجر",
+    "asar": false,
     "directories": {
       "output": "release"
     },
