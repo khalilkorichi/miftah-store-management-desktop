@@ -28,8 +28,10 @@ import ProductFeatures from './components/ProductFeatures';
 import {
   PackageIcon, DollarSignIcon, GiftIcon, BarChartIcon, SettingsIcon,
   SunIcon, MoonIcon, CheckCircleIcon, HomeIcon, FileTextIcon, ExternalLinkIcon,
-  CheckSquareIcon,
+  CheckSquareIcon, BellIcon,
 } from './components/Icons';
+import NotificationPanel from './components/NotificationPanel';
+import { useNotifications } from './components/NotificationContext';
 import GlobalAIAssistant from './components/GlobalAIAssistant';
 
 const STORAGE_KEY = 'miftah_store_data';
@@ -220,6 +222,8 @@ function App() {
   const [darkMode, setDarkMode] = useState(savedData?.darkMode ?? true);
   const [saveIndicator, setSaveIndicator] = useState(false);
   const toast = useToast();
+  const { addNotification, unreadCount } = useNotifications();
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
   const tabNavRef = useRef(null);
 
   // Save data whenever it changes
@@ -373,7 +377,8 @@ function App() {
     if (storeUrl) newProduct.storeUrl = storeUrl;
     setProducts((prev) => [...prev, newProduct]);
     toast(`تمت إضافة المنتج "${name}" بنجاح`, 'success');
-  }, [products, suppliers, toast]);
+    addNotification({ type: 'success', title: 'تمت إضافة منتج جديد', description: `تم إضافة "${name}" إلى قائمة المنتجات`, category: 'products', actionTab: 'products', playSound: true });
+  }, [products, suppliers, toast, addNotification]);
 
   const handleAddBranchedProduct = useCallback(({ parentName, branches }) => {
     setProducts((prev) => {
@@ -422,11 +427,13 @@ function App() {
       return [...prev, parentProduct, ...branchProducts];
     });
     toast(`تم إنشاء المنتج المفرع "${parentName}" مع ${branches.length} فروع بنجاح`, 'success');
-  }, [suppliers, durations, toast]);
+    addNotification({ type: 'success', title: 'تم إنشاء منتج مفرع', description: `"${parentName}" مع ${branches.length} فروع`, category: 'products', actionTab: 'products', playSound: true });
+  }, [suppliers, durations, toast, addNotification]);
 
   const handleAddCategory = useCallback((cat) => {
     setCategories((prev) => [...prev, cat]);
-  }, []);
+    addNotification({ type: 'success', title: 'تم إضافة فئة جديدة', description: `"${cat.name}"`, category: 'products', actionTab: 'products' });
+  }, [addNotification]);
 
   const handleDeleteCategory = useCallback((catId) => {
     const inUse = products.some((p) => p.categoryId === catId);
@@ -434,8 +441,10 @@ function App() {
       toast('لا يمكن حذف الفئة — هي مستخدمة في منتجات حالية', 'error');
       return;
     }
+    const cat = categories.find(c => c.id === catId);
     setCategories((prev) => prev.filter((c) => c.id !== catId));
-  }, [products, toast]);
+    addNotification({ type: 'warning', title: 'تم حذف فئة', description: cat ? `"${cat.name}"` : '', category: 'products', actionTab: 'products' });
+  }, [products, categories, toast, addNotification]);
 
   const handleUpdateProductCategory = useCallback((productId, categoryId) => {
     setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, categoryId } : p));
@@ -443,13 +452,18 @@ function App() {
 
   const handleSetFinalPrices = useCallback((prices) => {
     setFinalPrices(prices);
-  }, []);
+    const count = Object.keys(prices).length;
+    if (count > 0) addNotification({ type: 'success', title: 'تم حفظ الأسعار النهائية', description: `تم تحديث ${count} سعر نهائي`, category: 'pricing', actionTab: 'pricing' });
+  }, [addNotification]);
 
   const handleDeleteProduct = useCallback((productId) => {
     const product = products.find((p) => p.id === productId);
     setProducts((prev) => prev.filter((p) => p.id !== productId));
-    if (product) toast(`تم حذف المنتج "${product.name}"`, 'error');
-  }, [products, toast]);
+    if (product) {
+      toast(`تم حذف المنتج "${product.name}"`, 'error');
+      addNotification({ type: 'error', title: 'تم حذف منتج', description: `تم حذف "${product.name}" من القائمة`, category: 'products', actionTab: 'products', playSound: true });
+    }
+  }, [products, toast, addNotification]);
 
   const handleUpdateProductName = useCallback((productId, newName) => {
     setProducts((prev) =>
@@ -475,9 +489,10 @@ function App() {
       duplicatedProduct.name = `${productToDuplicate.name} (نسخة)`;
       
       toast(`تم تكرار المنتج "${productToDuplicate.name}" بنجاح كمنتج جديد`, 'success');
+      addNotification({ type: 'info', title: 'تم تكرار منتج', description: `تم نسخ "${productToDuplicate.name}"`, category: 'products', actionTab: 'products' });
       return [...prev, duplicatedProduct];
     });
-  }, [toast]);
+  }, [toast, addNotification]);
 
   const handleUpdateProductAccountType = useCallback((productId, accountType) => {
     setProducts((prev) =>
@@ -501,7 +516,8 @@ function App() {
       return [...prev, ...newProducts];
     });
     toast(`تم استيراد ${importedProducts.length} منتج بنجاح من سلة`, 'success');
-  }, [toast]);
+    addNotification({ type: 'success', title: 'تم استيراد منتجات', description: `تم استيراد ${importedProducts.length} منتج من سلة`, category: 'system', actionTab: 'products', playSound: true });
+  }, [toast, addNotification]);
 
   // === Plan Management ===
   const handleAddPlan = useCallback((productId, durationId) => {
@@ -551,6 +567,7 @@ function App() {
   }, []);
 
   const handleDeleteSupplier = useCallback((supplierId) => {
+    const supplier = suppliers.find(s => s.id === supplierId);
     setSuppliers((prev) => prev.filter((s) => s.id !== supplierId));
     setProducts((prev) =>
       prev.map((p) => ({
@@ -562,7 +579,8 @@ function App() {
         }),
       }))
     );
-  }, []);
+    addNotification({ type: 'error', title: 'تم حذف مورد', description: supplier ? `"${supplier.name}"` : '', category: 'products', actionTab: 'products' });
+  }, [suppliers, addNotification]);
 
   const handleAddSupplier = useCallback((supplierData) => {
     const newId = Math.max(0, ...suppliers.map((s) => s.id)) + 1;
@@ -584,23 +602,26 @@ function App() {
       }))
     );
     toast(`تمت إضافة المورد "${newSupplier.name}" بنجاح`, 'success');
-  }, [suppliers, toast]);
+    addNotification({ type: 'success', title: 'تم إضافة مورد جديد', description: `"${newSupplier.name}"`, category: 'products', actionTab: 'products' });
+  }, [suppliers, toast, addNotification]);
 
   // === Duration Management ===
   const handleAddDuration = useCallback((label, months) => {
     const newId = `month_${months}_${Date.now()}`;
     setDurations((prev) => [...prev, { id: newId, label, months }]);
-  }, []);
+    addNotification({ type: 'success', title: 'تم إضافة مدة جديدة', description: `"${label}"`, category: 'pricing', actionTab: 'products' });
+  }, [addNotification]);
 
   const handleDeleteDuration = useCallback((durationId) => {
-    // Don't delete if it's in use
     const inUse = products.some((p) => p.plans.some((pl) => pl.durationId === durationId));
     if (inUse) {
       alert('لا يمكن حذف هذه المدة لأنها مستخدمة في خطط حالية');
       return;
     }
+    const dur = durations.find(d => d.id === durationId);
     setDurations((prev) => prev.filter((d) => d.id !== durationId));
-  }, [products]);
+    addNotification({ type: 'warning', title: 'تم حذف مدة', description: dur ? `"${dur.label}"` : '', category: 'pricing', actionTab: 'products' });
+  }, [products, durations, addNotification]);
 
   // === Activation Methods Management ===
   const handleToggleProductMethod = useCallback((productId, methodId) => {
@@ -692,18 +713,20 @@ function App() {
       const newParent = prev.find((p) => p.id === newParentId);
       if (!branch || !newParent) return prev;
       toast(`تم نقل "${branch.name}" إلى "${newParent.name}"`, 'success');
+      addNotification({ type: 'info', title: 'نقل فرع', description: `تم نقل "${branch.name}" إلى "${newParent.name}"`, category: 'products', actionTab: 'products' });
       return prev.map((p) => p.id === branchId ? { ...p, parentId: newParentId } : p);
     });
-  }, [toast]);
+  }, [toast, addNotification]);
 
   const handleDetachBranch = useCallback((branchId) => {
     setProducts((prev) => {
       const branch = prev.find((p) => p.id === branchId);
       if (!branch) return prev;
       toast(`تم تحويل "${branch.name}" إلى منتج مستقل`, 'success');
+      addNotification({ type: 'success', title: 'فصل فرع', description: `تم تحويل "${branch.name}" إلى منتج مستقل`, category: 'products', actionTab: 'products' });
       return prev.map((p) => p.id === branchId ? { ...p, parentId: null } : p);
     });
-  }, [toast]);
+  }, [toast, addNotification]);
 
   const handleAttachAsBranch = useCallback((productId, newParentId) => {
     setProducts((prev) => {
@@ -711,9 +734,10 @@ function App() {
       const parent = prev.find((p) => p.id === newParentId);
       if (!product || !parent) return prev;
       toast(`تم إرفاق "${product.name}" كفرع لـ "${parent.name}"`, 'success');
+      addNotification({ type: 'success', title: 'إرفاق كفرع', description: `تم إرفاق "${product.name}" كفرع لـ "${parent.name}"`, category: 'products', actionTab: 'products' });
       return prev.map((p) => p.id === productId ? { ...p, parentId: newParentId } : p);
     });
-  }, [toast]);
+  }, [toast, addNotification]);
 
   const handleAddBranch = useCallback((parentId) => {
     setProducts((prev) => {
@@ -741,9 +765,10 @@ function App() {
         parentId,
       };
       toast(`تم إنشاء فرع جديد من "${parent.name}"`, 'success');
+      addNotification({ type: 'success', title: 'إنشاء فرع جديد', description: `تم إنشاء فرع جديد من "${parent.name}"`, category: 'products', actionTab: 'products' });
       return [...prev, branch];
     });
-  }, [suppliers, toast]);
+  }, [suppliers, toast, addNotification]);
 
   // === Supplier Product Links (per-supplier link for this product) ===
   const handleUpdateSupplierPlanLink = useCallback((productId, supplierId, url) => {
@@ -794,9 +819,11 @@ function App() {
 
   const handleAddActivationMethodType = useCallback((newMethod) => {
     setActivationMethods((prev) => [...prev, newMethod]);
-  }, []);
+    addNotification({ type: 'success', title: 'تم إضافة طريقة تفعيل', description: `"${newMethod.label || newMethod.name || ''}"`, category: 'operations', actionTab: 'operations' });
+  }, [addNotification]);
 
   const handleDeleteActivationMethodType = useCallback((methodId) => {
+    const method = activationMethods.find(m => m.id === methodId);
     setActivationMethods((prev) => prev.filter((m) => m.id !== methodId));
     setProducts((prev) =>
       prev.map((p) => {
@@ -811,7 +838,8 @@ function App() {
         };
       })
     );
-  }, []);
+    addNotification({ type: 'warning', title: 'تم حذف طريقة تفعيل', description: method ? `"${method.label || method.name || ''}"` : '', category: 'operations', actionTab: 'operations' });
+  }, [activationMethods, addNotification]);
 
   // === Global AI Assistant Actions ===
   const handleUpdateProductById = useCallback((productId, updater) => {
@@ -821,7 +849,8 @@ function App() {
   const handleCreateCouponFromGAA = useCallback((coupon) => {
     setCoupons(prev => [...prev, coupon]);
     toast(`تم إنشاء الكوبون "${coupon.code}" بنجاح`, 'success');
-  }, [toast]);
+    addNotification({ type: 'success', title: 'تم إنشاء كوبون', description: `الكوبون "${coupon.code}"`, category: 'pricing', actionTab: 'pricing' });
+  }, [toast, addNotification]);
 
   // === Data Management ===
   const handleResetData = useCallback(() => {
@@ -831,7 +860,8 @@ function App() {
     setDurations(DEFAULT_DURATIONS);
     setTasks(DEFAULT_TASKS);
     setActivationGuides(DEFAULT_ACTIVATION_GUIDES);
-  }, []);
+    addNotification({ type: 'warning', title: 'تم إعادة تعيين البيانات', description: 'تم استعادة البيانات الافتراضية', category: 'system', actionTab: 'settings', playSound: true });
+  }, [addNotification]);
 
   const handleImportData = useCallback((data) => {
     const migrated = migrateData(data);
@@ -845,7 +875,8 @@ function App() {
     if (migrated.pricingData) setPricingData(migrated.pricingData);
     if (Array.isArray(migrated.tasks)) setTasks(migrated.tasks);
     if (Array.isArray(migrated.activationGuides)) setActivationGuides(migrated.activationGuides);
-  }, []);
+    addNotification({ type: 'success', title: 'تم استيراد البيانات', description: 'تم تحميل البيانات من الملف بنجاح', category: 'system', actionTab: 'settings', playSound: true });
+  }, [addNotification]);
 
   const handleExportJson = useCallback(() => {
     const data = { products, suppliers, exchangeRate, durations, activationMethods, costs, bundles, coupons, pricingData, tasks, activationGuides, renewalReminders, warrantyOrders, notes };
@@ -856,7 +887,8 @@ function App() {
     a.download = 'miftah_store_data.json';
     a.click();
     URL.revokeObjectURL(url);
-  }, [products, suppliers, exchangeRate, durations, tasks, activationGuides, renewalReminders, warrantyOrders, notes]);
+    addNotification({ type: 'info', title: 'تم تصدير البيانات', description: 'تم حفظ ملف البيانات', category: 'system', actionTab: 'settings' });
+  }, [products, suppliers, exchangeRate, durations, tasks, activationGuides, renewalReminders, warrantyOrders, notes, addNotification]);
 
   const visibleProducts = useMemo(() => {
     const branchParentIds = new Set(products.filter(p => p.parentId).map(p => p.parentId));
@@ -905,6 +937,26 @@ function App() {
                 <span className="header-store-link-text">زيارة المتجر</span>
               </a>
             )}
+            <div className="notif-bell-wrapper">
+              <button
+                className="notif-bell-btn"
+                onClick={() => setShowNotifPanel(prev => !prev)}
+                title="الإشعارات"
+                aria-label="فتح لوحة الإشعارات"
+                aria-expanded={showNotifPanel}
+                aria-controls="notif-panel"
+              >
+                <BellIcon />
+                {unreadCount > 0 && (
+                  <span className="notif-bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
+              </button>
+              <NotificationPanel
+                isOpen={showNotifPanel}
+                onClose={() => setShowNotifPanel(false)}
+                onNavigate={handleTabChange}
+              />
+            </div>
             <button
               className="theme-toggle"
               onClick={() => setDarkMode(!darkMode)}

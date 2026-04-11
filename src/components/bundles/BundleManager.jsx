@@ -89,6 +89,7 @@ function BundleManager({ bundles, setBundles, products, suppliers, exchangeRate,
             products={products}
             getSupplierPrice={getSupplierPrice}
             costs={costs}
+            setActiveSubTab={setActiveSubTab}
           />
         )}
       </div>

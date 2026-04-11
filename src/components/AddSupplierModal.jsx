@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BuildingIcon, XIcon, TagIcon, MessageCircleIcon, SendIcon, ShoppingCartIcon, CheckIcon } from './Icons';
+import ModalOverlay from './ModalOverlay';
 
 function AddSupplierModal({ isOpen, onClose, onConfirm }) {
   const [name, setName] = useState('');
@@ -8,7 +9,6 @@ function AddSupplierModal({ isOpen, onClose, onConfirm }) {
   const [g2g, setG2g] = useState('');
   const [nameError, setNameError] = useState('');
   const nameInputRef = useRef(null);
-  const overlayRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -22,10 +22,6 @@ function AddSupplierModal({ isOpen, onClose, onConfirm }) {
   }, [isOpen]);
 
   if (!isOpen) return null;
-
-  const handleOverlayClick = (e) => {
-    if (e.target === overlayRef.current) onClose();
-  };
 
   const handleSubmit = () => {
     const trimmedName = name.trim();
@@ -52,15 +48,7 @@ function AddSupplierModal({ isOpen, onClose, onConfirm }) {
   const completionPct = Math.round((filledCount / 4) * 100);
 
   return (
-    <div
-      className="modal-overlay"
-      ref={overlayRef}
-      onClick={handleOverlayClick}
-      onKeyDown={handleKeyDown}
-      role="dialog"
-      aria-modal="true"
-      aria-label="إضافة مورد جديد"
-    >
+    <ModalOverlay onClose={onClose}>
       <div className="modal-box" dir="rtl">
         {/* Header */}
         <div className="modal-header modal-header-green">
@@ -203,7 +191,7 @@ function AddSupplierModal({ isOpen, onClose, onConfirm }) {
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

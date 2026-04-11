@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { AlertTriangleIcon } from './Icons';
+import ModalOverlay from './ModalOverlay';
 
 export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = 'نعم، احذف', cancelText = 'إلغاء' }) {
   const modalRef = useRef(null);
@@ -55,23 +56,8 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
 
   if (!isOpen) return null;
 
-  // Click outside to cancel
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onCancel();
-    }
-  };
-
   return (
-    <div
-      className="modal-overlay"
-      style={{ zIndex: 10000 }}
-      onClick={handleOverlayClick}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-title"
-      aria-describedby="confirm-message"
-    >
+    <ModalOverlay onClose={onCancel}>
       <div
         className="modal-box confirm-modal-box"
         style={{ maxWidth: '420px', textAlign: 'center' }}
@@ -148,6 +134,6 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

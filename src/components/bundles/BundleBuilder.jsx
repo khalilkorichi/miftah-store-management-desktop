@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { PackageIcon, EditIcon, DollarSignIcon, SaveIcon, StarIcon, CheckIcon } from '../Icons';
+import { useNotifications } from '../NotificationContext';
 
 const fmt = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function BundleBuilder({ bundles, setBundles, products, getSupplierPrice, setActiveSubTab, bundleToEdit, setBundleToEdit }) {
   const [bundleName, setBundleName] = useState('');
   const [selectedProducts, setSelectedProducts] = useState([]);
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     if (bundleToEdit) {
@@ -38,7 +40,6 @@ function BundleBuilder({ bundles, setBundles, products, getSupplierPrice, setAct
     }, 0);
 
     if (bundleToEdit) {
-      // Update existing bundle
       const updatedBundles = bundles.map(b => 
         b.id === bundleToEdit.id 
           ? { ...b, name: bundleName, productIds: selectedProducts, totalSupplierCost: totalBaseCost }
@@ -47,8 +48,8 @@ function BundleBuilder({ bundles, setBundles, products, getSupplierPrice, setAct
       setBundles(updatedBundles);
       setBundleToEdit(null);
       setActiveSubTab('overview');
+      addNotification({ type: 'info', title: 'تم تعديل حزمة', description: `تم تحديث "${bundleName}"`, category: 'bundles', actionTab: 'bundles' });
     } else {
-      // Create new bundle
       const newBundle = {
         id: `bundle_${Date.now()}`,
         name: bundleName,
@@ -61,6 +62,7 @@ function BundleBuilder({ bundles, setBundles, products, getSupplierPrice, setAct
       setBundleName('');
       setSelectedProducts([]);
       setActiveSubTab('pricing');
+      addNotification({ type: 'success', title: 'تم إنشاء حزمة جديدة', description: `"${bundleName}" تحتوي على ${selectedProducts.length} منتجات`, category: 'bundles', actionTab: 'bundles', playSound: true });
     }
   };
 

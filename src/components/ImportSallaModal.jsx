@@ -4,6 +4,7 @@ import {
   XIcon, UploadIcon, CheckCircleIcon, PackageIcon,
   AlertTriangleIcon, TagIcon, SearchIcon, CheckIcon
 } from './Icons';
+import ModalOverlay from './ModalOverlay';
 
 // ── Salla Excel Parser ─────────────────────────────────────────────────────
 function parseSallaExcel(workbook) {
@@ -138,7 +139,6 @@ function ImportSallaModal({ isOpen, onClose, onImport, existingProducts, duratio
   const [searchQuery, setSearchQuery] = useState('');
   const [step, setStep] = useState('upload'); // upload, preview, result
   const fileRef = useRef(null);
-  const overlayRef = useRef(null);
 
   const reset = useCallback(() => {
     setParsedProducts([]);
@@ -249,12 +249,7 @@ function ImportSallaModal({ isOpen, onClose, onImport, existingProducts, duratio
     : parsedProducts;
 
   return (
-    <div
-      className="modal-overlay"
-      ref={overlayRef}
-      onClick={(e) => e.target === overlayRef.current && handleClose()}
-      onKeyDown={(e) => e.key === 'Escape' && handleClose()}
-    >
+    <ModalOverlay onClose={handleClose}>
       <div className="import-salla-modal" role="dialog" aria-labelledby="import-salla-title">
         {/* Header */}
         <div className="import-modal-header">
@@ -480,7 +475,7 @@ function ImportSallaModal({ isOpen, onClose, onImport, existingProducts, duratio
           )}
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

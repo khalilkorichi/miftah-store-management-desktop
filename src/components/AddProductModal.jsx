@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PackageIcon, XIcon, CheckIcon, CheckCircleIcon, TagIcon, CalendarIcon, InfoIcon, ZapIcon, UserIcon, UsersIcon, ShieldCheckIcon, LinkIcon, PlusIcon } from './Icons';
+import ModalOverlay from './ModalOverlay';
 
 const CATEGORY_ICONS = ['🤖','🎬','📚','💼','🔒','🎨','⚡','☁️','🎵','🖥️','📱','🌐','💡','🛡️','🎮'];
 const CATEGORY_COLORS = ['#5E4FDE','#F7784A','#1A51F4','#11BA65','#F94B60','#EC4899','#FFC530','#0EA5E9','#8B5CF6','#10B981'];
@@ -20,7 +21,6 @@ function AddProductModal({ isOpen, onClose, onConfirm, durations, suppliers, all
   const [newCatColor, setNewCatColor] = useState(CATEGORY_COLORS[0]);
   const [newCatIcon, setNewCatIcon] = useState(CATEGORY_ICONS[0]);
   const nameInputRef = useRef(null);
-  const overlayRef = useRef(null);
   const newCatNameRef = useRef(null);
 
   useEffect(() => {
@@ -56,13 +56,6 @@ function AddProductModal({ isOpen, onClose, onConfirm, durations, suppliers, all
 
   if (!isOpen) return null;
 
-  const handleOverlayClick = (e) => {
-    if (e.target === overlayRef.current) onClose();
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') onClose();
-  };
 
   const toggleDuration = (durId) => {
     setSelectedDurations((prev) =>
@@ -146,15 +139,7 @@ function AddProductModal({ isOpen, onClose, onConfirm, durations, suppliers, all
   const selectedCategory = categories.find((c) => c.id === categoryId);
 
   return (
-    <div
-      className="modal-overlay"
-      ref={overlayRef}
-      onClick={handleOverlayClick}
-      onKeyDown={handleKeyDown}
-      role="dialog"
-      aria-modal="true"
-      aria-label="إضافة منتج جديد"
-    >
+    <ModalOverlay onClose={onClose}>
       <div className="modal-box" dir="rtl">
         <div className="modal-header modal-header-blue">
           <div className="modal-header-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><PackageIcon /></div>
@@ -523,7 +508,7 @@ function AddProductModal({ isOpen, onClose, onConfirm, durations, suppliers, all
           )}
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

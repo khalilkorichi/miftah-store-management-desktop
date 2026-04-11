@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { PackageIcon, ZapIcon, TargetIcon } from '../Icons';
+import { PackageIcon, ZapIcon, TargetIcon, TagIcon, PlusIcon } from '../Icons';
 
 const fmt = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPct = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-function BundlePricing({ bundles, setBundles, products, getSupplierPrice, costs }) {
+function BundlePricing({ bundles, setBundles, products, getSupplierPrice, costs, setActiveSubTab }) {
   const [selectedBundleId, setSelectedBundleId] = useState(bundles.length > 0 ? bundles[0].id : null);
   const [discountPercent, setDiscountPercent] = useState(10);
   
@@ -28,10 +28,18 @@ function BundlePricing({ bundles, setBundles, products, getSupplierPrice, costs 
 
   if (bundles.length === 0) {
     return (
-      <div className="cm-empty" style={{padding: '60px 20px'}}>
-        <span className="cm-empty-icon flex-row align-center justify-center"><PackageIcon className="icon-xl" /></span>
-        <p>لا يوجد حزم حالياً</p>
-        <span>يرجى التوجه لـ "تكوين الحزم" لإضافة حزمة جديدة قبل تسعيرها</span>
+      <div className="bp-empty-state">
+        <div className="bp-empty-icon-wrap flex-row align-center justify-center">
+          <TagIcon className="icon-xl" />
+        </div>
+        <h4>لا توجد حزم لتسعيرها</h4>
+        <p>قم بإنشاء حزمة جديدة أولاً من تبويب "تكوين الحزم" ثم عُد هنا لتحديد أسعارها وحساب هوامش الربح</p>
+        {setActiveSubTab && (
+          <button className="bp-empty-action" onClick={() => setActiveSubTab('builder')}>
+            <PlusIcon className="icon-sm" />
+            إنشاء حزمة جديدة
+          </button>
+        )}
       </div>
     );
   }

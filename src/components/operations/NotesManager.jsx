@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useNotifications } from '../NotificationContext';
 import {
   PlusIcon, SearchIcon, XIcon, EditIcon, TrashIcon,
   TagIcon, StarIcon, PinIcon, GridIcon, FilterIcon,
   CheckCircleIcon, ClockIcon
 } from '../Icons';
+import ModalOverlay from '../ModalOverlay';
 
 const NOTE_COLORS = [
   { id: 'default', bg: 'var(--bg-card)', border: 'var(--border-color)', label: 'افتراضي' },
@@ -115,7 +117,6 @@ function NoteModal({ note, onSave, onClose, categories, onAddCategory }) {
   const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState('#6366f1');
   const contentRef = useRef(null);
-  const overlayRef = useRef(null);
 
   useEffect(() => {
     if (contentRef.current && !note) {
@@ -149,7 +150,7 @@ function NoteModal({ note, onSave, onClose, categories, onAddCategory }) {
   const selColor = getNoteColor(color);
 
   return (
-    <div className="modal-overlay" ref={overlayRef} onClick={e => { if (e.target === overlayRef.current) onClose(); }} onKeyDown={e => e.key === 'Escape' && onClose()} role="dialog" aria-modal="true">
+    <ModalOverlay onClose={onClose}>
       <div className="modal-box keep-modal-box" dir="rtl" onClick={e => e.stopPropagation()}>
         <div className="modal-header" style={{ background: 'linear-gradient(135deg, #5E4FDE 0%, #7b6ff0 100%)', color: '#fff' }}>
           <div className="modal-header-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -278,7 +279,7 @@ function NoteModal({ note, onSave, onClose, categories, onAddCategory }) {
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 
@@ -342,6 +343,7 @@ function CategoryManager({ categories, onUpdate, onDelete }) {
 }
 
 export default function NotesManager({ notes, setNotes }) {
+  const { addNotification } = useNotifications();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [showModal, setShowModal] = useState(false);
@@ -359,6 +361,7 @@ export default function NotesManager({ notes, setNotes }) {
   }, [categories]);
 
   const handleSaveNote = (noteData) => {
+    const isNew = !notes.some(n => n.id === noteData.id);
     setNotes(prev => {
       const idx = prev.findIndex(n => n.id === noteData.id);
       if (idx >= 0) {
@@ -368,12 +371,15 @@ export default function NotesManager({ notes, setNotes }) {
       }
       return [noteData, ...prev];
     });
+    addNotification({ type: 'success', title: isNew ? 'تم إنشاء ملاحظة' : 'تم تحديث ملاحظة', description: `"${noteData.title || ''}"`, category: 'operations', actionTab: 'operations' });
     setShowModal(false);
     setEditingNote(null);
   };
 
   const handleDeleteNote = (id) => {
+    const note = notes.find(n => n.id === id);
     setNotes(prev => prev.filter(n => n.id !== id));
+    if (note) addNotification({ type: 'warning', title: 'تم حذف ملاحظة', description: `"${note.title || ''}"`, category: 'operations', actionTab: 'operations' });
   };
 
   const handleTogglePin = (id) => {

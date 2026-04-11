@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ZapIcon, XIcon, CheckCircleIcon, SettingsIcon, CheckIcon, TrashIcon, PlusIcon, EyeIcon, TagIcon, FileTextIcon, PaletteIcon, AlertTriangleIcon } from './Icons';
+import ModalOverlay from './ModalOverlay';
 
 /* ─────────────────────────────────────────────────────────────
    ActivationMethodsModal
@@ -24,7 +25,6 @@ function ActivationMethodsModal({
   const [newColor, setNewColor]       = useState('#5E4FDE');
   const [labelErr, setLabelErr]       = useState('');
   const labelRef = useRef(null);
-  const overlayRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) { setTab('assign'); setShowAddForm(false); resetForm(); }
@@ -37,8 +37,6 @@ function ActivationMethodsModal({
   const resetForm = () => {
     setNewLabel(''); setNewIcon('🔑'); setNewDesc(''); setNewColor('#5E4FDE'); setLabelErr('');
   };
-
-  const handleOverlayClick = (e) => { if (e.target === overlayRef.current) onClose(); };
 
   const handleAddType = () => {
     const trimmed = newLabel.trim();
@@ -53,8 +51,7 @@ function ActivationMethodsModal({
   const COLOR_PRESETS = ['#5E4FDE','#11BA65','#1A51F4','#F7784A','#F94B60','#FFC530','#0088cc','#25d366'];
 
   return (
-    <div className="modal-overlay" ref={overlayRef} onClick={handleOverlayClick}
-         role="dialog" aria-modal="true" aria-label="إدارة طرق التفعيل">
+    <ModalOverlay onClose={onClose}>
       <div className="modal-box act-modal-box" dir="rtl">
 
         {/* ── Header ── */}
@@ -264,7 +261,7 @@ function ActivationMethodsModal({
           <button className="modal-btn modal-btn-primary" onClick={onClose}>تم</button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNotifications } from '../NotificationContext';
 import {
   PlusIcon, SearchIcon, CheckSquareIcon,
   ClockIcon, CheckCircleIcon, InboxIcon, ListIcon, GridIcon, SparklesIcon,
@@ -67,6 +68,7 @@ function formatShortDate(dateStr) {
 }
 
 export default function TaskManager({ tasks, setTasks }) {
+  const { addNotification } = useNotifications();
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [prefillData, setPrefillData] = useState(null);
@@ -98,6 +100,7 @@ export default function TaskManager({ tasks, setTasks }) {
   }, [filtered]);
 
   const handleSave = (task) => {
+    const isNew = !tasks.some(t => t.id === task.id);
     setTasks(prev => {
       const idx = prev.findIndex(t => t.id === task.id);
       if (idx >= 0) {
@@ -107,17 +110,23 @@ export default function TaskManager({ tasks, setTasks }) {
       }
       return [task, ...prev];
     });
+    addNotification({ type: 'success', title: isNew ? 'تم إنشاء مهمة' : 'تم تحديث مهمة', description: `"${task.title}"`, category: 'operations', actionTab: 'operations' });
   };
 
   const handleDelete = (id) => {
+    const task = tasks.find(t => t.id === id);
     setTasks(prev => prev.filter(t => t.id !== id));
+    if (task) addNotification({ type: 'warning', title: 'تم حذف مهمة', description: `"${task.title}"`, category: 'operations', actionTab: 'operations' });
   };
 
+  const STATUS_LABELS = { pending: 'قيد الانتظار', in_progress: 'قيد التنفيذ', done: 'مكتملة' };
   const handleStatusChange = (id, newStatus) => {
     setTasks(prev => prev.map(t => t.id === id
       ? { ...t, status: newStatus, updatedAt: new Date().toISOString() }
       : t
     ));
+    const task = tasks.find(t => t.id === id);
+    if (task) addNotification({ type: newStatus === 'done' ? 'success' : 'info', title: 'تم تغيير حالة المهمة', description: `"${task.title}" → ${STATUS_LABELS[newStatus] || newStatus}`, category: 'operations', actionTab: 'operations' });
   };
 
   const openEdit = (task) => { setEditingTask(task); setPrefillData(null); setShowModal(true); };

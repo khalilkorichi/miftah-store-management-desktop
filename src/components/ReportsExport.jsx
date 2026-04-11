@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useNotifications } from './NotificationContext';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { 
@@ -234,6 +235,7 @@ const HBarChartVisual = ({ data }) => {
 };
 
 function ReportsExport({ products, suppliers, durations, exchangeRate, activationMethods = [], categories = [], finalPrices = {}, costs = [], pricingData = {} }) {
+  const { addNotification } = useNotifications();
   const reportRef = useRef(null);
   const [generating, setGenerating] = useState(null);
   const [activeSection, setActiveSection] = useState('global');
@@ -395,8 +397,10 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
       }
       const safeName = filename.replace(/[<>:"/\\|?*]/g, '_').trim() || 'report.pdf';
       doc.save(safeName);
+      addNotification({ type: 'success', title: 'تم تصدير التقرير', description: `تم إنشاء وتحميل "${safeName}"`, category: 'operations', actionTab: 'reports' });
     } catch (e) {
       alert('حدث خطأ أثناء إنشاء التقرير: ' + e.message);
+      addNotification({ type: 'error', title: 'فشل تصدير التقرير', description: e.message, category: 'operations', actionTab: 'reports' });
     } finally {
       setGenerating(null);
     }
@@ -448,8 +452,10 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
         const safeName = `تقرير_${product.name}_مفتاح.pdf`.replace(/[<>:"/\\|?*]/g, '_').trim();
         doc.save(safeName);
       }
+      addNotification({ type: 'success', title: 'تم تصدير جميع التقارير', description: `تم إنشاء ${products.length} ملف PDF`, category: 'operations', actionTab: 'reports' });
     } catch (e) {
       alert('حدث خطأ أثناء إنشاء التقارير: ' + e.message);
+      addNotification({ type: 'error', title: 'فشل تصدير التقارير', description: e.message, category: 'operations', actionTab: 'reports' });
     } finally {
       setGenerating(null);
     }
@@ -1374,8 +1380,10 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
       addFeaturesPdfFooter(doc);
       const safeName = filename.replace(/[<>:"/\\|?*]/g, '_').trim() || 'report.pdf';
       doc.save(safeName);
+      addNotification({ type: 'success', title: 'تم تصدير تقرير المزايا', description: `تم إنشاء وتحميل "${safeName}"`, category: 'operations', actionTab: 'reports' });
     } catch (e) {
       alert('حدث خطأ أثناء إنشاء التقرير: ' + e.message);
+      addNotification({ type: 'error', title: 'فشل تصدير التقرير', description: e.message, category: 'operations', actionTab: 'reports' });
     } finally {
       setGenerating(null);
     }
@@ -1427,8 +1435,10 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
         const safeName = `مزايا_${product.name}_مفتاح.pdf`.replace(/[<>:"/\\|?*]/g, '_').trim();
         doc.save(safeName);
       }
+      addNotification({ type: 'success', title: 'تم تصدير جميع تقارير المزايا', description: `تم إنشاء ${productsWithFeatures.length} ملف PDF`, category: 'operations', actionTab: 'reports' });
     } catch (e) {
       alert('حدث خطأ أثناء إنشاء التقارير: ' + e.message);
+      addNotification({ type: 'error', title: 'فشل تصدير التقارير', description: e.message, category: 'operations', actionTab: 'reports' });
     } finally {
       setGenerating(null);
     }

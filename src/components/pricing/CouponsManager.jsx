@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNotifications } from '../NotificationContext';
 import { TagIcon, StarIcon, ClipboardIcon, TrashIcon, DatabaseIcon, DollarSignIcon, ScaleIcon, AlertTriangleIcon, LightbulbIcon } from '../Icons';
 
 const fmt = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function CouponsManager({ coupons, setCoupons, products, suppliers, costs, exchangeRate, pricingData }) {
+  const { addNotification } = useNotifications();
   const [code, setCode] = useState('');
   const [type, setType] = useState('percentage');
   const [value, setValue] = useState('');
@@ -29,14 +31,19 @@ function CouponsManager({ coupons, setCoupons, products, suppliers, costs, excha
       createdAt: new Date().toISOString()
     };
     setCoupons([...coupons, newCoupon]);
+    addNotification({ type: 'success', title: 'تم إضافة كوبون', description: `الكوبون "${code.toUpperCase()}"`, category: 'pricing', actionTab: 'pricing' });
     setCode(''); setValue(''); setLimit('');
   };
 
   const handleToggle = (id) => {
+    const coupon = coupons.find(c => c.id === id);
     setCoupons(coupons.map(c => c.id === id ? { ...c, active: !c.active } : c));
+    if (coupon) addNotification({ type: 'info', title: coupon.active ? 'تم تعطيل كوبون' : 'تم تفعيل كوبون', description: `"${coupon.code}"`, category: 'pricing', actionTab: 'pricing' });
   };
   const handleDelete = (id) => {
+    const coupon = coupons.find(c => c.id === id);
     setCoupons(coupons.filter(c => c.id !== id));
+    if (coupon) addNotification({ type: 'warning', title: 'تم حذف كوبون', description: `"${coupon.code}"`, category: 'pricing', actionTab: 'pricing' });
   };
 
   const simProduct = products.find(p => p.id === parseInt(simProductId));

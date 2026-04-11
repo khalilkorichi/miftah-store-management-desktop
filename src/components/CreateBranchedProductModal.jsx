@@ -4,6 +4,7 @@ import {
   TagIcon, CalendarIcon, ZapIcon, UserIcon,
   PlusIcon, TrashIcon, GitBranchIcon, ChevronDownIcon, ChevronLeftIcon
 } from './Icons';
+import ModalOverlay from './ModalOverlay';
 
 
 function makeBranch(id, defaultDurations = ['month_1']) {
@@ -237,7 +238,6 @@ export default function CreateBranchedProductModal({ isOpen, onClose, onConfirm,
   const [parentNameError, setParentNameError] = useState('');
   const [branches, setBranches] = useState([]);
   const parentNameRef = useRef(null);
-  const overlayRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -250,9 +250,6 @@ export default function CreateBranchedProductModal({ isOpen, onClose, onConfirm,
   }, [isOpen, durations]);
 
   if (!isOpen) return null;
-
-  const handleOverlayClick = e => { if (e.target === overlayRef.current) onClose(); };
-  const handleKeyDown = e => { if (e.key === 'Escape') onClose(); };
 
   const addBranch = () => {
     const defaultDurs = durations.length > 0 ? [durations[0].id] : [];
@@ -312,15 +309,7 @@ export default function CreateBranchedProductModal({ isOpen, onClose, onConfirm,
   };
 
   return (
-    <div
-      className="modal-overlay"
-      ref={overlayRef}
-      onClick={handleOverlayClick}
-      onKeyDown={handleKeyDown}
-      role="dialog"
-      aria-modal="true"
-      aria-label="إنشاء منتج مفرع"
-    >
+    <ModalOverlay onClose={onClose}>
       <div className="modal-box cbpm-modal-box" dir="rtl">
         <div className="modal-header" style={{ background: 'linear-gradient(135deg, #5E4FDE 0%, #7C6FEB 100%)', color: '#fff' }}>
           <div className="modal-header-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -414,6 +403,6 @@ export default function CreateBranchedProductModal({ isOpen, onClose, onConfirm,
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

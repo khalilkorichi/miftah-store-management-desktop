@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNotifications } from '../NotificationContext';
 import { BarChartIcon, PinIcon, TrendingUpIcon, PlusIcon, SaveIcon, ClipboardIcon, LightbulbIcon, TrashIcon, LockIcon } from '../Icons';
 
 const fmt = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPct = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 function CostManager({ costs, setCosts }) {
+  const { addNotification } = useNotifications();
   const [newCostName, setNewCostName] = useState('');
   const [newCostType, setNewCostType] = useState('percentage');
   const [newCostValue, setNewCostValue] = useState('');
@@ -24,16 +26,21 @@ function CostManager({ costs, setCosts }) {
     };
 
     setCosts([...costs, newCost]);
+    addNotification({ type: 'success', title: 'تم إضافة تكلفة تشغيلية', description: `"${newCostName}"`, category: 'pricing', actionTab: 'pricing' });
     setNewCostName('');
     setNewCostValue('');
   };
 
   const handleToggleActive = (id) => {
+    const cost = costs.find(c => c.id === id);
     setCosts(costs.map(c => c.id === id ? { ...c, active: !c.active } : c));
+    if (cost) addNotification({ type: 'info', title: cost.active ? 'تم تعطيل تكلفة' : 'تم تفعيل تكلفة', description: `"${cost.name}"`, category: 'pricing', actionTab: 'pricing' });
   };
 
   const handleDeleteCost = (id) => {
+    const cost = costs.find(c => c.id === id);
     setCosts(costs.filter(c => c.id !== id));
+    if (cost) addNotification({ type: 'warning', title: 'تم حذف تكلفة', description: `"${cost.name}"`, category: 'pricing', actionTab: 'pricing' });
   };
 
   const activeCosts = costs.filter(c => c.active);

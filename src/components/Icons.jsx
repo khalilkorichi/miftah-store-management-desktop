@@ -196,3 +196,11 @@ export const SparklesIcon = (p) => I(<><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 1
 export const GridIcon = (p) => I(<><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></>, p);
 
 export const DownloadCloudIcon = (p) => I(<><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></>, p);
+
+export const BellIcon = (p) => I(<><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></>, p);
+
+export const CheckAllIcon = (p) => I(<><polyline points="1 11 5 15 12 6"/><polyline points="7 11 11 15 20 4"/></>, p);
+
+export const Trash2Icon = (p) => I(<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>, p);
+
+export const VolumeIcon = (p) => I(<><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/></>, p);

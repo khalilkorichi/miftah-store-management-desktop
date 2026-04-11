@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNotifications } from '../NotificationContext';
 import { PlusIcon, SearchIcon, CalendarIcon, AlertTriangleIcon, ClockIcon, CheckCircleIcon } from '../Icons';
 import RenewalCard, { getRenewalDaysInfo } from './RenewalCard';
 import RenewalModal from './RenewalModal';
@@ -34,6 +35,7 @@ function sortRenewals(list) {
 export default function RenewalReminders({
   renewals, setRenewals, products, suppliers, exchangeRate,
 }) {
+  const { addNotification } = useNotifications();
   const [showModal, setShowModal] = useState(false);
   const [editingRenewal, setEditingRenewal] = useState(null);
   const [search, setSearch] = useState('');
@@ -82,6 +84,7 @@ export default function RenewalReminders({
   }, [active]);
 
   const handleSave = (renewal) => {
+    const isNew = !(renewals || []).some(r => r.id === renewal.id);
     setRenewals(prev => {
       const idx = (prev || []).findIndex(r => r.id === renewal.id);
       if (idx >= 0) {
@@ -91,16 +94,21 @@ export default function RenewalReminders({
       }
       return [renewal, ...(prev || [])];
     });
+    addNotification({ type: 'success', title: isNew ? 'تم إضافة تذكير تجديد' : 'تم تحديث تذكير تجديد', description: `"${renewal.name || ''}"`, category: 'operations', actionTab: 'operations' });
   };
 
   const handleDelete = (id) => {
+    const renewal = (renewals || []).find(r => r.id === id);
     setRenewals(prev => (prev || []).filter(r => r.id !== id));
+    if (renewal) addNotification({ type: 'warning', title: 'تم حذف تذكير تجديد', description: `"${renewal.name || ''}"`, category: 'operations', actionTab: 'operations' });
   };
 
   const handleRenewed = (id, nextDate) => {
     setRenewals(prev => (prev || []).map(r =>
       r.id === id ? { ...r, renewalDate: nextDate, updatedAt: new Date().toISOString() } : r
     ));
+    const renewal = (renewals || []).find(r => r.id === id);
+    if (renewal) addNotification({ type: 'success', title: 'تم تجديد الاشتراك', description: `"${renewal.name || ''}"`, category: 'operations', actionTab: 'operations' });
   };
 
   const openEdit = (r) => { setEditingRenewal(r); setShowModal(true); };

@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import { useNotifications } from '../NotificationContext';
 import { PlusIcon, SearchIcon, BookOpenIcon, SparklesIcon } from '../Icons';
 import GuideCard from './GuideCard';
 import GuideModal from './GuideModal';
 
 export default function ActivationGuidesManager({ guides, setGuides, products, durations }) {
+  const { addNotification } = useNotifications();
   const [showModal, setShowModal] = useState(false);
   const [editingGuide, setEditingGuide] = useState(null);
   const [search, setSearch] = useState('');
@@ -27,6 +29,7 @@ export default function ActivationGuidesManager({ guides, setGuides, products, d
   }, [guides, search, filterProduct]);
 
   const handleSave = (guide) => {
+    const isNew = !guides.some(g => g.id === guide.id);
     setGuides(prev => {
       const idx = prev.findIndex(g => g.id === guide.id);
       if (idx >= 0) {
@@ -36,10 +39,13 @@ export default function ActivationGuidesManager({ guides, setGuides, products, d
       }
       return [guide, ...prev];
     });
+    addNotification({ type: 'success', title: isNew ? 'تم إنشاء دليل تفعيل' : 'تم تحديث دليل تفعيل', description: `"${guide.title || ''}"`, category: 'operations', actionTab: 'operations' });
   };
 
   const handleDelete = (id) => {
+    const guide = guides.find(g => g.id === id);
     setGuides(prev => prev.filter(g => g.id !== id));
+    if (guide) addNotification({ type: 'warning', title: 'تم حذف دليل تفعيل', description: `"${guide.title || ''}"`, category: 'operations', actionTab: 'operations' });
   };
 
   const openEdit = (guide) => {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BarChartIcon, TrendingUpIcon, TrendingDownIcon, CheckCircleIcon, PackageIcon, EditIcon, ClipboardIcon, TrashIcon, DollarSignIcon, TagIcon, SparklesIcon } from '../Icons';
+import { useNotifications } from '../NotificationContext';
 import AIBundleModal from './AIBundleModal';
 
 const fmt = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -8,6 +9,7 @@ const fmtPct = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits:
 function BundleOverview({ bundles, setBundles, products, getSupplierPrice, costs, setBundleToEdit, setActiveSubTab, appSettings, exchangeRate, onNavigateToSettings }) {
   const [expandedBundleId, setExpandedBundleId] = useState(null);
   const [showAIModal, setShowAIModal] = useState(false);
+  const { addNotification } = useNotifications();
   
   const calculateBundleCosts = (b) => {
     let fixed = 0;
@@ -40,8 +42,10 @@ function BundleOverview({ bundles, setBundles, products, getSupplierPrice, costs
   const avgMargin = totalBundles > 0 ? (totalMarginSum / totalBundles) : 0;
 
   const handleDeleteBundle = (id) => {
+    const bundle = bundles.find(b => b.id === id);
     if(window.confirm('هل أنت متأكد من حذف هذه الحزمة؟')) {
       setBundles(bundles.filter(b => b.id !== id));
+      addNotification({ type: 'error', title: 'تم حذف حزمة', description: `تم حذف "${bundle?.name || 'حزمة'}"`, category: 'bundles', actionTab: 'bundles', playSound: true });
     }
   };
 
@@ -58,6 +62,7 @@ function BundleOverview({ bundles, setBundles, products, getSupplierPrice, costs
       createdAt: new Date().toISOString()
     };
     setBundles([...bundles, newBundle]);
+    addNotification({ type: 'info', title: 'تم تكرار حزمة', description: `تم نسخ "${bundle.name}"`, category: 'bundles', actionTab: 'bundles' });
   };
 
   const toggleExpand = (id) => {

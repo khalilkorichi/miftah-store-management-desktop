@@ -1,24 +1,13 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { PlusIcon, XIcon } from './Icons';
+import ModalOverlay from './ModalOverlay';
 
 export default function ProductTypeSelector({ isOpen, onClose, onSelectNormal, onSelectBranched }) {
   if (!isOpen) return null;
 
-  const handleOverlayClick = (e) => {
-    if (e.target.classList.contains('modal-overlay')) onClose();
-  };
-
   return createPortal(
-    <div
-      className="modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="اختر نوع المنتج"
-      onClick={handleOverlayClick}
-      onKeyDown={e => e.key === 'Escape' && onClose()}
-      style={{ zIndex: 3000 }}
-    >
+    <ModalOverlay onClose={onClose}>
       <div className="modal-box pts-modal" dir="rtl" style={{ maxWidth: 460, padding: 0, overflow: 'hidden' }}>
         <div className="modal-header" style={{ background: 'linear-gradient(135deg, #1A51F4 0%, #5E4FDE 100%)', color: '#fff' }}>
           <div className="modal-header-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -50,7 +39,7 @@ export default function ProductTypeSelector({ isOpen, onClose, onSelectNormal, o
           </button>
         </div>
       </div>
-    </div>,
+    </ModalOverlay>,
     document.body
   );
 }

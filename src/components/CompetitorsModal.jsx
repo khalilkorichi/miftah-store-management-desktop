@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { EyeIcon, XIcon, TagIcon, GlobeIcon, PlusIcon, TargetIcon, TrashIcon, DollarSignIcon, EditIcon, CheckCircleIcon } from './Icons';
+import ModalOverlay from './ModalOverlay';
 
 function CompetitorsModal({
   isOpen,
@@ -55,7 +56,7 @@ function CompetitorsModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
+    <ModalOverlay onClose={onClose}>
       <div className="modal-box competitors-modal" onClick={(e) => e.stopPropagation()} dir="rtl">
         <div className="modal-header">
           <div className="modal-header-text">
@@ -225,7 +226,7 @@ function CompetitorsModal({
           </div>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 
