@@ -72,112 +72,75 @@ function SettingsPage({
     setTimeout(() => setRepoUrlSaved(false), 2000);
   }, [updateRepoUrl]);
 
-  const translateUpdateError = useCallback((msg) => {
-    if (!msg) return 'حدث خطأ غير معروف';
-    const m = msg.toLowerCase();
-    if (m.includes('no published versions') || m.includes('no-releases'))
-      return 'لا توجد إصدارات منشورة بعد في هذا المستودع';
-    if (m.includes('404') || m.includes('not found'))
-      return 'المستودع غير موجود أو لا يحتوي على إصدارات';
-    if (m.includes('403') || m.includes('rate limit'))
-      return 'تم تجاوز حد الطلبات لـ GitHub API — حاول مجدداً بعد قليل';
-    if (m.includes('timeout') || m.includes('timed out'))
-      return 'انتهت مهلة الاتصال — تأكد من اتصال الإنترنت';
-    if (m.includes('getaddrinfo') || m.includes('enotfound') || m.includes('network'))
-      return 'لا يمكن الاتصال بالإنترنت — تحقق من الشبكة';
-    if (m.includes('invalid-url'))
-      return 'رابط GitHub غير صحيح — تأكد من صيغة الرابط';
-    if (m.includes('no-repo-url'))
-      return 'لم يتم تحديد رابط مستودع GitHub — أدخل الرابط أولاً';
-    if (m.includes('dev-mode') || m.includes('dev mode'))
-      return 'غير متاح في وضع التطوير';
-    if (m.includes('parse-error'))
-      return 'خطأ في قراءة بيانات الإصدار من GitHub';
-    return msg;
-  }, []);
-
-  const isNewerVersion = useCallback((remote, local) => {
-    if (!remote || !local) return true;
-    const rParts = remote.replace(/^v/, '').split('.').map(Number);
-    const lParts = local.replace(/^v/, '').split('.').map(Number);
-    for (let i = 0; i < Math.max(rParts.length, lParts.length); i++) {
-      const r = rParts[i] || 0;
-      const l = lParts[i] || 0;
-      if (r > l) return true;
-      if (r < l) return false;
-    }
-    return false;
-  }, []);
-
-  const getReleasesUrl = useCallback(() => {
-    const url = updateRepoUrl.trim();
-    if (!url) return null;
-    const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
-    if (!match) return null;
-    return `https://github.com/${match[1]}/${match[2].replace(/\.git$/, '')}/releases`;
-  }, [updateRepoUrl]);
+  const [scanResult, setScanResult] = useState(null);
+  const [expandedCategories, setExpandedCategories] = useState({});
 
   const handleCheckUpdate = useCallback(async () => {
     if (!isElectron) return;
-    setUpdateStatus({ state: 'checking' });
-    const repoUrl = updateRepoUrl.trim() || undefined;
-
-    let githubInfo = null;
-    if (repoUrl) {
-      try {
-        githubInfo = await window.electronUpdater.checkGithubReleases(repoUrl);
-      } catch {}
-    }
-
-    if (githubInfo && githubInfo.success && !isNewerVersion(githubInfo.version, appVersion)) {
-      setUpdateStatus({ state: 'up-to-date' });
+    const repoUrl = updateRepoUrl.trim();
+    if (!repoUrl) {
+      setUpdateStatus({ state: 'error', message: 'أدخل رابط مستودع GitHub أولاً' });
       return;
     }
-
-    const shouldTryElectron = !githubInfo || !githubInfo.success || isNewerVersion(githubInfo.version, appVersion);
-
-    if (shouldTryElectron) {
-      const result = await window.electronUpdater.checkForUpdates(repoUrl);
-
-      if (result && !result.success) {
-        if (githubInfo && githubInfo.success && isNewerVersion(githubInfo.version, appVersion)) {
-          setUpdateStatus({
-            state: 'github-available',
-            version: githubInfo.version,
-            tagName: githubInfo.tagName,
-            publishedAt: githubInfo.publishedAt,
-            htmlUrl: githubInfo.htmlUrl,
-            releasesUrl: githubInfo.releasesUrl,
-            body: githubInfo.body,
-            hasAssets: githubInfo.hasAssets,
-            electronError: translateUpdateError(result.reason)
-          });
-        } else {
-          const errorMsg = translateUpdateError(
-            result.reason || (githubInfo && !githubInfo.success ? githubInfo.reason : '') || 'غير متاح في وضع التطوير'
-          );
-          setUpdateStatus({
-            state: 'error',
-            message: errorMsg,
-            releasesUrl: getReleasesUrl()
-          });
-        }
+    setUpdateStatus({ state: 'checking' });
+    setScanResult(null);
+    try {
+      const result = await window.electronUpdater.scanChanges(repoUrl);
+      if (!result.success) {
+        setUpdateStatus({ state: 'error', message: result.reason });
+      } else if (result.totalChanges === 0) {
+        setUpdateStatus({ state: 'up-to-date' });
+        setScanResult(result);
+      } else {
+        setUpdateStatus({ state: 'changes-found' });
+        setScanResult(result);
       }
+    } catch (err) {
+      setUpdateStatus({ state: 'error', message: err.message || 'خطأ غير معروف' });
     }
-  }, [isElectron, updateRepoUrl, appVersion, translateUpdateError, getReleasesUrl, isNewerVersion]);
+  }, [isElectron, updateRepoUrl]);
 
-  const handleDownloadUpdate = useCallback(async () => {
+  const handleCreateBackup = useCallback(async () => {
     if (!isElectron) return;
-    const result = await window.electronUpdater.downloadUpdate();
-    if (result && !result.success) {
-      setUpdateStatus({ state: 'error', message: result.reason || 'فشل التحميل' });
+    setUpdateStatus(prev => ({ ...prev, backupInProgress: true }));
+    try {
+      const result = await window.electronUpdater.createBackup();
+      if (result.success) {
+        setUpdateStatus(prev => ({ ...prev, backupInProgress: false, backupDone: true, backupPath: result.backupPath, backupCount: result.fileCount }));
+      } else if (result.reason === 'canceled') {
+        setUpdateStatus(prev => ({ ...prev, backupInProgress: false }));
+      } else {
+        setUpdateStatus(prev => ({ ...prev, backupInProgress: false, backupError: result.reason }));
+      }
+    } catch (err) {
+      setUpdateStatus(prev => ({ ...prev, backupInProgress: false, backupError: err.message }));
     }
   }, [isElectron]);
 
-  const handleInstallUpdate = useCallback(() => {
+  const handleApplyUpdate = useCallback(async () => {
+    if (!isElectron || !scanResult) return;
+    const totalFiles = (scanResult.modified?.length || 0) + (scanResult.added?.length || 0);
+    setUpdateStatus({ state: 'downloading', current: 0, total: totalFiles, percent: 0 });
+    try {
+      const result = await window.electronUpdater.applyUpdate();
+      if (result.success) {
+        setUpdateStatus({ state: 'complete', downloaded: result.downloaded, failed: result.failed, errors: result.errors });
+      } else {
+        setUpdateStatus({ state: 'error', message: result.reason, errors: result.errors });
+      }
+    } catch (err) {
+      setUpdateStatus({ state: 'error', message: err.message || 'فشل تطبيق التحديث' });
+    }
+  }, [isElectron, scanResult]);
+
+  const handleRestartApp = useCallback(() => {
     if (!isElectron) return;
-    window.electronUpdater.installUpdate();
+    window.electronUpdater.restartApp();
   }, [isElectron]);
+
+  const toggleCategory = useCallback((cat) => {
+    setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
+  }, []);
 
   const handleSaveRate = () => {
     const rate = parseFloat(tempRate);
@@ -854,245 +817,251 @@ function SettingsPage({
             </div>
             <div className="upd-hero-text">
               <h3>تحديثات البرنامج</h3>
-              <p>إدارة التحديثات ومصدر التحميل</p>
+              <p>مزامنة الملفات مباشرة من GitHub</p>
             </div>
             <div className="upd-hero-version">
               <span>v{appVersion || '—'}</span>
             </div>
           </div>
 
-          <div className="upd-grid">
-            <div className="upd-panel upd-panel-main">
-              <div className="upd-panel-header">
-                <RefreshIcon className="icon-sm" />
-                <span>حالة التحديث</span>
-              </div>
-
-              {!isElectron && (
-                <div className="upd-info-banner">
-                  <div className="upd-info-banner-icon"><InfoIcon className="icon-sm" /></div>
-                  <div>
-                    <strong>وضع المتصفح</strong>
-                    <p>التحديث متاح فقط في نسخة سطح المكتب (Windows). في المتصفح، حدّث الصفحة للحصول على آخر التعديلات.</p>
-                  </div>
+          <div className="upd-panel upd-panel-side" style={{ marginBottom: '1rem' }}>
+            <div className="upd-panel-header">
+              <LinkIcon className="icon-sm" />
+              <span>مستودع GitHub</span>
+            </div>
+            <div className="upd-repo-section">
+              <div className="upd-repo-input-row">
+                <div className={`upd-repo-input-wrapper upd-repo-input-wrapper--${repoUrlValidState}`}>
+                  <LinkIcon className="upd-repo-prefix-icon icon-xs" />
+                  <input
+                    type="text"
+                    className="input upd-repo-input"
+                    placeholder="https://github.com/user/repo"
+                    value={updateRepoUrl}
+                    onChange={e => setUpdateRepoUrl(e.target.value)}
+                    dir="ltr"
+                  />
+                  {updateRepoUrl && (
+                    <button type="button" className="upd-repo-clear-btn" onClick={() => setUpdateRepoUrl('')} title="مسح">
+                      <XIcon className="icon-xs" />
+                    </button>
+                  )}
                 </div>
-              )}
+                <button
+                  className={`btn btn-sm ${repoUrlSaved ? 'upd-saved-btn' : 'btn-primary'}`}
+                  onClick={handleSaveRepoUrl}
+                  disabled={repoUrlValidState === 'invalid'}
+                >
+                  {repoUrlSaved ? <><CheckCircleIcon className="icon-xs" /><span>تم</span></> : <span>حفظ</span>}
+                </button>
+              </div>
+            </div>
+          </div>
 
-              {isElectron && (
-                <div className="upd-state-area">
-                  {updateStatus.state === 'idle' && (
-                    <div className="upd-idle">
-                      <div className="upd-idle-icon"><RefreshIcon /></div>
-                      <p>اضغط للتحقق من وجود تحديثات جديدة</p>
-                      <button className="btn btn-primary" onClick={handleCheckUpdate}>
-                        <RefreshIcon className="icon-xs" />
-                        <span>البحث عن تحديثات</span>
-                      </button>
-                    </div>
-                  )}
+          <div className="upd-panel upd-panel-main">
+            {!isElectron && (
+              <div className="upd-info-banner">
+                <div className="upd-info-banner-icon"><InfoIcon className="icon-sm" /></div>
+                <div>
+                  <strong>وضع المتصفح</strong>
+                  <p>التحديث متاح فقط في نسخة سطح المكتب (Windows). في المتصفح، حدّث الصفحة للحصول على آخر التعديلات.</p>
+                </div>
+              </div>
+            )}
 
-                  {updateStatus.state === 'checking' && (
-                    <div className="upd-checking">
-                      <div className="upd-spinner-lg" />
-                      <p>جاري البحث عن تحديثات...</p>
-                    </div>
-                  )}
+            {isElectron && (
+              <div className="upd-state-area">
+                {updateStatus.state === 'idle' && (
+                  <div className="upd-idle">
+                    <div className="upd-idle-icon"><RefreshIcon /></div>
+                    <p>اضغط للبحث عن تحديثات في المستودع</p>
+                    <button className="btn btn-primary" onClick={handleCheckUpdate} disabled={repoUrlValidState !== 'valid'}>
+                      <RefreshIcon className="icon-xs" />
+                      <span>البحث عن تحديثات</span>
+                    </button>
+                  </div>
+                )}
 
-                  {updateStatus.state === 'up-to-date' && (
-                    <div className="upd-uptodate">
-                      <div className="upd-success-icon"><CheckCircleIcon /></div>
-                      <strong>البرنامج محدّث</strong>
-                      <p>لديك أحدث إصدار متاح</p>
-                      <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
-                        <RefreshIcon className="icon-xs" />
-                        <span>فحص مجدداً</span>
-                      </button>
-                    </div>
-                  )}
+                {updateStatus.state === 'checking' && (
+                  <div className="upd-checking">
+                    <div className="upd-spinner-lg" />
+                    <p>جاري مقارنة الملفات مع المستودع...</p>
+                  </div>
+                )}
 
-                  {updateStatus.state === 'available' && (
-                    <div className="upd-available">
-                      <div className="upd-available-badge">
+                {updateStatus.state === 'up-to-date' && (
+                  <div className="upd-uptodate">
+                    <div className="upd-success-icon"><CheckCircleIcon /></div>
+                    <strong>جميع الملفات محدّثة</strong>
+                    {scanResult?.latestCommit && (
+                      <p className="upd-commit-info">
+                        آخر commit: <span dir="ltr">{scanResult.latestCommit.sha}</span> — {scanResult.latestCommit.message}
+                      </p>
+                    )}
+                    <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
+                      <RefreshIcon className="icon-xs" />
+                      <span>فحص مجدداً</span>
+                    </button>
+                  </div>
+                )}
+
+                {updateStatus.state === 'changes-found' && scanResult && (
+                  <div className="upd-changes-found">
+                    <div className="upd-changes-summary">
+                      <div className="upd-changes-count">
                         <DownloadCloudIcon className="icon-sm" />
-                        <span>تحديث جديد</span>
+                        <strong>{scanResult.totalChanges} ملف يحتاج تحديث</strong>
                       </div>
-                      <div className="upd-available-ver">
-                        الإصدار <strong>{updateStatus.version}</strong>
-                      </div>
-                      <div className="upd-warning-banner">
-                        <AlertTriangleIcon className="icon-sm" />
-                        <span>يُنصح بعمل نسخة احتياطية من بياناتك قبل التحديث</span>
-                      </div>
-                      <button className="btn btn-primary" onClick={handleDownloadUpdate}>
-                        <DownloadIcon className="icon-xs" />
-                        <span>تحميل التحديث</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {updateStatus.state === 'downloading' && (
-                    <div className="upd-downloading">
-                      <div className="upd-dl-header">
-                        <DownloadIcon className="icon-sm" />
-                        <span>جاري التحميل</span>
-                        <strong>{updateStatus.percent || 0}%</strong>
-                      </div>
-                      <div className="upd-progress-track">
-                        <div className="upd-progress-bar" style={{ width: `${updateStatus.percent || 0}%` }} />
-                      </div>
-                    </div>
-                  )}
-
-                  {updateStatus.state === 'downloaded' && (
-                    <div className="upd-downloaded">
-                      <div className="upd-success-icon"><CheckCircleIcon /></div>
-                      <strong>جاهز للتثبيت — v{updateStatus.version}</strong>
-                      <div className="upd-warning-banner">
-                        <AlertTriangleIcon className="icon-sm" />
-                        <span>سيتم إغلاق البرنامج وإعادة تشغيله. تأكد من حفظ عملك.</span>
-                      </div>
-                      <button className="btn btn-primary upd-install-btn" onClick={handleInstallUpdate}>
-                        <RefreshIcon className="icon-xs" />
-                        <span>تثبيت وإعادة التشغيل</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {updateStatus.state === 'github-available' && (
-                    <div className="upd-github-available">
-                      <div className="upd-available-badge upd-github-badge">
-                        <GitBranchIcon className="icon-sm" />
-                        <span>إصدار متاح على GitHub</span>
-                      </div>
-                      <div className="upd-available-ver">
-                        الإصدار <strong>{updateStatus.tagName || updateStatus.version}</strong>
-                      </div>
-                      {updateStatus.publishedAt && (
-                        <div className="upd-github-date">
-                          <CalendarIcon className="icon-xs" />
-                          <span>تاريخ النشر: {new Date(updateStatus.publishedAt).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                        </div>
-                      )}
-                      {updateStatus.body && (
-                        <div className="upd-github-notes">
-                          <p>{updateStatus.body}</p>
-                        </div>
-                      )}
-                      {updateStatus.electronError && (
-                        <div className="upd-info-banner upd-info-banner--warn">
-                          <div className="upd-info-banner-icon"><InfoIcon className="icon-sm" /></div>
-                          <div>
-                            <strong>التحميل التلقائي غير متاح</strong>
-                            <p>{updateStatus.electronError}</p>
-                          </div>
-                        </div>
-                      )}
-                      <div className="upd-github-actions">
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => {
-                            const url = updateStatus.htmlUrl || updateStatus.releasesUrl;
-                            if (url) {
-                              if (window.electronUpdater?.openExternal) window.electronUpdater.openExternal(url);
-                              else window.open(url, '_blank');
-                            }
-                          }}
-                        >
-                          <ExternalLinkIcon className="icon-xs" />
-                          <span>فتح في GitHub</span>
-                        </button>
-                        <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
-                          <RefreshIcon className="icon-xs" />
-                          <span>فحص مجدداً</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {updateStatus.state === 'error' && (
-                    <div className="upd-error">
-                      <div className="upd-error-icon"><AlertTriangleIcon /></div>
-                      <strong>فشل التحديث</strong>
-                      <p>{updateStatus.message}</p>
-                      <div className="upd-error-actions">
-                        <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
-                          <RefreshIcon className="icon-xs" />
-                          <span>إعادة المحاولة</span>
-                        </button>
-                        {updateStatus.releasesUrl && (
-                          <button
-                            className="btn btn-sm btn-ghost"
-                            onClick={() => {
-                              if (window.electronUpdater?.openExternal) window.electronUpdater.openExternal(updateStatus.releasesUrl);
-                              else window.open(updateStatus.releasesUrl, '_blank');
-                            }}
-                          >
-                            <ExternalLinkIcon className="icon-xs" />
-                            <span>فتح صفحة الإصدارات</span>
-                          </button>
+                      <div className="upd-changes-breakdown">
+                        {scanResult.modified.length > 0 && (
+                          <span className="upd-badge upd-badge--modified">{scanResult.modified.length} معدّل</span>
+                        )}
+                        {scanResult.added.length > 0 && (
+                          <span className="upd-badge upd-badge--added">{scanResult.added.length} جديد</span>
                         )}
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
 
-            <div className="upd-panel upd-panel-side">
-              <div className="upd-panel-header">
-                <LinkIcon className="icon-sm" />
-                <span>مصدر التحديثات</span>
-              </div>
-              <div className="upd-repo-section">
-                <label className="upd-repo-label">رابط مشروع GitHub</label>
-                <div className="upd-repo-input-row">
-                  <div className={`upd-repo-input-wrapper upd-repo-input-wrapper--${repoUrlValidState}`}>
-                    <LinkIcon className="upd-repo-prefix-icon icon-xs" />
-                    <input
-                      type="text"
-                      className="input upd-repo-input"
-                      placeholder="https://github.com/user/repo"
-                      value={updateRepoUrl}
-                      onChange={e => setUpdateRepoUrl(e.target.value)}
-                      dir="ltr"
-                    />
-                    {updateRepoUrl && (
-                      <button
-                        type="button"
-                        className="upd-repo-clear-btn"
-                        onClick={() => setUpdateRepoUrl('')}
-                        title="مسح"
-                      >
-                        <XIcon className="icon-xs" />
-                      </button>
+                    {scanResult.latestCommit && (
+                      <div className="upd-commit-card">
+                        <GitBranchIcon className="icon-xs" />
+                        <span dir="ltr">{scanResult.latestCommit.sha}</span>
+                        <span className="upd-commit-msg">{scanResult.latestCommit.message}</span>
+                        <span className="upd-commit-date">{new Date(scanResult.latestCommit.date).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      </div>
+                    )}
+
+                    {scanResult.byCategory && Object.entries(scanResult.byCategory).map(([cat, info]) => (
+                      <div key={cat} className="upd-file-category">
+                        <button className="upd-cat-header" onClick={() => toggleCategory(cat)}>
+                          <ChevronDownIcon className={`icon-xs upd-cat-chevron ${expandedCategories[cat] ? 'upd-cat-chevron--open' : ''}`} />
+                          <span className="upd-cat-label">{info.label}</span>
+                          <span className="upd-cat-count">{info.files.length}</span>
+                        </button>
+                        {expandedCategories[cat] && (
+                          <div className="upd-file-list">
+                            {info.files.map(f => (
+                              <div key={f.path} className="upd-file-item">
+                                <span className={`upd-file-status ${scanResult.modified.some(m => m.path === f.path) ? 'upd-file-status--modified' : 'upd-file-status--added'}`}>
+                                  {scanResult.modified.some(m => m.path === f.path) ? 'معدّل' : 'جديد'}
+                                </span>
+                                <span className="upd-file-path" dir="ltr">{f.path}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    <div className="upd-action-area">
+                      <div className="upd-backup-row">
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          onClick={handleCreateBackup}
+                          disabled={updateStatus.backupInProgress}
+                        >
+                          {updateStatus.backupInProgress ? (
+                            <><div className="upd-spinner-sm" /><span>جاري النسخ...</span></>
+                          ) : updateStatus.backupDone ? (
+                            <><CheckCircleIcon className="icon-xs" /><span>تم النسخ ({updateStatus.backupCount} ملف)</span></>
+                          ) : (
+                            <><DownloadIcon className="icon-xs" /><span>نسخة احتياطية أولاً</span></>
+                          )}
+                        </button>
+                        {updateStatus.backupDone && updateStatus.backupPath && (
+                          <span className="upd-backup-path" dir="ltr" title={updateStatus.backupPath}>
+                            {updateStatus.backupPath.length > 50 ? '...' + updateStatus.backupPath.slice(-47) : updateStatus.backupPath}
+                          </span>
+                        )}
+                        {updateStatus.backupError && (
+                          <span className="upd-backup-error">{updateStatus.backupError}</span>
+                        )}
+                      </div>
+
+                      <div className="upd-apply-row">
+                        <button className="btn btn-primary" onClick={handleApplyUpdate}>
+                          <DownloadCloudIcon className="icon-xs" />
+                          <span>تطبيق التحديث</span>
+                        </button>
+                        <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
+                          <RefreshIcon className="icon-xs" />
+                          <span>إعادة الفحص</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {updateStatus.state === 'downloading' && (
+                  <div className="upd-downloading">
+                    <div className="upd-dl-header">
+                      <DownloadIcon className="icon-sm" />
+                      <span>جاري تحميل الملفات</span>
+                      <strong>{updateStatus.current || 0} / {updateStatus.total || 0}</strong>
+                    </div>
+                    <div className="upd-progress-track">
+                      <div className="upd-progress-bar" style={{ width: `${updateStatus.percent || 0}%` }} />
+                    </div>
+                    {updateStatus.currentFile && (
+                      <p className="upd-dl-current" dir="ltr">{updateStatus.currentFile}</p>
                     )}
                   </div>
-                  <button
-                    className={`btn btn-sm ${repoUrlSaved ? 'upd-saved-btn' : 'btn-primary'}`}
-                    onClick={handleSaveRepoUrl}
-                    disabled={repoUrlValidState === 'invalid'}
-                    title={repoUrlValidState === 'invalid' ? 'الرابط غير صحيح' : ''}
-                  >
-                    {repoUrlSaved ? <><CheckCircleIcon className="icon-xs" /><span>تم</span></> : <span>حفظ</span>}
-                  </button>
-                </div>
-                <p className="upd-repo-hint">إذا تُرك فارغاً، سيتم استخدام المصدر الافتراضي المُعد في إعدادات البرنامج.</p>
-              </div>
+                )}
 
-              <div className="upd-divider" />
+                {updateStatus.state === 'applying' && (
+                  <div className="upd-checking">
+                    <div className="upd-spinner-lg" />
+                    <p>جاري تطبيق التحديثات...</p>
+                  </div>
+                )}
 
-              <div className="upd-steps-section">
-                <div className="upd-panel-header">
-                  <InfoIcon className="icon-sm" />
-                  <span>كيف يعمل</span>
-                </div>
-                <div className="upd-steps">
-                  <div className="upd-step"><div className="upd-step-dot">1</div><span>أدخل رابط GitHub أو استخدم الافتراضي</span></div>
-                  <div className="upd-step"><div className="upd-step-dot">2</div><span>ابحث عن تحديثات متاحة</span></div>
-                  <div className="upd-step"><div className="upd-step-dot">3</div><span>حمّل التحديث يدوياً بعد حفظ بياناتك</span></div>
-                  <div className="upd-step"><div className="upd-step-dot">4</div><span>ثبّت وأعد التشغيل عندما تكون جاهزاً</span></div>
-                </div>
+                {updateStatus.state === 'complete' && (
+                  <div className="upd-complete">
+                    <div className="upd-success-icon"><CheckCircleIcon /></div>
+                    <strong>تم التحديث بنجاح</strong>
+                    <p>تم تحديث {updateStatus.downloaded} ملف{updateStatus.failed > 0 ? ` (فشل ${updateStatus.failed})` : ''}</p>
+                    <div className="upd-warning-banner">
+                      <AlertTriangleIcon className="icon-sm" />
+                      <span>يجب إعادة تشغيل البرنامج لتطبيق التغييرات</span>
+                    </div>
+                    <div className="upd-complete-actions">
+                      <button className="btn btn-primary" onClick={handleRestartApp}>
+                        <RefreshIcon className="icon-xs" />
+                        <span>إعادة التشغيل الآن</span>
+                      </button>
+                      <button className="btn btn-sm btn-ghost" onClick={() => setUpdateStatus({ state: 'idle' })}>
+                        <span>لاحقاً</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {updateStatus.state === 'error' && (
+                  <div className="upd-error">
+                    <div className="upd-error-icon"><AlertTriangleIcon /></div>
+                    <strong>حدث خطأ</strong>
+                    <p>{updateStatus.message}</p>
+                    <button className="btn btn-sm btn-ghost" onClick={handleCheckUpdate}>
+                      <RefreshIcon className="icon-xs" />
+                      <span>إعادة المحاولة</span>
+                    </button>
+                  </div>
+                )}
               </div>
+            )}
+          </div>
+
+          <div className="upd-panel upd-panel-side" style={{ marginTop: '1rem' }}>
+            <div className="upd-panel-header">
+              <InfoIcon className="icon-sm" />
+              <span>كيف يعمل التحديث</span>
+            </div>
+            <div className="upd-steps">
+              <div className="upd-step"><div className="upd-step-dot">1</div><span>أدخل رابط مستودع GitHub واحفظه</span></div>
+              <div className="upd-step"><div className="upd-step-dot">2</div><span>اضغط "البحث عن تحديثات" لمقارنة الملفات</span></div>
+              <div className="upd-step"><div className="upd-step-dot">3</div><span>اختياري: قم بعمل نسخة احتياطية قبل التحديث</span></div>
+              <div className="upd-step"><div className="upd-step-dot">4</div><span>اضغط "تطبيق التحديث" — سيتم تحميل الملفات تلقائياً</span></div>
+              <div className="upd-step"><div className="upd-step-dot">5</div><span>أعد تشغيل البرنامج لتفعيل التحديثات</span></div>
             </div>
           </div>
         </div>
