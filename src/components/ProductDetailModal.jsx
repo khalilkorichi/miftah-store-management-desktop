@@ -42,7 +42,7 @@ function ProductDetailModal({
   const [editingSupplierLink, setEditingSupplierLink] = useState(null); // supplierId
   const [supplierLinkInput, setSupplierLinkInput] = useState('');
   const [openMethodPicker, setOpenMethodPicker] = useState(null);
-  const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
+  const [pickerPos, setPickerPos] = useState({ top: 0, right: 0 });
 
   const sanitizeUrl = (raw) => {
     const trimmed = (raw || '').trim();
@@ -354,7 +354,11 @@ function ProductDetailModal({
                                 onClick={(e) => {
                                   if (isPickerOpen) { setOpenMethodPicker(null); return; }
                                   const rect = e.currentTarget.getBoundingClientRect();
-                                  setPickerPos({ top: rect.bottom + 4, left: rect.left });
+                                  const vw = window.innerWidth;
+                                  const top = rect.bottom + 6;
+                                  const right = vw - rect.right;
+                                  const clampedTop = Math.min(top, window.innerHeight - 260);
+                                  setPickerPos({ top: clampedTop, right });
                                   setOpenMethodPicker(supplier.id);
                                 }}
                               >⚙</button>
@@ -572,7 +576,7 @@ function ProductDetailModal({
         return (
           <>
             <div className="pdm-method-picker-backdrop" onClick={() => setOpenMethodPicker(null)} />
-            <div className="pdm-method-picker" style={{ top: pickerPos.top, left: pickerPos.left }}>
+            <div className="pdm-method-picker" style={{ top: pickerPos.top, right: pickerPos.right }}>
               {activationMethods.map(m => {
                 const active = supplierMethods.includes(m.id);
                 return (
