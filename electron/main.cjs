@@ -27,11 +27,27 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173');
   }
 
-  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+        shell.openExternal(url);
+      }
+    } catch {}
+    return { action: 'deny' };
+  });
   mainWindow.webContents.on('will-navigate', (event, url) => {
     if (app.isPackaged) {
       const appUrl = `file://${path.join(__dirname, '../dist/index.html')}`;
-      if (!url.startsWith(appUrl)) event.preventDefault();
+      if (!url.startsWith(appUrl)) {
+        event.preventDefault();
+        try {
+          const parsed = new URL(url);
+          if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+            shell.openExternal(url);
+          }
+        } catch {}
+      }
     }
   });
 
@@ -62,9 +78,9 @@ ipcMain.handle('updater:open-external', (_event, url) => {
   if (!url || typeof url !== 'string') return;
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== 'https:') return;
-    if (parsed.hostname !== 'github.com' && parsed.hostname !== 'www.github.com') return;
-    shell.openExternal(url);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      shell.openExternal(url);
+    }
   } catch {}
 });
 
