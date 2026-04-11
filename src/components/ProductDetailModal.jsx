@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import {
   XIcon, TagIcon, StarIcon, ShieldCheckIcon, UserIcon, UsersIcon,
   EditIcon, PlusIcon, TrashIcon, ChevronDownIcon, LinkIcon, ExternalLinkIcon, ClipboardIcon
@@ -569,28 +570,31 @@ function ProductDetailModal({
         </div>
       </div>
 
-      {openMethodPicker && (() => {
-        const supplierId = openMethodPicker;
-        const supplierMethods = (product.supplierActivationMethods || {})[supplierId] || [];
-        return (
-          <>
-            <div className="pdm-method-picker-backdrop" onClick={() => setOpenMethodPicker(null)} />
-            <div className="pdm-method-picker" style={{ top: pickerPos.top, right: pickerPos.right }}>
-              {activationMethods.map(m => {
-                const active = supplierMethods.includes(m.id);
-                return (
-                  <button key={m.id} className={`pdm-method-picker-item ${active ? 'active' : ''}`}
-                    onClick={() => onUpdateSupplierActivationMethod?.(product.id, supplierId, m.id, !active)}>
-                    {m.icon} {m.label}
-                    {active && <span className="pdm-method-check">✓</span>}
-                  </button>
-                );
-              })}
-              <button className="pdm-method-picker-close" onClick={() => setOpenMethodPicker(null)}>إغلاق</button>
-            </div>
-          </>
-        );
-      })()}
+      {openMethodPicker && ReactDOM.createPortal(
+        (() => {
+          const supplierId = openMethodPicker;
+          const supplierMethods = (product.supplierActivationMethods || {})[supplierId] || [];
+          return (
+            <>
+              <div className="pdm-method-picker-backdrop" onClick={() => setOpenMethodPicker(null)} />
+              <div className="pdm-method-picker" style={{ top: pickerPos.top, right: pickerPos.right }}>
+                {activationMethods.map(m => {
+                  const active = supplierMethods.includes(m.id);
+                  return (
+                    <button key={m.id} className={`pdm-method-picker-item ${active ? 'active' : ''}`}
+                      onClick={() => onUpdateSupplierActivationMethod?.(product.id, supplierId, m.id, !active)}>
+                      {m.icon} {m.label}
+                      {active && <span className="pdm-method-check">✓</span>}
+                    </button>
+                  );
+                })}
+                <button className="pdm-method-picker-close" onClick={() => setOpenMethodPicker(null)}>إغلاق</button>
+              </div>
+            </>
+          );
+        })(),
+        document.body
+      )}
     </div>
   );
 }
