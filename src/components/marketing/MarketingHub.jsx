@@ -76,6 +76,7 @@ export default function MarketingHub({
             products={products}
             suppliers={suppliers}
             onNavigate={navigateToSubtab}
+            agencyData={agencyData}
           />
         )}
         {activeSubtab === 'audience' && (
