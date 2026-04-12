@@ -65,13 +65,12 @@ const pdfColors = {
 };
 
 const thStyle = {
-  padding: '10px 12px',
+  padding: '8px 10px',
   textAlign: 'center',
   fontWeight: '700',
   borderBottom: `2px solid ${pdfColors.border}`,
   background: pdfColors.light,
   fontSize: '12px',
-  whiteSpace: 'nowrap',
 };
 const subThStyle = {
   padding: '6px 8px',
@@ -82,7 +81,7 @@ const subThStyle = {
   fontSize: '11px',
 };
 const tdStyle = {
-  padding: '8px 12px',
+  padding: '6px 10px',
   textAlign: 'center',
   borderBottom: `1px solid ${pdfColors.borderLight}`,
   fontSize: '12px',
@@ -92,14 +91,14 @@ const MetricCard = ({ label, value, color, icon }) => (
   <div style={{
     background: `${color}10`,
     border: `1.5px solid ${color}30`,
-    borderRadius: '10px',
-    padding: '14px 16px',
+    borderRadius: '8px',
+    padding: '10px 12px',
     textAlign: 'center',
     flex: '1 1 0',
-    minWidth: '100px',
+    minWidth: '90px',
   }}>
-    <div style={{ fontSize: '20px', fontWeight: '800', color, lineHeight: '1.2' }}>{value}</div>
-    <div style={{ fontSize: '11px', color: pdfColors.muted, marginTop: '4px', fontWeight: '500' }}>{label}</div>
+    <div style={{ fontSize: '18px', fontWeight: '800', color, lineHeight: '1.2' }}>{value}</div>
+    <div style={{ fontSize: '10px', color: pdfColors.muted, marginTop: '3px', fontWeight: '500' }}>{label}</div>
   </div>
 );
 
@@ -108,26 +107,26 @@ const ReportHeader = ({ title, color, subtitle, stats }) => (
     <div style={{
       background: `linear-gradient(135deg, ${color} 0%, ${color}bb 100%)`,
       color: '#fff',
-      padding: '24px 32px',
+      padding: '18px 28px',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
     }}>
       <div style={{ flex: 1 }}>
-        <h1 style={{ fontSize: '22px', margin: '0 0 4px 0', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>{title}</h1>
-        {subtitle && <p style={{ fontSize: '12px', margin: 0, opacity: 0.85 }}>{subtitle}</p>}
+        <h1 style={{ fontSize: '20px', margin: '0 0 3px 0', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>{title}</h1>
+        {subtitle && <p style={{ fontSize: '11px', margin: 0, opacity: 0.85 }}>{subtitle}</p>}
       </div>
       <div style={{ textAlign: 'left', flexShrink: 0 }}>
-        <div style={{ fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+        <div style={{ fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
           متجر مفتاح <KeyIcon className="icon-sm" style={{ color: '#fff' }} />
         </div>
-        <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+        <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px' }}>
           {new Date().toLocaleDateString('ar-SA-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
       </div>
     </div>
     {stats && (
-      <div style={{ padding: '16px 32px', background: '#fff', borderBottom: `2px solid ${pdfColors.border}`, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+      <div style={{ padding: '10px 28px', background: '#fff', borderBottom: `2px solid ${pdfColors.border}`, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         {stats}
       </div>
     )}
@@ -135,7 +134,7 @@ const ReportHeader = ({ title, color, subtitle, stats }) => (
 );
 
 const SectionTitle = ({ children, color = pdfColors.accent }) => (
-  <h2 style={{ fontSize: '15px', fontWeight: '700', color, margin: '20px 0 12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `2px solid ${color}20`, paddingBottom: '8px' }}>
+  <h2 style={{ fontSize: '14px', fontWeight: '700', color, margin: '14px 0 8px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `2px solid ${color}20`, paddingBottom: '6px' }}>
     {children}
   </h2>
 );
@@ -355,14 +354,80 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
     return sorted.length > 0 ? { name: sorted[0][0], count: sorted[0][1], total: totalPlans } : null;
   };
 
+  const getRowBreakPoints = (element, canvasScale) => {
+    const containerTop = element.getBoundingClientRect().top;
+    const breakPoints = new Set();
+    breakPoints.add(0);
+    const rows = element.querySelectorAll('tr');
+    rows.forEach(row => {
+      const rect = row.getBoundingClientRect();
+      const topPx = Math.round((rect.top - containerTop) * canvasScale);
+      const bottomPx = Math.round((rect.bottom - containerTop) * canvasScale);
+      breakPoints.add(topPx);
+      breakPoints.add(bottomPx);
+    });
+    const sections = element.querySelectorAll('div[style*="padding"], div[style*="margin"], h2, h3');
+    sections.forEach(el => {
+      const rect = el.getBoundingClientRect();
+      const topPx = Math.round((rect.top - containerTop) * canvasScale);
+      breakPoints.add(topPx);
+    });
+    return [...breakPoints].sort((a, b) => a - b);
+  };
+
+  const findBestBreakPoint = (breakPoints, minY, maxY) => {
+    let best = -1;
+    for (let i = breakPoints.length - 1; i >= 0; i--) {
+      if (breakPoints[i] <= maxY && breakPoints[i] >= minY) {
+        best = breakPoints[i];
+        break;
+      }
+    }
+    return best;
+  };
+
+  const sliceCanvasSmartly = (canvas, element, doc, margin, usableW, usableH, canvasScale) => {
+    const scale = usableW / canvas.width;
+    const maxSliceHeightPx = Math.floor(usableH / scale);
+    const breakPoints = getRowBreakPoints(element, canvasScale);
+    let srcY = 0;
+    let pageIdx = 0;
+    while (srcY < canvas.height) {
+      if (pageIdx > 0) doc.addPage();
+      const remaining = canvas.height - srcY;
+      let srcH;
+      if (remaining <= maxSliceHeightPx) {
+        srcH = remaining;
+      } else {
+        const idealEnd = srcY + maxSliceHeightPx;
+        const minAcceptable = srcY + maxSliceHeightPx * 0.6;
+        const bestBreak = findBestBreakPoint(breakPoints, minAcceptable, idealEnd);
+        srcH = bestBreak > srcY ? bestBreak - srcY : Math.min(maxSliceHeightPx, remaining);
+      }
+      if (srcH <= 0) srcH = Math.min(maxSliceHeightPx, remaining);
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = canvas.width;
+      sliceCanvas.height = srcH;
+      const ctx = sliceCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+      const sliceData = sliceCanvas.toDataURL('image/png');
+      const drawH = srcH * scale;
+      doc.addImage(sliceData, 'PNG', margin, margin, usableW, drawH);
+      srcY += srcH;
+      pageIdx++;
+      if (pageIdx > 500) break;
+    }
+  };
+
   const generatePDF = async (key, filename, isLandscape = false) => {
     setGenerating(key);
     try {
       await new Promise((r) => setTimeout(r, 250));
       const element = reportRef.current;
       if (!element) return;
+      const canvasScale = 2;
       const canvas = await html2canvas(element, {
-        scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+        scale: canvasScale, useCORS: true, backgroundColor: '#ffffff', logging: false,
       });
       const orientation = isLandscape ? 'landscape' : 'portrait';
       const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
@@ -379,21 +444,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
         const xOff = (pageW - canvas.width * scale) / 2;
         doc.addImage(imgData, 'PNG', xOff, margin, canvas.width * scale, scaledH);
       } else {
-        const sliceHeightPx = Math.floor(usableH / scale);
-        const totalPages = Math.ceil(canvas.height / sliceHeightPx);
-        for (let page = 0; page < totalPages; page++) {
-          if (page > 0) doc.addPage();
-          const srcY = page * sliceHeightPx;
-          const srcH = Math.min(sliceHeightPx, canvas.height - srcY);
-          const sliceCanvas = document.createElement('canvas');
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = srcH;
-          const ctx = sliceCanvas.getContext('2d');
-          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-          const sliceData = sliceCanvas.toDataURL('image/png');
-          const drawH = srcH * scale;
-          doc.addImage(sliceData, 'PNG', margin, margin, usableW, drawH);
-        }
+        sliceCanvasSmartly(canvas, element, doc, margin, usableW, usableH, canvasScale);
       }
       const safeName = filename.replace(/[<>:"/\\|?*]/g, '_').trim() || 'report.pdf';
       doc.save(safeName);
@@ -416,8 +467,9 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
         if (!element) continue;
         setGenerating(`all-products-${product.id}`);
         await new Promise((r) => setTimeout(r, 250));
+        const canvasScale = 2;
         const canvas = await html2canvas(element, {
-          scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+          scale: canvasScale, useCORS: true, backgroundColor: '#ffffff', logging: false,
         });
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         const pageW = doc.internal.pageSize.getWidth();
@@ -433,21 +485,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           const xOff = (pageW - canvas.width * scale) / 2;
           doc.addImage(imgData, 'PNG', xOff, margin, canvas.width * scale, scaledH);
         } else {
-          const sliceHeightPx = Math.floor(usableH / scale);
-          const totalPages = Math.ceil(canvas.height / sliceHeightPx);
-          for (let page = 0; page < totalPages; page++) {
-            if (page > 0) doc.addPage();
-            const srcY = page * sliceHeightPx;
-            const srcH = Math.min(sliceHeightPx, canvas.height - srcY);
-            const sliceCanvas = document.createElement('canvas');
-            sliceCanvas.width = canvas.width;
-            sliceCanvas.height = srcH;
-            const ctx = sliceCanvas.getContext('2d');
-            ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-            const sliceData = sliceCanvas.toDataURL('image/png');
-            const drawH = srcH * scale;
-            doc.addImage(sliceData, 'PNG', margin, margin, usableW, drawH);
-          }
+          sliceCanvasSmartly(canvas, element, doc, margin, usableW, usableH, canvasScale);
         }
         const safeName = `تقرير_${product.name}_مفتاح.pdf`.replace(/[<>:"/\\|?*]/g, '_').trim();
         doc.save(safeName);
@@ -481,7 +519,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           </>}
         />
 
-        <div style={{ padding: '16px 28px' }}>
+        <div style={{ padding: '10px 24px' }}>
           <SectionTitle color={pdfColors.accent}>
             <CurrencyIcon className="icon-sm" /> جدول الأسعار الشامل — بالريال السعودي
           </SectionTitle>
@@ -489,7 +527,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
             <thead>
               <tr>
                 <th style={{ ...thStyle, width: '30px' }}>#</th>
-                <th style={{ ...thStyle, textAlign: 'right', minWidth: '100px' }}>المنتج</th>
+                <th style={{ ...thStyle, textAlign: 'right', minWidth: '140px' }}>المنتج</th>
                 <th style={{ ...thStyle, minWidth: '50px' }}>النوع</th>
                 <th style={thStyle}>الخطة</th>
                 <th style={thStyle}>الضمان</th>
@@ -509,13 +547,8 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
                       {planIdx === 0 && (
                         <>
                           <td style={{ ...tdStyle, fontWeight: '700', color: '#888' }} rowSpan={product.plans.length}>{pi + 1}</td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700' }} rowSpan={product.plans.length}>
-                            <div>{formatProductName(product)}</div>
-                            {product.storeUrl && (
-                              <div style={{ fontSize: '9px', color: pdfColors.blue, fontFamily: 'monospace', marginTop: '3px', wordBreak: 'break-all', fontWeight: '500', lineHeight: '1.3' }}>
-                                {product.storeUrl}
-                              </div>
-                            )}
+                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', wordBreak: 'break-word', whiteSpace: 'normal' }} rowSpan={product.plans.length}>
+                            <div style={{ lineHeight: '1.4' }}>{formatProductName(product)}</div>
                           </td>
                           <td style={{ ...tdStyle, fontSize: '10px' }} rowSpan={product.plans.length}>
                             <Badge color={product.accountType === 'team' ? pdfColors.blue : pdfColors.accent}>
@@ -556,12 +589,12 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           <SectionTitle color={pdfColors.green}>
             <StarIcon className="icon-sm" /> ملخص أفضل الموردين حسب المنتج
           </SectionTitle>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             {getBestSupplierPerProduct(products).map((bp, idx) => (
-              <div key={idx} style={{ background: '#f0faf5', border: `1px solid ${pdfColors.green}30`, borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: pdfColors.muted, marginBottom: '3px' }}>{bp.productName}</div>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: pdfColors.green }}>{bp.supplierName}</div>
-                <div style={{ fontSize: '10px', color: '#888' }}>الأفضل في {bp.planCount} {bp.planCount === 1 ? 'خطة' : 'خطط'}</div>
+              <div key={idx} style={{ background: '#f0faf5', border: `1px solid ${pdfColors.green}30`, borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', color: pdfColors.muted, marginBottom: '2px' }}>{bp.productName}</div>
+                <div style={{ fontSize: '13px', fontWeight: '800', color: pdfColors.green }}>{bp.supplierName}</div>
+                <div style={{ fontSize: '9px', color: '#888' }}>الأفضل في {bp.planCount} {bp.planCount === 1 ? 'خطة' : 'خطط'}</div>
               </div>
             ))}
           </div>
@@ -597,7 +630,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
     });
 
     return (
-      <div style={{ fontFamily: 'Tajawal, sans-serif', direction: 'rtl', background: '#fff', color: pdfColors.primary, width: '750px' }}>
+      <div style={{ fontFamily: 'Tajawal, sans-serif', direction: 'rtl', background: '#fff', color: pdfColors.primary, width: '750px', lineHeight: '1.4' }}>
         <ReportHeader
           title={<><PackageIcon style={{width: 24, height: 24}} /> تقرير المنتج: {formatProductName(product)}</>}
           color={pdfColors.blue}
@@ -610,8 +643,8 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           </>}
         />
 
-        <div style={{ padding: '16px 28px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+        <div style={{ padding: '10px 24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
             <div style={{ background: pdfColors.light, border: `1px solid ${pdfColors.border}`, borderRadius: '10px', padding: '14px' }}>
               <h3 style={{ fontSize: '13px', fontWeight: '700', color: pdfColors.accent, margin: '0 0 10px' }}>معلومات المنتج</h3>
               <InfoRow label="اسم المنتج" value={product.name} bold />
@@ -791,7 +824,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           const winRate = planCount > 0 ? fmtPct((bestCount / planCount) * 100) : '0';
 
           return (
-            <div key={supplier.id} style={{ padding: '18px 28px', borderBottom: sIdx < targetSuppliers.length - 1 ? `3px solid ${pdfColors.border}` : 'none' }}>
+            <div key={supplier.id} style={{ padding: '12px 24px', borderBottom: sIdx < targetSuppliers.length - 1 ? `3px solid ${pdfColors.border}` : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
                 <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: `linear-gradient(135deg,${pdfColors.green},${pdfColors.green}cc)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '800', flexShrink: 0 }}>
                   {supplier.name.charAt(0)}
@@ -893,7 +926,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           <MetricCard label="إجمالي الخطط" value={totalPlans} color={pdfColors.blue} />
         </>}
       />
-      <div style={{ padding: '16px 28px' }}>
+      <div style={{ padding: '10px 24px' }}>
         <SectionTitle color={pdfColors.green}>
           <ScaleIcon className="icon-sm" /> جدول المقارنة التفصيلي
         </SectionTitle>
@@ -1014,7 +1047,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           </>}
         />
 
-        <div style={{ padding: '16px 28px' }}>
+        <div style={{ padding: '10px 24px' }}>
           {overallBest && (
             <div style={{ background: `linear-gradient(135deg, #E8FFF3, #f0faf5)`, border: `2px solid ${pdfColors.green}40`, borderRadius: '12px', padding: '16px 20px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: pdfColors.green, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>★</div>
@@ -1136,25 +1169,25 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
     const totalFeatures = product.plans.reduce((s, plan) => s + (plan.features || []).filter(f => !f.isSeparator).length, 0);
     return (
       <div style={{ fontFamily: 'Tajawal, sans-serif', direction: 'rtl', background: '#fff', color: pdfColors.primary, minWidth: '700px', maxWidth: '900px' }}>
-        <div style={{ background: `linear-gradient(135deg, ${headerColor} 0%, ${headerColor}bb 100%)`, color: '#fff', padding: '24px 32px' }}>
+        <div style={{ background: `linear-gradient(135deg, ${headerColor} 0%, ${headerColor}bb 100%)`, color: '#fff', padding: '18px 28px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h1 style={{ fontSize: '22px', margin: '0 0 4px', fontWeight: '800' }}>
+              <h1 style={{ fontSize: '20px', margin: '0 0 3px', fontWeight: '800' }}>
                 {showLogo && '🏪 '}تقرير مزايا المنتج — {formatProductName(product)}
               </h1>
-              <p style={{ fontSize: '12px', margin: 0, opacity: 0.85 }}>وصف المنتج وقائمة المزايا لكل خطة</p>
+              <p style={{ fontSize: '11px', margin: 0, opacity: 0.85 }}>وصف المنتج وقائمة المزايا لكل خطة</p>
             </div>
             <div style={{ textAlign: 'left' }}>
               <div style={{ fontSize: '16px', fontWeight: '800' }}>متجر مفتاح</div>
-              <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+              <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px' }}>
                 {new Date().toLocaleDateString('ar-SA-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}
               </div>
             </div>
           </div>
         </div>
 
-        <div style={{ padding: '20px 32px' }}>
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+        <div style={{ padding: '12px 24px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
             <MetricCard label="عدد الخطط" value={fmtInt(product.plans.length)} color={pdfColors.blue} />
             <MetricCard label="إجمالي المزايا" value={fmtInt(totalFeatures)} color={pdfColors.accent} />
             <MetricCard label="حالة الوصف" value={product.description ? 'مكتمل' : 'ناقص'} color={product.description ? pdfColors.green : pdfColors.orange} />
@@ -1346,7 +1379,8 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
       await new Promise(r => setTimeout(r, 250));
       const element = reportRef.current;
       if (!element) return;
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+      const canvasScale = 2;
+      const canvas = await html2canvas(element, { scale: canvasScale, useCORS: true, backgroundColor: '#ffffff', logging: false });
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
@@ -1361,21 +1395,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
         const xOff = (pageW - canvas.width * scale) / 2;
         doc.addImage(imgData, 'PNG', xOff, margin, canvas.width * scale, scaledH);
       } else {
-        const sliceHeightPx = Math.floor(usableH / scale);
-        const totalPages = Math.ceil(canvas.height / sliceHeightPx);
-        for (let page = 0; page < totalPages; page++) {
-          if (page > 0) doc.addPage();
-          const srcY = page * sliceHeightPx;
-          const srcH = Math.min(sliceHeightPx, canvas.height - srcY);
-          const sliceCanvas = document.createElement('canvas');
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = srcH;
-          const ctx = sliceCanvas.getContext('2d');
-          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-          const sliceData = sliceCanvas.toDataURL('image/png');
-          const drawH = srcH * scale;
-          doc.addImage(sliceData, 'PNG', margin, margin, usableW, drawH);
-        }
+        sliceCanvasSmartly(canvas, element, doc, margin, usableW, usableH, canvasScale);
       }
       addFeaturesPdfFooter(doc);
       const safeName = filename.replace(/[<>:"/\\|?*]/g, '_').trim() || 'report.pdf';
@@ -1400,7 +1420,8 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
         const element = reportRef.current;
         if (!element) continue;
         await new Promise(r => setTimeout(r, 250));
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+        const canvasScale = 2;
+        const canvas = await html2canvas(element, { scale: canvasScale, useCORS: true, backgroundColor: '#ffffff', logging: false });
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
@@ -1415,21 +1436,7 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
           const xOff = (pageW - canvas.width * scale) / 2;
           doc.addImage(imgData, 'PNG', xOff, margin, canvas.width * scale, scaledH);
         } else {
-          const sliceHeightPx = Math.floor(usableH / scale);
-          const totalPages = Math.ceil(canvas.height / sliceHeightPx);
-          for (let page = 0; page < totalPages; page++) {
-            if (page > 0) doc.addPage();
-            const srcY = page * sliceHeightPx;
-            const srcH = Math.min(sliceHeightPx, canvas.height - srcY);
-            const sliceCanvas = document.createElement('canvas');
-            sliceCanvas.width = canvas.width;
-            sliceCanvas.height = srcH;
-            const ctx = sliceCanvas.getContext('2d');
-            ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-            const sliceData = sliceCanvas.toDataURL('image/png');
-            const drawH = srcH * scale;
-            doc.addImage(sliceData, 'PNG', margin, margin, usableW, drawH);
-          }
+          sliceCanvasSmartly(canvas, element, doc, margin, usableW, usableH, canvasScale);
         }
         addFeaturesPdfFooter(doc);
         const safeName = `مزايا_${product.name}_مفتاح.pdf`.replace(/[<>:"/\\|?*]/g, '_').trim();
@@ -1496,32 +1503,32 @@ function ReportsExport({ products, suppliers, durations, exchangeRate, activatio
 
     return (
       <div style={{ fontFamily: 'Tajawal, sans-serif', direction: 'rtl', background: '#fff', color: pdfColors.primary, minWidth: '900px' }}>
-        <div style={{ background: `linear-gradient(135deg, ${pdfColors.accent} 0%, ${pdfColors.accent}bb 100%)`, color: '#fff', padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: `linear-gradient(135deg, ${pdfColors.accent} 0%, ${pdfColors.accent}bb 100%)`, color: '#fff', padding: '18px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ fontSize: '22px', margin: '0 0 4px 0', fontWeight: '800' }}>
+            <h1 style={{ fontSize: '20px', margin: '0 0 3px 0', fontWeight: '800' }}>
               💰 تقرير الأسعار النهائية{productFilter ? ` — ${formatProductName(productFilter)}` : ''}
             </h1>
-            <p style={{ fontSize: '12px', margin: 0, opacity: 0.85 }}>
+            <p style={{ fontSize: '11px', margin: 0, opacity: 0.85 }}>
               {setPricesCount} خطة مسعّرة من {totalPlansCount} — سعر الصرف: 1$ = {exchangeRate} ﷼
             </p>
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '18px', fontWeight: '800' }}>متجر مفتاح 🗝️</div>
-            <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+            <div style={{ fontSize: '16px', fontWeight: '800' }}>متجر مفتاح 🗝️</div>
+            <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px' }}>
               {new Date().toLocaleDateString('ar-SA-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
           </div>
         </div>
 
-        <div style={{ padding: '14px 32px', background: '#fff', borderBottom: `2px solid ${pdfColors.border}`, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ padding: '10px 28px', background: '#fff', borderBottom: `2px solid ${pdfColors.border}`, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <MetricCard label="خطط مسعّرة" value={`${setPricesCount}/${totalPlansCount}`} color={pdfColors.accent} />
           <MetricCard label="متوسط هامش الربح" value={`${fmtPct(avgMargin)}%`} color={avgMargin >= 0 ? pdfColors.green : pdfColors.red} />
           <MetricCard label="منتجات مكتملة" value={`${completeProducts}/${targetProducts.length}`} color={pdfColors.blue} />
           <MetricCard label="خطط غير مسعّرة" value={totalPlansCount - setPricesCount} color={totalPlansCount - setPricesCount > 0 ? pdfColors.orange : pdfColors.green} />
         </div>
 
-        <div style={{ padding: '16px 28px' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: '700', color: pdfColors.accent, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `2px solid ${pdfColors.accent}20`, paddingBottom: '8px' }}>
+        <div style={{ padding: '10px 24px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: '700', color: pdfColors.accent, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `2px solid ${pdfColors.accent}20`, paddingBottom: '6px' }}>
             <CurrencyIcon style={{ width: 18, height: 18 }} /> جدول الأسعار النهائية التفصيلي
           </h2>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: `1px solid ${pdfColors.border}` }}>
