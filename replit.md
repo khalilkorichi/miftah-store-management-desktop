@@ -17,7 +17,7 @@ A web-based admin dashboard for managing a digital products store. Features incl
 - **Package Manager:** npm
 - **Charts:** Recharts
 - **Excel:** SheetJS (xlsx)
-- **PDF:** jsPDF + jspdf-autotable
+- **PDF:** jsPDF + html2canvas (smart row-boundary-aware page slicing)
 - **Desktop:** Electron + electron-builder (optional .exe build). Electron files use `.cjs` extension (CommonJS) because `package.json` has `"type": "module"`
 
 ## Data Persistence
@@ -42,6 +42,10 @@ All state is saved to browser `localStorage` under the key `miftah_store_data`. 
 - `src/components/AIAssistantTab.jsx` — AI chat assistant with MIFTAH_ACTION support for product editing and bundle creation
 - `src/components/GlobalAIAssistant.jsx` — Global floating AI chat with GLOBAL_ACTION support for store management and bundle creation
 - `src/components/Icons.jsx` — SVG icon components (Lucide-inspired)
+- `src/components/SkillsTab.jsx` — Skills library with folder grouping, AI analysis panel, and skill management
+- `src/components/SkillCard.jsx` — Skill card with star rating display and toggle switch
+- `src/components/SkillEditor.jsx` — Skill editor with star rating picker, category selector, markdown preview
+- `src/data/builtinSkills.js` — 22 builtin skills across 9 categories (pricing, content, sales, management, seo, marketing, analytics, customer, other) with star ratings and Arabic content
 - `src/data/initialData.js` — Default configuration values
 - `src/data/productTemplates.js` — Pre-built feature templates for popular products (ChatGPT, Spotify, Canva, etc.)
 - `src/index.css` — Global styles (card layout, responsive grid, numeral settings)
@@ -91,9 +95,11 @@ State-based routing: `dashboard` (default), `products`, `pricing`, `bundles`, `f
 
 ## Modal System
 - **ModalOverlay component** (`src/components/ModalOverlay.jsx`): Unified overlay wrapper with `backdrop-filter: blur(8px)`, `rgba(0,0,0,0.45)` background, click-outside-to-close, ESC key handler
+- **Portal Root** (`#modal-root` in `index.html`): All modals render via `createPortal` into `#modal-root` to escape stacking context issues from parent containers
 - **Z-Index Scale** (CSS variables in `:root`): `--z-nav: 100`, `--z-floating: 200`, `--z-modal-overlay: 1000`, `--z-modal-box: 1001`, `--z-toast: 1100`
 - All modal overlays use unified positioning (`position: fixed; inset: 0`) and consistent blur/opacity
-- Migrated modals: AddProductModal, AddSupplierModal, ConfirmModal, CompetitorsModal, ActivationMethodsModal, ImportSallaModal, ProductTypeSelector, CreateBranchedProductModal, NotesManager
+- All modals use `createPortal` to render at `#modal-root`, ensuring they always appear above the footer and all other page content
+- Portal-enabled modals: ModalOverlay (base), AIBundleModal, TaskModal, TaskTemplatesModal, GuideModal, RenewalModal, WarrantyModal, ProductDetailModal, MoveBranchModal, AttachProductModal, PricingStatusPopup, SkillUploader preview
 
 ## Notification System
 - **NotificationContext** (`src/components/NotificationContext.jsx`): React context + provider for notification state management
