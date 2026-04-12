@@ -21687,7 +21687,6 @@ body.dark-mode .selectable-card.selected {
   border-radius: var(--radius-lg, 14px);
   padding: 22px;
   position: relative;
-  overflow: hidden;
 }
 
 .seo-card-generate::before {
@@ -21833,6 +21832,7 @@ body.dark-mode .selectable-card.selected {
 
 .seo-skill-badge-wrap {
   position: relative;
+  z-index: 50;
 }
 
 .seo-skill-badge {
