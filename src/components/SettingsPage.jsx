@@ -10,6 +10,7 @@ import {
 } from './Icons';
 import { GEMINI_MODELS, OPENROUTER_MODELS, AGENTROUTER_MODELS } from '../utils/aiProvider';
 import SkillsTab from './SkillsTab';
+import AgencySettings from './marketing/AgencySettings';
 
 const STORAGE_CATEGORIES = [
   {
@@ -312,6 +313,8 @@ function SettingsPage({
   onLogoChange,
   appSettings,
   onAppSettingsChange,
+  agencyData,
+  setAgencyData,
 }) {
   const [tempRate, setTempRate] = useState(exchangeRate);
   const [newDurationLabel, setNewDurationLabel] = useState('');
@@ -508,6 +511,7 @@ function SettingsPage({
     { id: 'data',       label: 'البيانات',           icon: <DatabaseIcon className="icon-xs" /> },
     { id: 'storage',    label: 'التخزين',            icon: <HardDriveIcon className="icon-xs" /> },
     { id: 'updates',    label: 'التحديثات',          icon: <DownloadCloudIcon className="icon-xs" /> },
+    { id: 'content_agency', label: 'وكالة المحتوى', icon: <SparklesIcon className="icon-xs" /> },
   ];
 
   return (
@@ -1349,6 +1353,14 @@ function SettingsPage({
             </div>
           </div>
         </div>
+      )}
+
+      {settingsTab === 'content_agency' && (
+        <AgencySettings
+          agencyData={agencyData}
+          setAgencyData={setAgencyData}
+          appSettings={appSettings}
+        />
       )}
 
       <div className="settings-info-footer">
