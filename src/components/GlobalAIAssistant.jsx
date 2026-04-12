@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   SparklesIcon, XIcon, ZapIcon, SendIcon, TrashIcon,
   CheckCircleIcon, AlertTriangleIcon, SettingsIcon,
-  PlusIcon, ClockIcon, PackageIcon,
+  PlusIcon, ClockIcon, PackageIcon, Maximize2Icon, Minimize2Icon,
 } from './Icons';
 import { callAI } from '../utils/aiProvider';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -498,6 +498,7 @@ export default function GlobalAIAssistant({
   /* ── Input / AI state ── */
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [inputExpanded, setInputExpanded] = useState(false);
   const [activeSkill, setActiveSkill] = useState(null);
   const [showSkillsMenu, setShowSkillsMenu] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
@@ -815,6 +816,8 @@ export default function GlobalAIAssistant({
     const nextMessages = [...messages, userMsg];
     syncConv(nextMessages);
     setInput('');
+    setInputExpanded(false);
+    if (inputRef.current) inputRef.current.style.height = 'auto';
     setIsLoading(true);
 
     const apiMessages = nextMessages.map(m => ({ role: m.role, content: m.content }));
@@ -1013,19 +1016,40 @@ export default function GlobalAIAssistant({
           )}
 
           {/* Input bar */}
-          <div className="gaa-input-bar">
+          <div className={`gaa-input-bar ${inputExpanded ? 'gaa-input-expanded' : ''}`}>
             <div className="gaa-input-wrap">
               <textarea
                 ref={inputRef}
                 className="gaa-textarea"
                 value={input}
-                onChange={e => setInput(e.target.value)}
+                onChange={e => {
+                  setInput(e.target.value);
+                  const el = e.target;
+                  el.style.height = 'auto';
+                  const newH = Math.min(el.scrollHeight, inputExpanded ? 220 : 88);
+                  el.style.height = newH + 'px';
+                  if (!inputExpanded && el.scrollHeight > 60) setInputExpanded(true);
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="اكتب سؤالك هنا..."
                 rows={1}
                 disabled={isLoading}
               />
               <div className="gaa-input-actions">
+                <button
+                  className={`gaa-expand-btn ${inputExpanded ? 'gaa-expand-btn-active' : ''}`}
+                  onClick={() => {
+                    setInputExpanded(prev => {
+                      if (prev && inputRef.current) { inputRef.current.style.height = 'auto'; }
+                      return !prev;
+                    });
+                    setTimeout(() => inputRef.current?.focus(), 50);
+                  }}
+                  title={inputExpanded ? 'تصغير' : 'توسيع'}
+                >
+                  {inputExpanded ? <Minimize2Icon className="icon-sm" /> : <Maximize2Icon className="icon-sm" />}
+                </button>
+
                 {/* Skills button */}
                 <div className="gaa-skills-wrap" ref={skillsMenuRef}>
                   <button

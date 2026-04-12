@@ -19700,6 +19700,42 @@ body.dark-mode .selectable-card.selected {
 }
 .gaa-skills-btn .icon { color: currentColor; }
 
+/* Expand button */
+.gaa-expand-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+.gaa-expand-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+.gaa-expand-btn-active {
+  background: color-mix(in srgb, var(--accent-blue) 15%, transparent);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.gaa-input-expanded .gaa-input-wrap {
+  align-items: flex-end;
+}
+.gaa-input-expanded .gaa-textarea {
+  max-height: 220px;
+}
+.gaa-input-expanded .gaa-input-actions {
+  flex-direction: column;
+  padding-bottom: 2px;
+}
+
 /* Send button */
 .gaa-send-btn {
   width: 32px;
