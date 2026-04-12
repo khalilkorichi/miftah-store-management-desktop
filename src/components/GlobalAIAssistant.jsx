@@ -3,10 +3,11 @@ import {
   SparklesIcon, XIcon, ZapIcon, SendIcon, TrashIcon,
   CheckCircleIcon, AlertTriangleIcon, SettingsIcon,
   PlusIcon, ClockIcon, PackageIcon, Maximize2Icon, Minimize2Icon,
+  ChevronDownIcon,
 } from './Icons';
 import { callAI } from '../utils/aiProvider';
 import MarkdownRenderer from './MarkdownRenderer';
-import { loadSkills } from '../data/builtinSkills';
+import { loadSkills, SKILL_CATEGORIES } from '../data/builtinSkills';
 import { matchSkill } from '../utils/skillsMatcher';
 
 /* ─── Storage keys ───────────────────────────────────────────────────────── */
@@ -501,6 +502,7 @@ export default function GlobalAIAssistant({
   const [inputExpanded, setInputExpanded] = useState(false);
   const [activeSkill, setActiveSkill] = useState(null);
   const [showSkillsMenu, setShowSkillsMenu] = useState(false);
+  const [collapsedSkillFolders, setCollapsedSkillFolders] = useState({});
   const [pendingAction, setPendingAction] = useState(null);
   const [error, setError] = useState('');
 
@@ -1060,26 +1062,62 @@ export default function GlobalAIAssistant({
                   >
                     <ZapIcon className="icon-sm" />
                   </button>
-                  {showSkillsMenu && (
-                    <div className="gaa-skills-dropdown">
-                      <div className="gaa-skills-header">اختر مهارة</div>
-                      {loadedSkills.filter(s => s.enabled).map(skill => (
-                        <button
-                          key={skill.id}
-                          className={`gaa-skill-item ${activeSkill?.id === skill.id ? 'gaa-skill-item-active' : ''}`}
-                          onClick={() => selectSkill(skill)}
-                          style={activeSkill?.id === skill.id ? { '--skill-color': skill.color || '#5E4FDE' } : {}}
-                        >
-                          <span className="gaa-skill-icon">{skill.icon || '⚡'}</span>
-                          <span className="gaa-skill-name">{skill.name || skill.label}</span>
-                          {activeSkill?.id === skill.id && <CheckCircleIcon className="icon-xs gaa-skill-check" />}
-                        </button>
-                      ))}
-                      {loadedSkills.filter(s => s.enabled).length === 0 && (
-                        <div className="gaa-skills-empty">لا توجد مهارات مفعّلة</div>
-                      )}
-                    </div>
-                  )}
+                  {showSkillsMenu && (() => {
+                    const enabledSkills = loadedSkills.filter(s => s.enabled);
+                    const grouped = SKILL_CATEGORIES.map(cat => ({
+                      ...cat,
+                      skills: enabledSkills.filter(s => s.category === cat.id)
+                    })).filter(cat => cat.skills.length > 0);
+                    return (
+                      <div className="gaa-skills-dropdown">
+                        <div className="gaa-skills-header">
+                          <span>اختر مهارة</span>
+                          {activeSkill && (
+                            <button className="gaa-skills-clear-btn" onClick={() => { setActiveSkill(null); setShowSkillsMenu(false); }}>
+                              إلغاء التحديد
+                            </button>
+                          )}
+                        </div>
+                        <div className="gaa-skills-list">
+                          {grouped.map(cat => {
+                            const isCollapsed = collapsedSkillFolders[cat.id];
+                            return (
+                              <div key={cat.id} className="gaa-skills-folder">
+                                <button
+                                  className={`gaa-skills-folder-header ${isCollapsed ? 'gaa-skills-folder-collapsed' : ''}`}
+                                  onClick={() => setCollapsedSkillFolders(prev => ({ ...prev, [cat.id]: !prev[cat.id] }))}
+                                >
+                                  <span className="gaa-skills-folder-icon">{cat.icon}</span>
+                                  <span className="gaa-skills-folder-name">{cat.label}</span>
+                                  <span className="gaa-skills-folder-count">{cat.skills.length}</span>
+                                  <ChevronDownIcon className="icon-xs gaa-skills-folder-chevron" />
+                                </button>
+                                {!isCollapsed && (
+                                  <div className="gaa-skills-folder-content">
+                                    {cat.skills.map(skill => (
+                                      <button
+                                        key={skill.id}
+                                        className={`gaa-skill-item ${activeSkill?.id === skill.id ? 'gaa-skill-item-active' : ''}`}
+                                        onClick={() => selectSkill(skill)}
+                                        style={{ '--skill-color': skill.color || cat.color || '#5E4FDE' }}
+                                      >
+                                        <span className="gaa-skill-icon">{skill.icon || '⚡'}</span>
+                                        <span className="gaa-skill-name">{skill.name || skill.label}</span>
+                                        {activeSkill?.id === skill.id && <CheckCircleIcon className="icon-xs gaa-skill-check" />}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {enabledSkills.length === 0 && (
+                            <div className="gaa-skills-empty">لا توجد مهارات مفعّلة</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Send */}
