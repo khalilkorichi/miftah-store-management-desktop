@@ -18,7 +18,7 @@ A web-based admin dashboard for managing a digital products store. Features incl
 - **Charts:** Recharts
 - **Excel:** SheetJS (xlsx)
 - **PDF:** jsPDF + jspdf-autotable
-- **Desktop:** Electron + electron-builder (optional .exe build)
+- **Desktop:** Electron + electron-builder (optional .exe build). Electron files use `.cjs` extension (CommonJS) because `package.json` has `"type": "module"`
 
 ## Data Persistence
 All state is saved to browser `localStorage` under the key `miftah_store_data`. No backend or database required.
@@ -36,6 +36,9 @@ All state is saved to browser `localStorage` under the key `miftah_store_data`. 
 - `src/components/pricing/` — PricingDashboard, PricingOverview, CostManager, PricingMechanisms, CouponsManager
 - `src/components/bundles/` — BundleManager, BundleOverview, BundleBuilder, BundlePricing
 - `src/components/ProductFeatures.jsx` — Product descriptions & features editor with formatting toolbar, icon/badge picker, copy features, templates, AI bundle creation support
+- `src/components/ModalOverlay.jsx` — Unified modal overlay wrapper (backdrop blur, click-outside-to-close, ESC key)
+- `src/components/NotificationContext.jsx` — Notification system context provider with localStorage persistence and sound effects
+- `src/components/NotificationPanel.jsx` — Dropdown notification panel with category tabs, read/unread states, timestamps
 - `src/components/AIAssistantTab.jsx` — AI chat assistant with MIFTAH_ACTION support for product editing and bundle creation
 - `src/components/GlobalAIAssistant.jsx` — Global floating AI chat with GLOBAL_ACTION support for store management and bundle creation
 - `src/components/Icons.jsx` — SVG icon components (Lucide-inspired)
@@ -86,6 +89,35 @@ State-based routing: `dashboard` (default), `products`, `pricing`, `bundles`, `f
 - **Per-supplier Activation Methods (PDM):** Each supplier row in the comparison table shows its own activation method chips with a picker dropdown for adding/removing methods, stored at `product.supplierActivationMethods[supplierId]`
 - **All numbers use Western Arabic numerals (0-9)** via CSS font-feature-settings and `toLocaleString('en-US')`
 
+## Modal System
+- **ModalOverlay component** (`src/components/ModalOverlay.jsx`): Unified overlay wrapper with `backdrop-filter: blur(8px)`, `rgba(0,0,0,0.45)` background, click-outside-to-close, ESC key handler
+- **Z-Index Scale** (CSS variables in `:root`): `--z-nav: 100`, `--z-floating: 200`, `--z-modal-overlay: 1000`, `--z-modal-box: 1001`, `--z-toast: 1100`
+- All modal overlays use unified positioning (`position: fixed; inset: 0`) and consistent blur/opacity
+- Migrated modals: AddProductModal, AddSupplierModal, ConfirmModal, CompetitorsModal, ActivationMethodsModal, ImportSallaModal, ProductTypeSelector, CreateBranchedProductModal, NotesManager
+
+## Notification System
+- **NotificationContext** (`src/components/NotificationContext.jsx`): React context + provider for notification state management
+  - Stores notifications in localStorage (`miftah_notifications` key), max 100 entries
+  - Validates parsed data (Array.isArray + field checks) for corruption resilience
+  - Functions: `addNotification({type, title, description, category, actionTab, playSound})`, `markAsRead(id)`, `markAllAsRead()`, `clearAll()`, `clearCategory(category)`
+  - Sound utility: Web Audio API tone for success/error/info events
+- **NotificationPanel** (`src/components/NotificationPanel.jsx`): Dropdown panel anchored to bell icon in header
+  - Category filter tabs: الكل, المنتجات, التسعير, الحزم, العمليات, النظام
+  - Notification items with type icons (success/error/warning/info), relative timestamps, read/unread state
+  - Mark all read, clear all, close actions with proper aria-labels
+  - Click notification → mark as read + navigate to relevant tab via handleTabChange
+  - Close on outside click (mousedown) or ESC key
+  - Fully accessible: role="dialog", aria-expanded on bell, keyboard Enter/Space on items
+- **Bell icon**: In header-left next to theme toggle, with red unread count badge (animated)
+- **Notification triggers**: Comprehensive coverage of all data operations:
+  - **Products**: add, delete, duplicate, import, branch (move/detach/attach/add), category add/delete
+  - **Pricing**: final prices save, cost add/toggle/delete, coupon add/toggle/delete, duration add/delete
+  - **Bundles**: create, edit, delete, duplicate
+  - **Operations**: task create/update/delete/status change, note create/update/delete, guide create/update/delete, renewal add/update/delete/renew, activation method add/delete
+  - **System**: data reset, import, export, report PDF generation (success/error)
+  - **Components with hooks**: CouponsManager, CostManager, TaskManager, NotesManager, ActivationGuidesManager, RenewalReminders, BundleBuilder, BundleOverview, ReportsExport
+- **Categories**: products, pricing, bundles, operations, system — each with color and icon mapping
+
 ## UX Features
 - **Page transitions:** Smooth fade in/out animation when switching between tabs
 - **Scroll to top:** Automatically scrolls to top on tab change (both click and browser back/forward)
@@ -107,21 +139,36 @@ npm run electron:dev    # Dev mode with hot reload
 npm run electron:build  # Build .exe installer (output in /release)
 ```
 
-## Update System (Electron)
-The update system in Settings → "التحديثات" tab provides two-tier update checking:
-1. **GitHub API check** (`updater:check-github-api`): Queries `api.github.com/repos/{owner}/{repo}/releases/latest` directly. Works even without `latest.yml` or electron-builder artifacts.
-2. **electron-updater check** (`updater:check`): Standard electron-updater for auto-download/install when build artifacts exist.
+## Update System (Electron — GitHub Direct File Sync)
+The update system in Settings → "التحديثات" tab uses direct GitHub file synchronization instead of electron-updater. It compares local files with the GitHub repository and downloads only changed files.
 
-**Flow:** User clicks "البحث عن تحديثات" → GitHub API is queried first, then electron-updater. If electron-updater fails but GitHub API finds a release, the `github-available` state shows release info with a "فتح في GitHub" button.
+**Flow:**
+1. User enters GitHub repo URL and saves it
+2. Clicks "البحث عن تحديثات" → app queries GitHub API for repo tree
+3. Compares local file SHAs (git blob SHA1 format) with remote SHAs
+4. Shows categorized diff: modified/added files grouped by category (build, core, source, assets, config)
+5. Optional: user creates backup to a chosen folder
+6. Clicks "تطبيق التحديث" → downloads all files to staging dir first, verifies SHA integrity, then copies atomically to app directory
+7. Restarts app to apply changes
 
-**Error translation:** `translateUpdateError()` in SettingsPage.jsx maps English error messages to Arabic (e.g., "No published versions" → "لا توجد إصدارات منشورة بعد في هذا المستودع").
+**Security:**
+- Path traversal protection: all file paths validated against tracked allowlist and containment check
+- SHA integrity verification: downloaded files verified against expected git blob SHA before applying
+- Atomic updates: all-or-nothing — if any file fails, entire update is cancelled
+- Scan result stored in main process — renderer cannot inject arbitrary file paths
 
-**States:** idle, checking, available, downloading, downloaded, up-to-date, github-available, error.
+**Tracked files:** `dist/`, `electron/`, `src/`, `public/`, `scripts/`, `index.html`, `package.json`, `vite.config.js`, `eslint.config.js`
 
-**Files:**
-- `electron/main.js` — IPC handlers: `updater:check`, `updater:check-github-api`, `updater:download`, `updater:install`, `updater:open-external`
-- `electron/preload.js` — Bridge: `checkForUpdates`, `checkGithubReleases`, `downloadUpdate`, `installUpdate`, `openExternal`, `getVersion`, `onUpdateStatus`
-- `src/components/SettingsPage.jsx` — Update UI with all states, `translateUpdateError()`, `getReleasesUrl()`
+**States:** idle, checking, up-to-date, changes-found, downloading, applying, complete, error
+
+**IPC Handlers (electron/main.js):**
+- `updater:scan-changes` — compares local vs GitHub tree, returns categorized diff
+- `updater:create-backup` — opens folder dialog, copies tracked files to backup
+- `updater:apply-update` — downloads from GitHub raw, verifies SHAs, stages then copies
+- `updater:restart-app` — relaunches the Electron app
+- `updater:open-external` — safely opens GitHub URLs in browser
+
+**Bridge (electron/preload.js):** `scanChanges`, `createBackup`, `applyUpdate`, `restartApp`, `openExternal`, `getVersion`, `onUpdateStatus`
 
 ## Deployment
 Configured as a static site:

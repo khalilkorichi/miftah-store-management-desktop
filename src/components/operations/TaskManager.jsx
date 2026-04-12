@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useNotifications } from '../NotificationContext';
 import {
   PlusIcon, SearchIcon, CheckSquareIcon,
@@ -78,6 +78,10 @@ export default function TaskManager({ tasks, setTasks }) {
   const [viewMode, setViewMode] = useState('kanban');
   const [showTemplates, setShowTemplates] = useState(false);
 
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [dropTargetCol, setDropTargetCol] = useState(null);
+  const dragCounter = useRef({});
+
   const filtered = useMemo(() => {
     return tasks.filter(t => {
       if (search) {
@@ -119,15 +123,18 @@ export default function TaskManager({ tasks, setTasks }) {
     if (task) addNotification({ type: 'warning', title: 'تم حذف مهمة', description: `"${task.title}"`, category: 'operations', actionTab: 'operations' });
   };
 
-  const STATUS_LABELS = { pending: 'قيد الانتظار', in_progress: 'قيد التنفيذ', done: 'مكتملة' };
-  const handleStatusChange = (id, newStatus) => {
-    setTasks(prev => prev.map(t => t.id === id
-      ? { ...t, status: newStatus, updatedAt: new Date().toISOString() }
-      : t
-    ));
-    const task = tasks.find(t => t.id === id);
-    if (task) addNotification({ type: newStatus === 'done' ? 'success' : 'info', title: 'تم تغيير حالة المهمة', description: `"${task.title}" → ${STATUS_LABELS[newStatus] || newStatus}`, category: 'operations', actionTab: 'operations' });
-  };
+  const handleStatusChange = useCallback((id, newStatus) => {
+    setTasks(prev => {
+      const task = prev.find(t => t.id === id);
+      if (task && task.status !== newStatus) {
+        addNotification({ type: newStatus === 'done' ? 'success' : 'info', title: 'تم تغيير حالة المهمة', description: `"${task.title}" → ${STATUS_LABELS[newStatus] || newStatus}`, category: 'operations', actionTab: 'operations' });
+      }
+      return prev.map(t => t.id === id
+        ? { ...t, status: newStatus, updatedAt: new Date().toISOString() }
+        : t
+      );
+    });
+  }, [setTasks, addNotification]);
 
   const openEdit = (task) => { setEditingTask(task); setPrefillData(null); setShowModal(true); };
   const openNewEmpty = () => { setEditingTask(null); setPrefillData(null); setShowModal(true); };
@@ -139,6 +146,56 @@ export default function TaskManager({ tasks, setTasks }) {
   };
 
   const urgentCount = tasks.filter(t => t.priority === 'urgent' && t.status !== 'done').length;
+
+  const handleDragStart = useCallback((e, taskId) => {
+    setDraggedTaskId(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', taskId);
+    requestAnimationFrame(() => {
+      const el = e.target.closest('.task-card');
+      if (el) el.classList.add('task-card-dragging');
+    });
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedTaskId(null);
+    setDropTargetCol(null);
+    dragCounter.current = {};
+    document.querySelectorAll('.task-card-dragging').forEach(el => el.classList.remove('task-card-dragging'));
+  }, []);
+
+  const handleColDragEnter = useCallback((e, colId) => {
+    e.preventDefault();
+    dragCounter.current[colId] = (dragCounter.current[colId] || 0) + 1;
+    setDropTargetCol(colId);
+  }, []);
+
+  const handleColDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const handleColDragLeave = useCallback((e, colId) => {
+    dragCounter.current[colId] = (dragCounter.current[colId] || 0) - 1;
+    if (dragCounter.current[colId] <= 0) {
+      dragCounter.current[colId] = 0;
+      setDropTargetCol(prev => prev === colId ? null : prev);
+    }
+  }, []);
+
+  const handleColDrop = useCallback((e, colId) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData('text/plain');
+    if (taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task && task.status !== colId) {
+        handleStatusChange(taskId, colId);
+      }
+    }
+    setDraggedTaskId(null);
+    setDropTargetCol(null);
+    dragCounter.current = {};
+  }, [tasks, handleStatusChange]);
 
   return (
     <div className="task-manager">
@@ -223,33 +280,53 @@ export default function TaskManager({ tasks, setTasks }) {
       {/* Kanban View */}
       {viewMode === 'kanban' && (
         <div className="task-kanban">
-          {STATUS_COLS.map(col => (
-            <div key={col.id} className={`task-col task-col-${col.id}`}>
-              <div className="task-col-header" style={{ '--col-color': col.color }}>
-                <col.Icon className="icon-sm" />
-                <span className="task-col-label">{col.label}</span>
-                <span className="task-col-count">{tasksByStatus[col.id].length}</span>
+          {STATUS_COLS.map(col => {
+            const isDropTarget = dropTargetCol === col.id && draggedTaskId;
+            const draggedTask = draggedTaskId ? tasks.find(t => t.id === draggedTaskId) : null;
+            const isOwnCol = draggedTask?.status === col.id;
+            return (
+              <div
+                key={col.id}
+                className={`task-col task-col-${col.id}${isDropTarget && !isOwnCol ? ' task-col-drop-target' : ''}`}
+                onDragEnter={e => handleColDragEnter(e, col.id)}
+                onDragOver={handleColDragOver}
+                onDragLeave={e => handleColDragLeave(e, col.id)}
+                onDrop={e => handleColDrop(e, col.id)}
+              >
+                <div className="task-col-header" style={{ '--col-color': col.color }}>
+                  <col.Icon className="icon-sm" />
+                  <span className="task-col-label">{col.label}</span>
+                  <span className="task-col-count">{tasksByStatus[col.id].length}</span>
+                </div>
+                <div className="task-col-body">
+                  {tasksByStatus[col.id].length === 0 && !isDropTarget ? (
+                    <div className="task-col-empty">
+                      <CheckSquareIcon className="icon-lg" />
+                      <span>لا توجد مهام</span>
+                    </div>
+                  ) : (
+                    tasksByStatus[col.id].map(task => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        onStatusChange={handleStatusChange}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        isDragging={draggedTaskId === task.id}
+                      />
+                    ))
+                  )}
+                  {isDropTarget && !isOwnCol && (
+                    <div className="task-drop-placeholder">
+                      <span>أفلت هنا للنقل إلى {col.label}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="task-col-body">
-                {tasksByStatus[col.id].length === 0 ? (
-                  <div className="task-col-empty">
-                    <CheckSquareIcon className="icon-lg" />
-                    <span>لا توجد مهام</span>
-                  </div>
-                ) : (
-                  tasksByStatus[col.id].map(task => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      onEdit={openEdit}
-                      onDelete={handleDelete}
-                      onStatusChange={handleStatusChange}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

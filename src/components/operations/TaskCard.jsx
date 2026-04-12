@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import {
   ChevronDownIcon, ChevronUpIcon, EditIcon, TrashIcon,
-  CheckCircleIcon, ClockIcon, FlagIcon, TagIcon, CalendarIcon
+  CheckCircleIcon, ClockIcon, FlagIcon, CalendarIcon
 } from '../Icons';
 
 export const CATEGORIES = {
-  ops: { label: 'تشغيل', color: '#5E4FDE' },
-  admin: { label: 'إداري', color: '#1A51F4' },
-  support: { label: 'دعم عملاء', color: '#11BA65' },
-  inventory: { label: 'مخزون', color: '#F7784A' },
-  marketing: { label: 'تسويق', color: '#FFC530' },
-  other: { label: 'أخرى', color: '#9ca3b8' },
+  ops: { label: 'تشغيل', color: '#5E4FDE', icon: '⚙️' },
+  admin: { label: 'إداري', color: '#1A51F4', icon: '📋' },
+  support: { label: 'دعم عملاء', color: '#11BA65', icon: '💬' },
+  inventory: { label: 'مخزون', color: '#F7784A', icon: '📦' },
+  marketing: { label: 'تسويق', color: '#FFC530', icon: '📣' },
+  other: { label: 'أخرى', color: '#9ca3b8', icon: '📌' },
 };
 
 export const PRIORITIES = {
@@ -39,7 +39,7 @@ function formatDate(dateStr) {
   } catch { return dateStr; }
 }
 
-export default function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
+export default function TaskCard({ task, onEdit, onDelete, onStatusChange, onDragStart, onDragEnd, isDragging }) {
   const [expanded, setExpanded] = useState(false);
   const priority = PRIORITIES[task.priority] || PRIORITIES.normal;
   const category = CATEGORIES[task.category] || CATEGORIES.other;
@@ -66,8 +66,11 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
 
   return (
     <div
-      className={`task-card priority-${task.priority} status-${task.status} ${overdue ? 'task-overdue' : ''}`}
+      className={`task-card priority-${task.priority} status-${task.status} ${overdue ? 'task-overdue' : ''}${isDragging ? ' task-card-dragging' : ''}`}
       style={{ '--priority-color': priority.color }}
+      draggable
+      onDragStart={e => onDragStart?.(e, task.id)}
+      onDragEnd={onDragEnd}
     >
       <div className="task-card-header" onClick={() => setExpanded(v => !v)}>
         <div className="task-card-left">
@@ -87,7 +90,7 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusChange }) {
             </span>
             <div className="task-card-meta">
               <span className="task-cat-badge" style={{ '--cat-color': category.color }}>
-                <TagIcon className="icon-xs" /> {category.label}
+                {category.icon} {category.label}
               </span>
               <span className="task-pri-badge" style={{ '--pri-color': priority.color }}>
                 <FlagIcon className="icon-xs" /> {priority.label}
