@@ -1,13 +1,19 @@
 import { useMemo } from 'react';
-import { TargetIcon, SwordsIcon, CompassIcon, PenToolIcon, UsersIcon, UserIcon } from '../Icons';
+import { TargetIcon, SwordsIcon, CompassIcon, PenToolIcon, UsersIcon, UserIcon, AgencyIcon } from '../Icons';
+import { AGENT_META } from '../../data/contentAgencyData';
 
-export default function MarketingDashboard({ marketingData, products, suppliers, onNavigate }) {
+export default function MarketingDashboard({ marketingData, products, suppliers, onNavigate, agencyData }) {
   const { targetAudience, competitors, swot, contentStyles } = marketingData;
 
   const totalCompetitors = competitors.direct.length + competitors.indirect.length;
   const totalSegments = targetAudience.segments.length;
   const totalPersonas = targetAudience.personas.length;
   const totalContentFiles = contentStyles.length;
+
+  const agencyPipeline = agencyData?.pipeline || [];
+  const agencyReady = agencyPipeline.filter(i => i.stage === 'done' && (i.status === 'approved' || i.status === 'approved_with_issues')).length;
+  const agencyPending = agencyPipeline.filter(i => i.stage === 'approval' && i.status === 'pending').length;
+  const agencyTotal = agencyPipeline.length;
 
   const latestCompPrice = useMemo(() => {
     let latest = null;
@@ -89,6 +95,39 @@ export default function MarketingDashboard({ marketingData, products, suppliers,
       color: '#10B981',
       value: totalSegments,
       sub: 'فئة مستهدفة',
+    },
+    {
+      id: 'agency',
+      tab: 'agency',
+      title: 'وكالة المحتوى',
+      icon: AgencyIcon,
+      size: 'medium',
+      color: '#8B5CF6',
+      content: (
+        <div className="bento-agency-content">
+          <div className="bento-agency-agents">
+            {['scott', 'spark', 'brill', 'rami', 'lens'].map(id => (
+              <span key={id} className="bento-agency-agent" title={AGENT_META[id].role}>
+                {AGENT_META[id].icon}
+              </span>
+            ))}
+          </div>
+          <div className="bento-agency-stats">
+            <div className="bento-agency-stat">
+              <span className="bento-agency-stat-val">{agencyReady}</span>
+              <span className="bento-agency-stat-lbl">جاهز</span>
+            </div>
+            <div className="bento-agency-stat">
+              <span className="bento-agency-stat-val">{agencyPending}</span>
+              <span className="bento-agency-stat-lbl">بانتظار</span>
+            </div>
+            <div className="bento-agency-stat">
+              <span className="bento-agency-stat-val">{agencyTotal}</span>
+              <span className="bento-agency-stat-lbl">إجمالي</span>
+            </div>
+          </div>
+        </div>
+      ),
     },
   ];
 
