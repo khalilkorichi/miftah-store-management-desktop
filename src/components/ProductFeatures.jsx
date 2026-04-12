@@ -7,10 +7,11 @@ import {
   BoldIcon, ItalicIcon, MinusIcon,
   ChevronDownIcon, TagIcon, XIcon,
   UnderlineIcon, AlignRightIcon, AlignCenterIcon, AlignLeftIcon, AlignJustifyIcon, EraserIcon,
-  UndoIcon, RedoIcon, SparklesIcon
+  UndoIcon, RedoIcon, SparklesIcon, GlobeIcon
 } from './Icons';
 import { FEATURE_ICONS, FEATURE_BADGES, PRODUCT_TEMPLATES } from '../data/productTemplates';
 import AIAssistantTab from './AIAssistantTab';
+import SEOAssistant, { getSEOStatus } from './SEOAssistant';
 
 
 function useClickOutside(ref, handler, excludeRef) {
@@ -658,6 +659,13 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
           <SparklesIcon className="icon-xs" />
           مساعد الذكاء الاصطناعي
         </button>
+        <button
+          className={`pf-subtab-btn ${activeSubTab === 'seo' ? 'pf-subtab-active' : ''}`}
+          onClick={() => setActiveSubTab('seo')}
+        >
+          <GlobeIcon className="icon-xs" />
+          تحسينات SEO
+        </button>
       </div>
 
       {/* AI Assistant Tab */}
@@ -679,6 +687,17 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
           pricingData={pricingData}
           exchangeRate={exchangeRate}
           finalPrices={finalPrices}
+        />
+      )}
+
+      {activeSubTab === 'seo' && (
+        <SEOAssistant
+          products={products}
+          updateProduct={updateProduct}
+          appSettings={appSettings}
+          onNavigateToSettings={onNavigateToSettings}
+          selectedProductId={selectedProductId}
+          onSelectProduct={setSelectedProductId}
         />
       )}
 
@@ -733,6 +752,9 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
                   </button>
                   <button className="pf-product-card-btn pf-btn-ai" onClick={(e) => { e.stopPropagation(); setSelectedProductId(String(p.id)); setActiveSubTab('ai'); }}>
                     <SparklesIcon className="icon-xs" /> المساعد الذكي
+                  </button>
+                  <button className="pf-product-card-btn pf-btn-seo" onClick={(e) => { e.stopPropagation(); setSelectedProductId(String(p.id)); setActiveSubTab('seo'); }}>
+                    <GlobeIcon className="icon-xs" /> SEO
                   </button>
                 </div>
               </div>
