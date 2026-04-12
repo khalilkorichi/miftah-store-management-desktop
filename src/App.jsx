@@ -232,10 +232,15 @@ function App() {
       const saved = localStorage.getItem(AGENCY_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        const mergedAgents = {};
+        for (const key of Object.keys(DEFAULT_AGENCY_DATA.agents)) {
+          mergedAgents[key] = { ...DEFAULT_AGENCY_DATA.agents[key], ...(parsed?.agents?.[key] || {}) };
+        }
         return {
-          agents: { ...DEFAULT_AGENCY_DATA.agents, ...(parsed?.agents || {}) },
+          agents: mergedAgents,
           brandIdentity: { ...DEFAULT_AGENCY_DATA.brandIdentity, ...(parsed?.brandIdentity || {}) },
           pipeline: Array.isArray(parsed?.pipeline) ? parsed.pipeline : [],
+          chatHistory: Array.isArray(parsed?.chatHistory) ? parsed.chatHistory : [],
           schedule: { ...DEFAULT_AGENCY_DATA.schedule, ...(parsed?.schedule || {}) },
         };
       }
