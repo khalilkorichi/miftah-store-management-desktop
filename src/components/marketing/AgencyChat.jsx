@@ -1,14 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AGENT_META } from '../../data/contentAgencyData';
+import { loadSkills, SKILL_CATEGORIES } from '../../data/builtinSkills';
 import { runAgent } from '../../utils/agentEngine';
 import { buildAgencyContext } from '../../utils/storeContextBuilder';
-import { SendIcon, SettingsIcon, ChevronDownIcon, ChevronUpIcon, RefreshIcon, TrashIcon } from '../Icons';
-
-const STAGE_FLOW = [
-  { id: 'ideation', label: 'توليد الأفكار', agents: ['scott', 'spark'] },
-  { id: 'production', label: 'الإنتاج', agents: ['brill', 'rami'] },
-  { id: 'qa', label: 'فحص الجودة', agents: ['lens'] },
-];
+import { SendIcon, SettingsIcon, ChevronDownIcon, ChevronUpIcon, RefreshIcon, TrashIcon, BookOpenIcon, XIcon } from '../Icons';
 
 function AgentBubble({ msg, onToggleThinking, onOpenSettings }) {
   const meta = AGENT_META[msg.agentId];
@@ -85,6 +80,12 @@ function UserBubble({ msg }) {
   return (
     <div className="chat-bubble chat-bubble-user">
       <div className="chat-bubble-body">{msg.content}</div>
+      {msg.meta && (
+        <div className="chat-bubble-meta">
+          {msg.meta.competitor && <span className="chat-meta-tag">📝 أسلوب: {msg.meta.competitor}</span>}
+          {msg.meta.skill && <span className="chat-meta-tag">⚡ مهارة: {msg.meta.skill}</span>}
+        </div>
+      )}
       <span className="chat-time">{new Date(msg.timestamp).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</span>
     </div>
   );
@@ -144,15 +145,118 @@ function AgentSettingsPopup({ agentId, agencyData, setAgencyData, appSettings, o
   );
 }
 
+function SkillPickerPopup({ onSelect, onClose }) {
+  const [skills] = useState(() => loadSkills().filter(s => s.enabled));
+  const [collapsedFolders, setCollapsedFolders] = useState({});
+
+  const grouped = useMemo(() => {
+    const map = {};
+    skills.forEach(s => {
+      const cat = s.category || 'other';
+      if (!map[cat]) map[cat] = [];
+      map[cat].push(s);
+    });
+    return map;
+  }, [skills]);
+
+  const toggleFolder = (catId) => {
+    setCollapsedFolders(prev => ({ ...prev, [catId]: !prev[catId] }));
+  };
+
+  return (
+    <div className="chat-settings-overlay" onClick={onClose}>
+      <div className="chat-skills-popup" onClick={e => e.stopPropagation()}>
+        <div className="chat-settings-popup-header">
+          <span className="chat-agent-icon" style={{ background: '#8B5CF622', color: '#8B5CF6' }}>⚡</span>
+          <span>اختر مهارة</span>
+          <button onClick={onClose}>✕</button>
+        </div>
+        <div className="chat-skills-popup-body">
+          {SKILL_CATEGORIES.map(cat => {
+            const catSkills = grouped[cat.id];
+            if (!catSkills || catSkills.length === 0) return null;
+            const isCollapsed = collapsedFolders[cat.id];
+            return (
+              <div key={cat.id} className="chat-skill-folder">
+                <button className="chat-skill-folder-header" onClick={() => toggleFolder(cat.id)}>
+                  <span className="chat-skill-folder-icon">{cat.icon}</span>
+                  <span className="chat-skill-folder-name">{cat.label}</span>
+                  <span className="chat-skill-folder-count">{catSkills.length}</span>
+                  {isCollapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
+                </button>
+                {!isCollapsed && (
+                  <div className="chat-skill-folder-items">
+                    {catSkills.map(skill => (
+                      <button key={skill.id} className="chat-skill-item" onClick={() => { onSelect(skill); onClose(); }}>
+                        <span className="chat-skill-item-icon" style={{ color: skill.color }}>{skill.icon}</span>
+                        <div className="chat-skill-item-info">
+                          <span className="chat-skill-item-name">{skill.name}</span>
+                          <span className="chat-skill-item-desc">{skill.description}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompetitorStylePicker({ competitors, selected, onSelect }) {
+  const allComps = useMemo(() => {
+    const direct = competitors?.direct || [];
+    const indirect = competitors?.indirect || [];
+    return [...direct, ...indirect].filter(c => c.name && (c.strategies || c.contentType));
+  }, [competitors]);
+
+  if (allComps.length === 0) return null;
+
+  return (
+    <div className="chat-comp-picker">
+      <select
+        value={selected || ''}
+        onChange={e => onSelect(e.target.value || null)}
+        className="chat-comp-select"
+      >
+        <option value="">الأسلوب الافتراضي</option>
+        {allComps.map(c => (
+          <option key={c.id} value={c.id}>
+            📝 {c.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export default function AgencyChat({ agencyData, setAgencyData, appSettings, appData }) {
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [settingsAgent, setSettingsAgent] = useState(null);
+  const [selectedCompetitorId, setSelectedCompetitorId] = useState(null);
+  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [showSkillPicker, setShowSkillPicker] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const mountedRef = useRef(true);
 
   const chatHistory = agencyData.chatHistory || [];
+  const competitors = appData?.marketingData?.competitors;
+
+  const allComps = useMemo(() => {
+    const direct = competitors?.direct || [];
+    const indirect = competitors?.indirect || [];
+    return [...direct, ...indirect];
+  }, [competitors]);
+
+  const selectedCompetitor = useMemo(() => {
+    if (!selectedCompetitorId) return null;
+    return allComps.find(c => c.id === selectedCompetitorId) || null;
+  }, [selectedCompetitorId, allComps]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -188,11 +292,39 @@ export default function AgencyChat({ agencyData, setAgencyData, appSettings, app
     setChatHistory(prev => prev.map(m => m.id === id ? { ...m, thinkingOpen: !m.thinkingOpen } : m));
   }, [setChatHistory]);
 
+  const buildEnhancedPrompt = (userPrompt) => {
+    let enhanced = userPrompt;
+    const parts = [];
+
+    if (selectedCompetitor) {
+      const compStyle = [];
+      if (selectedCompetitor.strategies) compStyle.push(`استراتيجياتهم: ${selectedCompetitor.strategies}`);
+      if (selectedCompetitor.contentType) compStyle.push(`نوع المحتوى: ${selectedCompetitor.contentType}`);
+      if (selectedCompetitor.channels?.length > 0) compStyle.push(`القنوات: ${selectedCompetitor.channels.join('، ')}`);
+      if (selectedCompetitor.strengths) compStyle.push(`نقاط القوة: ${selectedCompetitor.strengths}`);
+      parts.push(`\n\n📝 اكتب بأسلوب مشابه للمنافس "${selectedCompetitor.name}":\n${compStyle.join('\n')}`);
+    }
+
+    if (selectedSkill) {
+      parts.push(`\n\n⚡ استخدم المهارة "${selectedSkill.name}":\n${selectedSkill.content}`);
+      if (selectedSkill.resources?.length > 0) {
+        parts.push(`\nموارد المهارة:\n${selectedSkill.resources.map(r => r.content).join('\n')}`);
+      }
+    }
+
+    if (parts.length > 0) {
+      enhanced += parts.join('');
+    }
+
+    return enhanced;
+  };
+
   const runChatPipeline = async (userPrompt) => {
     setIsProcessing(true);
     const context = buildAgencyContext(appData);
     const sessionId = Date.now();
     const pipelineItems = [];
+    const enhancedPrompt = buildEnhancedPrompt(userPrompt);
 
     addMessage({ id: `sys_start_${sessionId}`, type: 'system', content: '🚀 بدء معالجة طلبك...', status: 'stage', timestamp: new Date().toISOString() });
 
@@ -212,7 +344,7 @@ export default function AgencyChat({ agencyData, setAgencyData, appSettings, app
         const msgId = agentMsgIds[id];
         try {
           updateMessage(msgId, { thinking: `${AGENT_META[id].nameAr} يحلل البيانات ويولّد الأفكار...` });
-          const result = await runAgent(id, userPrompt, context, agencyData.agents[id], appSettings);
+          const result = await runAgent(id, enhancedPrompt, context, agencyData.agents[id], appSettings);
           let parsed;
           try {
             const cleaned = result.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -267,7 +399,17 @@ export default function AgencyChat({ agencyData, setAgencyData, appSettings, app
     const text = input.trim();
     if (!text || isProcessing) return;
 
-    addMessage({ id: `user_${Date.now()}`, type: 'user', content: text, timestamp: new Date().toISOString() });
+    const meta = {};
+    if (selectedCompetitor) meta.competitor = selectedCompetitor.name;
+    if (selectedSkill) meta.skill = selectedSkill.name;
+
+    addMessage({
+      id: `user_${Date.now()}`,
+      type: 'user',
+      content: text,
+      meta: Object.keys(meta).length > 0 ? meta : undefined,
+      timestamp: new Date().toISOString(),
+    });
     setInput('');
 
     await runChatPipeline(text);
@@ -283,6 +425,8 @@ export default function AgencyChat({ agencyData, setAgencyData, appSettings, app
   const clearHistory = () => {
     setChatHistory([]);
   };
+
+  const hasCompetitors = allComps.some(c => c.name && (c.strategies || c.contentType));
 
   return (
     <div className="agency-chat" dir="rtl">
@@ -326,6 +470,41 @@ export default function AgencyChat({ agencyData, setAgencyData, appSettings, app
         <div ref={messagesEndRef} />
       </div>
 
+      {(selectedSkill || selectedCompetitor) && (
+        <div className="agency-chat-active-tags">
+          {selectedCompetitor && (
+            <span className="chat-active-tag">
+              📝 {selectedCompetitor.name}
+              <button onClick={() => setSelectedCompetitorId(null)}><XIcon /></button>
+            </span>
+          )}
+          {selectedSkill && (
+            <span className="chat-active-tag skill">
+              <span style={{ color: selectedSkill.color }}>{selectedSkill.icon}</span> {selectedSkill.name}
+              <button onClick={() => setSelectedSkill(null)}><XIcon /></button>
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="agency-chat-toolbar">
+        {hasCompetitors && (
+          <CompetitorStylePicker
+            competitors={competitors}
+            selected={selectedCompetitorId}
+            onSelect={setSelectedCompetitorId}
+          />
+        )}
+        <button
+          className={`chat-toolbar-btn ${selectedSkill ? 'active' : ''}`}
+          onClick={() => setShowSkillPicker(true)}
+          title="اختر مهارة"
+        >
+          <BookOpenIcon />
+          <span>{selectedSkill ? selectedSkill.name : 'المهارات'}</span>
+        </button>
+      </div>
+
       <div className="agency-chat-input-area">
         <textarea
           ref={inputRef}
@@ -348,6 +527,13 @@ export default function AgencyChat({ agencyData, setAgencyData, appSettings, app
           setAgencyData={setAgencyData}
           appSettings={appSettings}
           onClose={() => setSettingsAgent(null)}
+        />
+      )}
+
+      {showSkillPicker && (
+        <SkillPickerPopup
+          onSelect={setSelectedSkill}
+          onClose={() => setShowSkillPicker(false)}
         />
       )}
     </div>
