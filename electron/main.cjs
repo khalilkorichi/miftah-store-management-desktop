@@ -388,15 +388,42 @@ ipcMain.handle('updater:apply-update', async () => {
 
       try {
         const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${file.path}`;
-        const content = await downloadRaw(rawUrl);
+        let content = null;
+        let shaOk = false;
+        const maxRetries = 3;
 
-        if (file.sha) {
-          const downloadedSha = gitBlobSha(content);
-          if (downloadedSha !== file.sha) {
-            results.failed++;
-            results.errors.push({ path: file.path, error: 'تحقق SHA فشل — الملف تالف' });
-            continue;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const cacheBust = `?t=${Date.now()}`;
+            content = await downloadRaw(rawUrl + cacheBust);
+
+            if (file.sha) {
+              const downloadedSha = gitBlobSha(content);
+              if (downloadedSha !== file.sha) {
+                if (attempt < maxRetries) {
+                  const delay = attempt * 3000;
+                  sendStatus({ state: 'downloading', current: i + 1, total: files.length, currentFile: file.path, percent: Math.round(((i + 1) / files.length) * 100), retry: attempt });
+                  await new Promise(r => setTimeout(r, delay));
+                  continue;
+                }
+                shaOk = false;
+              } else {
+                shaOk = true;
+              }
+            } else {
+              shaOk = true;
+            }
+            break;
+          } catch (dlErr) {
+            if (attempt >= maxRetries) throw dlErr;
+            await new Promise(r => setTimeout(r, attempt * 2000));
           }
+        }
+
+        if (!shaOk) {
+          results.failed++;
+          results.errors.push({ path: file.path, error: 'تحقق SHA فشل بعد عدة محاولات — جرب التحديث مرة أخرى بعد دقيقة' });
+          continue;
         }
 
         const stagingPath = path.join(stagingDir, file.path);
