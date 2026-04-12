@@ -1,5 +1,21 @@
 import React from 'react';
 
+function StarRating({ rating = 0, size = 'sm' }) {
+  const stars = [];
+  for (let i = 1; i <= 5; i++) {
+    stars.push(
+      <span
+        key={i}
+        className={`skill-star ${i <= rating ? 'skill-star-filled' : 'skill-star-empty'}`}
+        style={size === 'sm' ? { fontSize: '11px' } : { fontSize: '14px' }}
+      >★</span>
+    );
+  }
+  return <span className="skill-star-rating">{stars}</span>;
+}
+
+export { StarRating };
+
 export default function SkillCard({ skill, isSelected, onSelect, onToggle }) {
   const color = skill.color || '#5E4FDE';
 
@@ -25,9 +41,7 @@ export default function SkillCard({ skill, isSelected, onSelect, onToggle }) {
             <span className={`skill-card-type-badge ${skill.type === 'builtin' ? 'skill-type-builtin' : 'skill-type-custom'}`}>
               {skill.type === 'builtin' ? 'مدمجة' : 'مخصصة'}
             </span>
-            <span className="skill-card-priority" style={{ color, background: color + '18', borderColor: color + '35' }}>
-              P{skill.priority || 5}
-            </span>
+            {skill.rating > 0 && <StarRating rating={skill.rating} />}
           </div>
         </div>
         <button

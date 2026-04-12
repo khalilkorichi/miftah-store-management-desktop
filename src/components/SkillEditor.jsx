@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { TrashIcon, DownloadIcon, PlusIcon, XIcon, SaveIcon } from './Icons';
 import MarkdownRenderer from './MarkdownRenderer';
+import { SKILL_CATEGORIES } from '../data/builtinSkills';
 
 const PRIORITY_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const COLORS = ['#5E4FDE', '#11BA65', '#F7784A', '#FFC530', '#1A51F4', '#EC4899', '#EF4444', '#06B6D4', '#8B5CF6', '#F59E0B'];
-const ICONS = ['⚡', '📊', '💰', '✍️', '🏷️', '📦', '🎯', '🔍', '📈', '🛠️', '🤖', '💡', '📝', '🚀', '⭐'];
+const ICONS = ['⚡', '📊', '💰', '✍️', '🏷️', '📦', '🎯', '🔍', '📈', '🛠️', '🤖', '💡', '📝', '🚀', '⭐', '🧠', '📣', '🧲', '🛡️', '✉️', '📋', '📰', '🧪', '🔬', '🤝', '🎉', '📱', '⚙️'];
 
 export default function SkillEditor({ skill, onSave, onDelete, onCreate }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [priority, setPriority] = useState(5);
+  const [rating, setRating] = useState(3);
   const [icon, setIcon] = useState('⚡');
   const [color, setColor] = useState('#5E4FDE');
+  const [category, setCategory] = useState('other');
   const [content, setContent] = useState('');
   const [resources, setResources] = useState([]);
   const [tab, setTab] = useState('edit');
@@ -25,15 +28,17 @@ export default function SkillEditor({ skill, onSave, onDelete, onCreate }) {
     if (!skill) return;
     if (isNew) {
       setName(''); setDescription(''); setTagsInput('');
-      setPriority(5); setIcon('⚡'); setColor('#5E4FDE');
-      setContent(''); setResources([]); setSaved(false);
+      setPriority(5); setRating(3); setIcon('⚡'); setColor('#5E4FDE');
+      setCategory('other'); setContent(''); setResources([]); setSaved(false);
     } else {
       setName(skill.name || '');
       setDescription(skill.description || '');
       setTagsInput((skill.tags || []).join('، '));
       setPriority(skill.priority || 5);
+      setRating(skill.rating || 3);
       setIcon(skill.icon || '⚡');
       setColor(skill.color || '#5E4FDE');
+      setCategory(skill.category || 'other');
       setContent(skill.content || '');
       setResources(skill.resources || []);
       setSaved(false);
@@ -50,8 +55,10 @@ export default function SkillEditor({ skill, onSave, onDelete, onCreate }) {
     description: description.trim(),
     tags: parseTags(tagsInput),
     priority: Number(priority),
+    rating: Number(rating),
     icon,
     color,
+    category,
     content,
     resources,
     type: isNew ? 'custom' : (skill?.type || 'custom'),
@@ -74,7 +81,7 @@ export default function SkillEditor({ skill, onSave, onDelete, onCreate }) {
   const handleExport = () => {
     const obj = buildObj();
     const tagsStr = (obj.tags || []).join(', ');
-    const fm = `---\nname: ${obj.name}\ndescription: ${obj.description}\ntags: [${tagsStr}]\npriority: ${obj.priority}\ntype: ${obj.type}\nicon: ${obj.icon}\ncolor: ${obj.color}\n---\n\n`;
+    const fm = `---\nname: ${obj.name}\ndescription: ${obj.description}\ntags: [${tagsStr}]\npriority: ${obj.priority}\nrating: ${obj.rating}\ntype: ${obj.type}\nicon: ${obj.icon}\ncolor: ${obj.color}\n---\n\n`;
     const md = fm + (obj.content || '');
     const blob = new Blob([md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -165,6 +172,30 @@ export default function SkillEditor({ skill, onSave, onDelete, onCreate }) {
             <select className="skill-editor-input" value={priority} onChange={e => setPriority(e.target.value)}>
               {PRIORITY_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
             </select>
+          </div>
+        </div>
+        <div className="skill-editor-field-row">
+          <div className="skill-editor-field" style={{ flex: 1 }}>
+            <label className="skill-editor-label">المجلد (التصنيف)</label>
+            <select className="skill-editor-input" value={category} onChange={e => setCategory(e.target.value)}>
+              {SKILL_CATEGORIES.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="skill-editor-field" style={{ flex: 1 }}>
+            <label className="skill-editor-label">التقييم (النجوم)</label>
+            <div className="skill-editor-star-picker">
+              {[1, 2, 3, 4, 5].map(n => (
+                <button
+                  key={n}
+                  className={`skill-editor-star-btn ${n <= rating ? 'skill-editor-star-active' : ''}`}
+                  onClick={() => setRating(n)}
+                  title={`${n} نجوم`}
+                >★</button>
+              ))}
+              <span className="skill-editor-star-label">{rating}/5</span>
+            </div>
           </div>
         </div>
       </div>
