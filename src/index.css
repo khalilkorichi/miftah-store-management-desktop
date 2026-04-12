@@ -21690,16 +21690,26 @@ body.dark-mode .selectable-card.selected {
   overflow: hidden;
 }
 
-.seo-card-generate {
-  border-top: 3px solid transparent;
-  border-image: linear-gradient(90deg, #06B6D4, #5E4FDE) 1;
-  border-image-slice: 1 1 0 1;
+.seo-card-generate::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #06B6D4, #5E4FDE);
+  border-radius: var(--radius-lg, 14px) var(--radius-lg, 14px) 0 0;
 }
 
-.seo-card-fields {
-  border-top: 3px solid transparent;
-  border-image: linear-gradient(90deg, #5E4FDE, #1A51F4) 1;
-  border-image-slice: 1 1 0 1;
+.seo-card-fields::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #5E4FDE, #1A51F4);
+  border-radius: var(--radius-lg, 14px) var(--radius-lg, 14px) 0 0;
 }
 
 .seo-card-header {
