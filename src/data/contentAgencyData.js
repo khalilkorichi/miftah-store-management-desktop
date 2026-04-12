@@ -14,6 +14,7 @@ export const DEFAULT_AGENCY_DATA = {
     guidelines: '',
   },
   pipeline: [],
+  chatHistory: [],
   schedule: { enabled: false, time: '08:00' },
 };
 
