@@ -91,6 +91,18 @@ const GLOBAL_SYSTEM_PROMPT = `أنت مساعد ذكاء اصطناعي داخل
 {"type":"createCoupon","code":"CODE20","discountType":"percent","value":20,"minOrderAmount":0}
 [/GLOBAL_ACTION]
 
+لإضافة مجموعة مزايا دفعة واحدة إلى خطة (عندما يرسل المستخدم عدة مزايا معاً):
+[GLOBAL_ACTION]
+{"type":"addBulkFeatures","productId":1,"planId":1,"features":[{"text":"نص الميزة الأولى"},{"text":"نص الميزة الثانية"}]}
+[/GLOBAL_ACTION]
+
+فهم نص المزايا من المستخدم:
+- إذا أرسل المستخدم مزايا بصيغة "الميزة: ... الوصف: ..." أو "الميزة: ... - الوصف: ..." أو قائمة مرقمة/منقطة تحتوي على مزايا وأوصاف، قم بتحليلها وتنسيقها بشكل احترافي
+- عند تنسيق كل ميزة: ادمج اسم الميزة ووصفها في نص واحد منسق وواضح، مثل: "اسم الميزة — الوصف التفصيلي" أو صياغة تسويقية أفضل
+- إذا لم يحدد المستخدم أي خطة (planId)، اسأله عن الخطة المطلوبة أو أضفها لجميع الخطط إذا كان ذلك منطقياً
+- يمكنك تحسين صياغة المزايا لتكون أكثر احترافية وجاذبية مع الحفاظ على المعنى الأصلي
+- رتّب المزايا بشكل منطقي (من الأهم إلى الأقل أهمية)
+
 لإنشاء حزمة منتجات جديدة (اختر منتجات من القائمة المتاحة واقترح سعر بيع مناسب بالريال السعودي):
 [GLOBAL_ACTION]
 {"type":"createBundle","name":"اسم الحزمة","productIds":[1,2,3],"sellingPrice":99.99,"rationale":"سبب اقتراح هذه الحزمة"}
@@ -164,6 +176,7 @@ function actionLabel(action) {
     case 'createProduct': return `إنشاء منتج: "${action.name}"`;
     case 'createSupplier': return `إضافة مورد: "${action.name}"`;
     case 'addFeature': return `إضافة ميزة: "${action.text}"`;
+    case 'addBulkFeatures': return `إضافة ${(action.features || []).length} مزايا دفعة واحدة`;
     case 'updateDescription': return 'تحديث وصف المنتج';
     case 'updateDetails': return 'تحديث تفاصيل المنتج';
     case 'updateOfficialPrice': return `تحديث السعر الرسمي → $${action.price}`;
@@ -391,6 +404,7 @@ function ConversationSidebar({ conversations, activeConvId, onSelect, onNew, onD
 /* ─── Action Confirmation Banner ─────────────────────────────────────────── */
 function ActionBanner({ action, onConfirm, onReject, products }) {
   const isBundle = action?.type === 'createBundle';
+  const isBulkFeatures = action?.type === 'addBulkFeatures';
   return (
     <div className="gaa-action-banner">
       <div className="gaa-action-banner-info">
@@ -400,6 +414,16 @@ function ActionBanner({ action, onConfirm, onReject, products }) {
           <span className="gaa-action-banner-rationale">{action.rationale}</span>
         )}
       </div>
+      {isBulkFeatures && Array.isArray(action.features) && (
+        <div className="ai-bulk-features-preview">
+          {action.features.map((f, i) => (
+            <div key={i} className="ai-bulk-feature-item">
+              <CheckCircleIcon className="icon-xs" />
+              <span>{typeof f.text === 'string' ? f.text : ''}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {isBundle && action.productIds && products && (
         <div className="ai-bundle-products-preview">
           {action.productIds.map(pId => {
@@ -643,6 +667,31 @@ export default function GlobalAIAssistant({
               if (plan.id !== planId) return plan;
               const featureId = `feat_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
               return { ...plan, features: [...(plan.features || []), { id: featureId, text, isSeparator: false }] };
+            }),
+          }));
+          addMsgCallback?.(actionLabel(action));
+          break;
+        }
+        case 'addBulkFeatures': {
+          const pid = Number(action.productId);
+          const planId = action.planId;
+          const featuresArr = Array.isArray(action.features) ? action.features : [];
+          const validFeatures = featuresArr
+            .map(f => (typeof f.text === 'string' ? f.text.trim() : ''))
+            .filter(Boolean);
+          if (!pid || !planId || validFeatures.length === 0) break;
+          onUpdateProduct?.(pid, (product) => ({
+            ...product,
+            plans: (product.plans || []).map(plan => {
+              if (String(plan.id) !== String(planId)) return plan;
+              const newFeatures = validFeatures.map((text, i) => ({
+                id: `feat_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 5)}`,
+                text,
+                icon: 'check',
+                badge: null,
+                isSeparator: false,
+              }));
+              return { ...plan, features: [...(plan.features || []), ...newFeatures] };
             }),
           }));
           addMsgCallback?.(actionLabel(action));

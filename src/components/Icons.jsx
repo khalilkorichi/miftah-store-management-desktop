@@ -206,3 +206,7 @@ export const Trash2Icon = (p) => I(<><polyline points="3 6 5 6 21 6"/><path d="M
 export const VolumeIcon = (p) => I(<><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/></>, p);
 
 export const CodeBracketIcon = (p) => I(<><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></>, p);
+
+export const HardDriveIcon = (p) => I(<><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></>, p);
+
+export const PieChartIcon = (p) => I(<><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></>, p);

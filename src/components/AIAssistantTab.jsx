@@ -130,6 +130,18 @@ export const DEFAULT_AI_PROMPT = `أنت مساعد ذكاء اصطناعي خب
 {"type":"removeFeature","planId":"plan_xxx","featureId":"feat_yyy"}
 [/MIFTAH_ACTION]
 
+لإضافة مجموعة مزايا دفعة واحدة إلى خطة (عندما يرسل المستخدم عدة مزايا معاً):
+[MIFTAH_ACTION]
+{"type":"addBulkFeatures","planId":"plan_xxx","features":[{"text":"نص الميزة الأولى"},{"text":"نص الميزة الثانية"}]}
+[/MIFTAH_ACTION]
+
+فهم نص المزايا من المستخدم:
+- إذا أرسل المستخدم مزايا بصيغة "الميزة: ... الوصف: ..." أو "الميزة: ... - الوصف: ..." أو قائمة مرقمة/منقطة تحتوي على مزايا وأوصاف، قم بتحليلها وتنسيقها بشكل احترافي
+- عند تنسيق كل ميزة: ادمج اسم الميزة ووصفها في نص واحد منسق وواضح، مثل: "اسم الميزة — الوصف التفصيلي" أو صياغة تسويقية أفضل
+- إذا لم يحدد المستخدم أي خطة (planId)، اسأله عن الخطة المطلوبة أو أضفها لجميع الخطط إذا كان ذلك منطقياً
+- يمكنك تحسين صياغة المزايا لتكون أكثر احترافية وجاذبية مع الحفاظ على المعنى الأصلي
+- رتّب المزايا بشكل منطقي (من الأهم إلى الأقل أهمية)
+
 لإنشاء حزمة منتجات جديدة (اختر منتجات من القائمة المتاحة واقترح سعر بيع مناسب بالريال السعودي):
 [MIFTAH_ACTION]
 {"type":"createBundle","name":"اسم الحزمة","productIds":[1,2,3],"sellingPrice":99.99,"rationale":"سبب اقتراح هذه الحزمة"}
@@ -683,6 +695,25 @@ function AIAssistantTab({
       });
       updateProduct(product.id, { plans: updatedPlans });
 
+    } else if (type === 'addBulkFeatures') {
+      const featuresArr = Array.isArray(pendingAction.features) ? pendingAction.features : [];
+      const validFeatures = featuresArr
+        .map(f => (typeof f.text === 'string' ? f.text.trim() : ''))
+        .filter(Boolean);
+      if (!pendingAction.planId || validFeatures.length === 0) { setPendingAction(null); return; }
+      const updatedPlans = (product.plans || []).map(plan => {
+        if (String(plan.id) !== String(pendingAction.planId)) return plan;
+        const newFeatures = validFeatures.map((text, i) => ({
+          id: `feat_${Date.now()}_${i}`,
+          text,
+          icon: 'check',
+          badge: null,
+          isSeparator: false,
+        }));
+        return { ...plan, features: [...(plan.features || []), ...newFeatures] };
+      });
+      updateProduct(product.id, { plans: updatedPlans });
+
     } else if (type === 'editFeature') {
       const text = typeof pendingAction.text === 'string' ? pendingAction.text.trim() : '';
       if (!pendingAction.planId || !pendingAction.featureId || !text) {
@@ -940,6 +971,7 @@ function AIAssistantTab({
               {pendingAction.type === 'updatePlanPrice' && `تعديل سعر الخطة (${pendingAction.planId}) من المورد — السعر الجديد: $${pendingAction.price}`}
               {pendingAction.type === 'updateOfficialPrice' && `تعديل السعر الرسمي للخطة (${pendingAction.planId}) إلى $${pendingAction.price}`}
               {pendingAction.type === 'addFeature' && `إضافة ميزة جديدة إلى الخطة (${pendingAction.planId}): "${pendingAction.text}"`}
+              {pendingAction.type === 'addBulkFeatures' && `إضافة ${(pendingAction.features || []).length} مزايا إلى الخطة (${pendingAction.planId})`}
               {pendingAction.type === 'editFeature' && `تعديل نص ميزة في الخطة (${pendingAction.planId}): "${pendingAction.text}"`}
               {pendingAction.type === 'removeFeature' && `حذف ميزة من الخطة (${pendingAction.planId})`}
               {pendingAction.type === 'createBundle' && (
@@ -949,6 +981,16 @@ function AIAssistantTab({
                 </span>
               )}
             </p>
+            {pendingAction.type === 'addBulkFeatures' && Array.isArray(pendingAction.features) && (
+              <div className="ai-bulk-features-preview">
+                {pendingAction.features.map((f, i) => (
+                  <div key={i} className="ai-bulk-feature-item">
+                    <CheckCircleIcon className="icon-xs" />
+                    <span>{typeof f.text === 'string' ? f.text : ''}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {pendingAction.type === 'createBundle' && pendingAction.productIds && (
               <div className="ai-bundle-products-preview">
                 {pendingAction.productIds.map(pId => {

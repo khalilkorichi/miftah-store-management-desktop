@@ -6,9 +6,293 @@ import {
   AlertTriangleIcon, CheckCircleIcon, PackageIcon, ImageIcon,
   ExternalLinkIcon, SparklesIcon, KeyIcon, EyeIcon, ChevronDownIcon,
   ZapIcon, DownloadCloudIcon, LinkIcon, GitBranchIcon, CalendarIcon,
+  HardDriveIcon, TrashIcon, PieChartIcon,
 } from './Icons';
 import { GEMINI_MODELS, OPENROUTER_MODELS, AGENTROUTER_MODELS } from '../utils/aiProvider';
 import SkillsTab from './SkillsTab';
+
+const STORAGE_CATEGORIES = [
+  {
+    id: 'core',
+    label: 'بيانات البرنامج الأساسية',
+    icon: '🗄️',
+    color: '#5E4FDE',
+    keys: ['miftah_store_data', 'miftah_store_data_last_good'],
+    critical: true,
+    description: 'المنتجات والموردين والتسعير — لا يمكن حذفها',
+  },
+  {
+    id: 'operations',
+    label: 'بيانات العمليات',
+    icon: '📋',
+    color: '#1A51F4',
+    keys: ['miftah_notifications', 'miftah_note_categories'],
+    critical: true,
+    description: 'الإشعارات وتصنيفات الملاحظات',
+  },
+  {
+    id: 'ai_chats',
+    label: 'محادثات الذكاء الاصطناعي',
+    icon: '💬',
+    color: '#F7784A',
+    keys: ['miftah_ai_chats', 'miftah_global_chats'],
+    critical: false,
+    description: 'سجل المحادثات مع مساعد AI — يمكن حذفها بأمان',
+  },
+  {
+    id: 'skills',
+    label: 'المهارات المخصصة',
+    icon: '⚡',
+    color: '#FFC530',
+    keys: ['app-skills'],
+    critical: false,
+    description: 'المهارات المحفوظة — يمكن إعادة بنائها',
+  },
+  {
+    id: 'settings_cache',
+    label: 'إعدادات مؤقتة',
+    icon: '⚙️',
+    color: '#9ca3b8',
+    keys: ['miftah_update_repo_url'],
+    critical: false,
+    description: 'رابط التحديث وإعدادات مؤقتة أخرى',
+  },
+];
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 بايت';
+  const units = ['بايت', 'ك.ب', 'م.ب', 'ج.ب'];
+  const k = 1024;
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const val = (bytes / Math.pow(k, i)).toFixed(i > 0 ? 1 : 0);
+  return `${val} ${units[i]}`;
+}
+
+function getStorageUsage() {
+  const items = [];
+  const knownKeys = STORAGE_CATEGORIES.flatMap(c => c.keys);
+  let totalUsed = 0;
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    try {
+      const val = localStorage.getItem(key);
+      const size = new Blob([key + val]).size;
+      totalUsed += size;
+      items.push({ key, size });
+    } catch { /* skip */ }
+  }
+
+  const categories = STORAGE_CATEGORIES.map(cat => {
+    let catSize = 0;
+    const found = [];
+    cat.keys.forEach(k => {
+      const item = items.find(i => i.key === k);
+      if (item) {
+        catSize += item.size;
+        found.push(item);
+      }
+    });
+    return { ...cat, totalSize: catSize, items: found };
+  });
+
+  const categorizedKeys = STORAGE_CATEGORIES.flatMap(c => c.keys);
+  const otherItems = items.filter(i => !categorizedKeys.includes(i.key));
+  const otherSize = otherItems.reduce((s, i) => s + i.size, 0);
+
+  if (otherItems.length > 0) {
+    categories.push({
+      id: 'other',
+      label: 'بيانات أخرى',
+      icon: '📦',
+      color: '#6b7280',
+      keys: otherItems.map(i => i.key),
+      critical: true,
+      description: 'مفاتيح تخزين غير مصنفة — محمية تلقائياً',
+      totalSize: otherSize,
+      items: otherItems,
+    });
+  }
+
+  const maxStorage = 5 * 1024 * 1024;
+  return { categories, totalUsed, maxStorage, itemCount: items.length };
+}
+
+function StorageTab() {
+  const [usage, setUsage] = useState(() => getStorageUsage());
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteSuccess, setDeleteSuccess] = useState(null);
+  const timersRef = useRef([]);
+
+  useEffect(() => {
+    return () => timersRef.current.forEach(id => clearTimeout(id));
+  }, []);
+
+  const scheduleTimeout = useCallback((fn, ms) => {
+    const id = setTimeout(fn, ms);
+    timersRef.current.push(id);
+    return id;
+  }, []);
+
+  const refresh = useCallback(() => setUsage(getStorageUsage()), []);
+
+  const handleClearCategory = useCallback((cat) => {
+    if (cat.critical) return;
+    const confirmMsg = `هل تريد حذف "${cat.label}"؟\nسيتم حذف ${cat.items.length} عنصر (${formatBytes(cat.totalSize)})`;
+    if (!confirm(confirmMsg)) return;
+
+    setDeletingId(cat.id);
+    cat.items.forEach(item => {
+      try { localStorage.removeItem(item.key); } catch { /* skip */ }
+    });
+
+    scheduleTimeout(() => {
+      setDeletingId(null);
+      setDeleteSuccess(cat.id);
+      setUsage(getStorageUsage());
+      scheduleTimeout(() => setDeleteSuccess(null), 2500);
+    }, 400);
+  }, [scheduleTimeout]);
+
+  const handleClearAllTemp = useCallback(() => {
+    const tempCats = usage.categories.filter(c => !c.critical && c.totalSize > 0);
+    if (tempCats.length === 0) return;
+    const totalSize = tempCats.reduce((s, c) => s + c.totalSize, 0);
+    const confirmMsg = `هل تريد حذف جميع الملفات المؤقتة؟\nسيتم تحرير ${formatBytes(totalSize)} من التخزين\n\nلن يتأثر: قاعدة البيانات الأساسية والإشعارات`;
+    if (!confirm(confirmMsg)) return;
+
+    tempCats.forEach(cat => {
+      cat.items.forEach(item => {
+        try { localStorage.removeItem(item.key); } catch { /* skip */ }
+      });
+    });
+
+    setUsage(getStorageUsage());
+    setDeleteSuccess('all');
+    scheduleTimeout(() => setDeleteSuccess(null), 2500);
+  }, [usage, scheduleTimeout]);
+
+  const pct = Math.min((usage.totalUsed / usage.maxStorage) * 100, 100);
+  const pctColor = pct > 80 ? '#F94B60' : pct > 50 ? '#FFC530' : '#11BA65';
+  const tempSize = usage.categories.filter(c => !c.critical).reduce((s, c) => s + c.totalSize, 0);
+
+  return (
+    <div className="storage-tab">
+      <div className="storage-overview">
+        <div className="storage-overview-header">
+          <div className="storage-overview-icon">
+            <HardDriveIcon className="icon-lg" />
+          </div>
+          <div className="storage-overview-info">
+            <h3>مساحة التخزين المحلي</h3>
+            <p className="storage-overview-sub">
+              مستخدم {formatBytes(usage.totalUsed)} من {formatBytes(usage.maxStorage)} — {usage.itemCount} عنصر مخزّن
+            </p>
+          </div>
+          <button className="storage-refresh-btn" onClick={refresh} title="تحديث">
+            <RefreshIcon className="icon-sm" />
+          </button>
+        </div>
+
+        <div className="storage-bar-wrap">
+          <div className="storage-bar">
+            <div className="storage-bar-fill" style={{ width: `${pct}%`, background: pctColor }} />
+          </div>
+          <div className="storage-bar-labels">
+            <span style={{ color: pctColor, fontWeight: 700 }}>{pct.toFixed(1)}%</span>
+            <span>{formatBytes(usage.maxStorage - usage.totalUsed)} متاح</span>
+          </div>
+        </div>
+
+        <div className="storage-summary-cards">
+          <div className="storage-summary-card">
+            <DatabaseIcon className="icon-sm" />
+            <div>
+              <span className="storage-summary-val">{formatBytes(usage.totalUsed - tempSize)}</span>
+              <span className="storage-summary-lbl">بيانات أساسية</span>
+            </div>
+          </div>
+          <div className="storage-summary-card">
+            <PieChartIcon className="icon-sm" />
+            <div>
+              <span className="storage-summary-val">{formatBytes(tempSize)}</span>
+              <span className="storage-summary-lbl">بيانات مؤقتة</span>
+            </div>
+          </div>
+          <div className="storage-summary-card">
+            <PackageIcon className="icon-sm" />
+            <div>
+              <span className="storage-summary-val">{usage.itemCount}</span>
+              <span className="storage-summary-lbl">عنصر مخزّن</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {deleteSuccess && (
+        <div className="storage-success-banner">
+          <CheckCircleIcon className="icon-sm" />
+          <span>{deleteSuccess === 'all' ? 'تم حذف جميع الملفات المؤقتة بنجاح' : 'تم الحذف بنجاح'}</span>
+        </div>
+      )}
+
+      <div className="storage-categories">
+        <div className="storage-categories-header">
+          <h4>تفاصيل التخزين</h4>
+          {tempSize > 0 && (
+            <button className="storage-clear-all-btn" onClick={handleClearAllTemp}>
+              <TrashIcon className="icon-xs" />
+              حذف الكل المؤقت ({formatBytes(tempSize)})
+            </button>
+          )}
+        </div>
+
+        {usage.categories.map(cat => (
+          <div
+            key={cat.id}
+            className={`storage-cat-card${deletingId === cat.id ? ' storage-cat-deleting' : ''}${cat.totalSize === 0 ? ' storage-cat-empty' : ''}`}
+          >
+            <div className="storage-cat-bar" style={{ background: cat.color }} />
+            <div className="storage-cat-icon">{cat.icon}</div>
+            <div className="storage-cat-info">
+              <div className="storage-cat-title">
+                <span>{cat.label}</span>
+                {cat.critical && <span className="storage-cat-lock">محمي</span>}
+              </div>
+              <p className="storage-cat-desc">{cat.description}</p>
+              <div className="storage-cat-keys">
+                {cat.items.map(item => (
+                  <span key={item.key} className="storage-cat-key-chip">
+                    <code>{item.key}</code>
+                    <span className="storage-cat-key-size">{formatBytes(item.size)}</span>
+                  </span>
+                ))}
+                {cat.items.length === 0 && <span className="storage-cat-key-chip storage-cat-key-empty">فارغ</span>}
+              </div>
+            </div>
+            <div className="storage-cat-right">
+              <span className="storage-cat-size" style={{ color: cat.color }}>{formatBytes(cat.totalSize)}</span>
+              {!cat.critical && cat.totalSize > 0 && (
+                <button className="storage-cat-delete-btn" onClick={() => handleClearCategory(cat)} title="حذف">
+                  <TrashIcon className="icon-xs" /> حذف
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="storage-info-box">
+        <InfoIcon className="icon-sm" />
+        <div>
+          <strong>ملاحظة:</strong> يستخدم البرنامج التخزين المحلي للمتصفح (localStorage) لحفظ البيانات.
+          الحد الأقصى عادة 5 ميغابايت. حذف الملفات المؤقتة لا يؤثر على بيانات المنتجات أو المهام أو الإعدادات الأساسية.
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SettingsPage({
   exchangeRate,
@@ -222,6 +506,7 @@ function SettingsPage({
     { id: 'ai',         label: 'الذكاء الاصطناعي',  icon: <SparklesIcon className="icon-xs" /> },
     { id: 'skills',     label: 'المهارات',           icon: <ZapIcon className="icon-xs" /> },
     { id: 'data',       label: 'البيانات',           icon: <DatabaseIcon className="icon-xs" /> },
+    { id: 'storage',    label: 'التخزين',            icon: <HardDriveIcon className="icon-xs" /> },
     { id: 'updates',    label: 'التحديثات',          icon: <DownloadCloudIcon className="icon-xs" /> },
   ];
 
@@ -808,6 +1093,8 @@ function SettingsPage({
           </div>
         </div>
       )}
+
+      {settingsTab === 'storage' && <StorageTab />}
 
       {settingsTab === 'updates' && (
         <div className="settings-section">
