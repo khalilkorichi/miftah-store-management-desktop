@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CheckCircleIcon, SaveIcon, AlertTriangleIcon,
   TrendingDownIcon, TrendingUpIcon, ChevronDownIcon,
@@ -147,6 +148,7 @@ function getPricingExplanation(baseSAR, costs, rowMech, officialSAR, finalPrice,
 /* ── Pricing Status Popup (modal) ── */
 function PricingStatusPopup({ data, onClose }) {
   const overlayRef = useRef(null);
+  const modalRoot = document.getElementById('modal-root') || document.body;
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
@@ -164,7 +166,7 @@ function PricingStatusPopup({ data, onClose }) {
   };
   const accentColor = typeColorMap[reasonType] || typeColorMap.muted;
 
-  return (
+  return createPortal(
     <div
       className="psp-overlay"
       ref={overlayRef}
@@ -259,7 +261,8 @@ function PricingStatusPopup({ data, onClose }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }
 

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { UploadIcon, XIcon, CheckCircleIcon } from './Icons';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -82,7 +83,7 @@ export default function SkillUploader({ onUpload, existingNames = [] }) {
         <UploadIcon className="icon-xs" /> رفع مهارة (.md)
       </button>
       {error && <p className="skill-upload-error">{error}</p>}
-      {preview && (
+      {preview && createPortal(
         <div className="skill-upload-preview-overlay">
           <div className="skill-upload-preview">
             <div className="skill-upload-preview-header">
@@ -109,7 +110,8 @@ export default function SkillUploader({ onUpload, existingNames = [] }) {
               <button className="skill-action-btn" onClick={() => setPreview(null)}>إلغاء</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.getElementById('modal-root') || document.body
       )}
     </div>
   );

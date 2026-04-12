@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { XIcon, CheckIcon, CalendarIcon, TagIcon, DollarSignIcon } from '../Icons';
 
 const RENEWAL_CYCLES = [
@@ -62,7 +63,8 @@ export default function RenewalModal({ renewal, products, suppliers, onSave, onC
 
   const set = (key, val) => { setForm(f => ({ ...f, [key]: val })); setErrors(v => ({ ...v, [key]: '' })); };
 
-  return (
+  const modalRoot = document.getElementById('modal-root') || document.body;
+  return createPortal(
     <div
       className="ops-modal-overlay"
       ref={overlayRef}
@@ -182,6 +184,7 @@ export default function RenewalModal({ renewal, products, suppliers, onSave, onC
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }

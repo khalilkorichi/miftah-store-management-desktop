@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { SparklesIcon, XIcon, PackageIcon, CheckCircleIcon, PlusIcon, AlertTriangleIcon, TagIcon, DollarSignIcon } from '../Icons';
 import { callAI } from '../../utils/aiProvider';
 
@@ -184,7 +185,8 @@ ${bundles.map(b => `- ${b.name}: ${b.productIds.length} منتجات`).join('\n'
     setAddedIds(prev => new Set(prev).add([...suggestion.productIds].map(String).sort().join(',')));
   };
 
-  return (
+  const modalRoot = document.getElementById('modal-root') || document.body;
+  return createPortal(
     <div className="ai-bundle-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="ai-bundle-modal" role="dialog" aria-modal="true" aria-labelledby="ai-bundle-title">
         <div className="ai-bundle-header">
@@ -346,7 +348,8 @@ ${bundles.map(b => `- ${b.name}: ${b.productIds.length} منتجات`).join('\n'
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { XIcon, FlagIcon, TagIcon, SparklesIcon, CheckSquareIcon } from '../Icons';
 
 const TEMPLATES = [
@@ -118,7 +119,8 @@ export default function TaskTemplatesModal({ onSelect, onClose }) {
     onClose();
   };
 
-  return (
+  const modalRoot = document.getElementById('modal-root') || document.body;
+  return createPortal(
     <div className="ops-modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="ops-modal tpl-modal">
         <div className="ops-modal-header">
@@ -174,6 +176,7 @@ export default function TaskTemplatesModal({ onSelect, onClose }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }

@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function ModalOverlay({ onClose, children, className = '' }) {
   const overlayRef = useRef(null);
@@ -17,7 +18,7 @@ export default function ModalOverlay({ onClose, children, className = '' }) {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div
       className={`modal-overlay ${className}`}
       ref={overlayRef}
@@ -26,6 +27,7 @@ export default function ModalOverlay({ onClose, children, className = '' }) {
       aria-modal="true"
     >
       {children}
-    </div>
+    </div>,
+    document.getElementById('modal-root') || document.body
   );
 }

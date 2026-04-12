@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { XIcon, CheckIcon, FlagIcon, CalendarIcon, TagIcon, ClockIcon } from '../Icons';
 
 const CATEGORIES = [
@@ -63,7 +64,8 @@ export default function TaskModal({ task, prefillData, onSave, onClose }) {
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
-  return (
+  const modalRoot = document.getElementById('modal-root') || document.body;
+  return createPortal(
     <div
       className="ops-modal-overlay"
       ref={overlayRef}
@@ -183,6 +185,7 @@ export default function TaskModal({ task, prefillData, onSave, onClose }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }

@@ -14815,6 +14815,7 @@ body.dark-mode .selectable-card.selected {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
+  padding: 24px;
   animation: psp-fade-in 0.15s ease;
 }
 @keyframes psp-fade-in { from { opacity: 0; } to { opacity: 1; } }

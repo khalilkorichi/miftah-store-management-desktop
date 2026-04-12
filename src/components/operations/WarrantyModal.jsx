@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   XIcon, CheckIcon, ShieldCheckIcon, UserIcon, TagIcon,
   CalendarIcon, ClockIcon, MessageCircleIcon, SendIcon, InfoIcon
@@ -108,7 +109,8 @@ export default function WarrantyModal({ warranty, products, suppliers, durations
     setErrors(v => ({ ...v, [key]: '' }));
   };
 
-  return (
+  const modalRoot = document.getElementById('modal-root') || document.body;
+  return createPortal(
     <div
       className="ops-modal-overlay"
       ref={overlayRef}
@@ -404,6 +406,7 @@ export default function WarrantyModal({ warranty, products, suppliers, durations
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }

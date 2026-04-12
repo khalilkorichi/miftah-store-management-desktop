@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import ReactDOM from 'react-dom';
+import { createPortal } from 'react-dom';
 import {
   XIcon, TagIcon, StarIcon, ShieldCheckIcon, UserIcon, UsersIcon,
   EditIcon, PlusIcon, TrashIcon, ChevronDownIcon, LinkIcon, ExternalLinkIcon, ClipboardIcon
@@ -150,7 +150,8 @@ function ProductDetailModal({
   const lowestPrice = getLowestPrice();
   const highestPrice = getHighestPrice();
 
-  return (
+  const modalRoot = document.getElementById('modal-root') || document.body;
+  return createPortal(
     <div className={`pdm-overlay ${closing ? 'pdm-closing' : ''}`} ref={overlayRef} onClick={handleOverlayClick}>
       <div ref={containerRef} className={`pdm-container ${closing ? 'pdm-slide-out' : 'pdm-slide-in'}`}>
         <div className="pdm-header">
@@ -570,7 +571,7 @@ function ProductDetailModal({
         </div>
       </div>
 
-      {openMethodPicker && ReactDOM.createPortal(
+      {openMethodPicker && createPortal(
         (() => {
           const supplierId = openMethodPicker;
           const supplierMethods = (product.supplierActivationMethods || {})[supplierId] || [];
@@ -593,9 +594,10 @@ function ProductDetailModal({
             </>
           );
         })(),
-        document.body
+        modalRoot
       )}
-    </div>
+    </div>,
+    modalRoot
   );
 }
 

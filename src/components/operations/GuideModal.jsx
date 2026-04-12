@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   XIcon, CheckIcon, BookOpenIcon, PlusIcon, TrashIcon, TagIcon
 } from '../Icons';
@@ -91,7 +92,8 @@ export default function GuideModal({ guide, products, durations, onSave, onClose
     onClose();
   };
 
-  return (
+  const modalRoot = document.getElementById('modal-root') || document.body;
+  return createPortal(
     <div
       className="ops-modal-overlay"
       ref={overlayRef}
@@ -207,6 +209,7 @@ export default function GuideModal({ guide, products, durations, onSave, onClose
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }

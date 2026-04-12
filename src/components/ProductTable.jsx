@@ -657,7 +657,8 @@ function ParentBranchesCard({
 function MoveBranchModal({ branch, allProducts, currentParentId, onConfirm, onClose }) {
   const [selectedId, setSelectedId] = useState(null);
   const options = allProducts.filter(p => !p.parentId && p.id !== currentParentId && p.id !== branch?.id);
-  return (
+  const modalRoot = document.getElementById('modal-root') || document.body;
+  return createPortal(
     <div className="branch-modal-overlay" onClick={onClose}>
       <div className="branch-modal" onClick={e => e.stopPropagation()}>
         <h3 className="branch-modal-title">
@@ -687,14 +688,16 @@ function MoveBranchModal({ branch, allProducts, currentParentId, onConfirm, onCl
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }
 
 function AttachProductModal({ parent, allProducts, onConfirm, onClose }) {
   const [selectedId, setSelectedId] = useState(null);
   const options = allProducts.filter(p => !p.parentId && p.id !== parent?.id);
-  return (
+  const modalRoot = document.getElementById('modal-root') || document.body;
+  return createPortal(
     <div className="branch-modal-overlay" onClick={onClose}>
       <div className="branch-modal" onClick={e => e.stopPropagation()}>
         <h3 className="branch-modal-title">
@@ -724,7 +727,8 @@ function AttachProductModal({ parent, allProducts, onConfirm, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }
 
