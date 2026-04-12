@@ -24148,6 +24148,239 @@ body.dark-mode .selectable-card.selected {
   border-color: #8B5CF6;
 }
 
+.agency-chat-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.chat-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.chat-toolbar-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.chat-toolbar-btn:hover {
+  border-color: #8B5CF6;
+  color: #8B5CF6;
+  background: rgba(139, 92, 246, 0.05);
+}
+.chat-toolbar-btn.active {
+  border-color: #8B5CF6;
+  color: #8B5CF6;
+  background: rgba(139, 92, 246, 0.1);
+  font-weight: 600;
+}
+
+.chat-comp-picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-comp-select {
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.chat-comp-select:focus {
+  outline: none;
+  border-color: #8B5CF6;
+}
+
+.agency-chat-active-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.chat-active-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.chat-active-tag.skill {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+  border-color: rgba(139, 92, 246, 0.2);
+}
+.chat-active-tag button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  opacity: 0.7;
+}
+.chat-active-tag button:hover {
+  opacity: 1;
+}
+.chat-active-tag button svg {
+  width: 12px;
+  height: 12px;
+}
+
+.chat-bubble-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+.chat-meta-tag {
+  font-size: 0.62rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.15);
+}
+
+.chat-skills-popup {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 420px;
+  max-width: 90vw;
+  max-height: 70vh;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-skills-popup-body {
+  overflow-y: auto;
+  padding: 0.5rem;
+  flex: 1;
+}
+
+.chat-skill-folder {
+  margin-bottom: 0.25rem;
+}
+
+.chat-skill-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  background: var(--bg-hover);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.chat-skill-folder-header:hover {
+  background: var(--bg-main);
+}
+.chat-skill-folder-header svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+  margin-right: auto;
+}
+
+.chat-skill-folder-icon {
+  font-size: 1rem;
+}
+
+.chat-skill-folder-name {
+  flex: 1;
+  text-align: right;
+}
+
+.chat-skill-folder-count {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.chat-skill-folder-items {
+  padding: 0.25rem 0 0.25rem 0.5rem;
+}
+
+.chat-skill-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: right;
+}
+.chat-skill-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+}
+
+.chat-skill-item-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.chat-skill-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-skill-item-name {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.chat-skill-item-desc {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .agency-stats-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
