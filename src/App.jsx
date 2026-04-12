@@ -14,6 +14,8 @@ import {
   DEFAULT_ACTIVATION_GUIDES,
   DEFAULT_AI_SETTINGS,
 } from './data/initialData';
+import { DEFAULT_MARKETING_DATA, MARKETING_STORAGE_KEY } from './data/marketingData';
+import { DEFAULT_AGENCY_DATA, AGENCY_STORAGE_KEY } from './data/contentAgencyData';
 import OperationsHub from './components/operations/OperationsHub';
 import ProductTable from './components/ProductTable';
 import ImportSallaModal from './components/ImportSallaModal';
@@ -28,11 +30,12 @@ import ProductFeatures from './components/ProductFeatures';
 import {
   PackageIcon, DollarSignIcon, GiftIcon, BarChartIcon, SettingsIcon,
   SunIcon, MoonIcon, CheckCircleIcon, HomeIcon, FileTextIcon, ExternalLinkIcon,
-  CheckSquareIcon, BellIcon,
+  CheckSquareIcon, BellIcon, MegaphoneIcon,
 } from './components/Icons';
 import NotificationPanel from './components/NotificationPanel';
 import { useNotifications } from './components/NotificationContext';
 import GlobalAIAssistant from './components/GlobalAIAssistant';
+import MarketingHub from './components/marketing/MarketingHub';
 
 const STORAGE_KEY = 'miftah_store_data';
 const DATA_VERSION = 2;
@@ -44,6 +47,7 @@ const TAB_LIST = [
   { id: 'bundles', label: 'الحزم والمجموعات', icon: GiftIcon },
   { id: 'features', label: 'وصف المنتجات', icon: FileTextIcon },
   { id: 'reports', label: 'التقارير', icon: BarChartIcon },
+  { id: 'marketing', label: 'التسويق', icon: MegaphoneIcon },
   { id: 'tasks', label: 'العمليات', icon: CheckSquareIcon },
   { id: 'settings', label: 'الإعدادات', icon: SettingsIcon },
 ];
@@ -197,6 +201,47 @@ function App() {
   const [renewalReminders, setRenewalReminders] = useState(savedData?.renewalReminders || []);
   const [warrantyOrders, setWarrantyOrders] = useState(savedData?.warrantyOrders || []);
   const [notes, setNotes] = useState(savedData?.notes || []);
+  const [marketingData, setMarketingData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(MARKETING_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          targetAudience: {
+            segments: parsed?.targetAudience?.segments || [],
+            personas: parsed?.targetAudience?.personas || [],
+          },
+          competitors: {
+            direct: parsed?.competitors?.direct || [],
+            indirect: parsed?.competitors?.indirect || [],
+          },
+          swot: {
+            strengths: parsed?.swot?.strengths || [],
+            weaknesses: parsed?.swot?.weaknesses || [],
+            opportunities: parsed?.swot?.opportunities || [],
+            threats: parsed?.swot?.threats || [],
+          },
+          contentStyles: parsed?.contentStyles || [],
+        };
+      }
+    } catch (e) { console.error('Error loading marketing data:', e); }
+    return { ...DEFAULT_MARKETING_DATA };
+  });
+  const [agencyData, setAgencyData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(AGENCY_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          agents: { ...DEFAULT_AGENCY_DATA.agents, ...(parsed?.agents || {}) },
+          brandIdentity: { ...DEFAULT_AGENCY_DATA.brandIdentity, ...(parsed?.brandIdentity || {}) },
+          pipeline: Array.isArray(parsed?.pipeline) ? parsed.pipeline : [],
+          schedule: { ...DEFAULT_AGENCY_DATA.schedule, ...(parsed?.schedule || {}) },
+        };
+      }
+    } catch (e) { console.error('Error loading agency data:', e); }
+    return { ...DEFAULT_AGENCY_DATA };
+  });
   const [appSettings, setAppSettings] = useState({
     accentColor: 'purple',
     fontSize: 'medium',
@@ -214,7 +259,7 @@ function App() {
   // Custom hook logic for hash-based routing
   const getInitialTab = () => {
     const hash = window.location.hash.replace('#', '');
-    const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'tasks', 'settings'];
+    const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'marketing', 'tasks', 'settings'];
     return validTabs.includes(hash) ? hash : 'dashboard';
   };
   
@@ -233,6 +278,14 @@ function App() {
     const timer = setTimeout(() => setSaveIndicator(false), 1500);
     return () => clearTimeout(timer);
   }, [products, suppliers, exchangeRate, durations, activationMethods, darkMode, costs, bundles, coupons, pricingData, customLogo, appSettings, categories, finalPrices, tasks, activationGuides, renewalReminders, warrantyOrders, notes]);
+
+  useEffect(() => {
+    try { localStorage.setItem(MARKETING_STORAGE_KEY, JSON.stringify(marketingData)); } catch (e) { console.error('Error saving marketing data:', e); }
+  }, [marketingData]);
+
+  useEffect(() => {
+    try { localStorage.setItem(AGENCY_STORAGE_KEY, JSON.stringify(agencyData)); } catch (e) { console.error('Error saving agency data:', e); }
+  }, [agencyData]);
 
   // Apply dark mode class
   useEffect(() => {
@@ -264,7 +317,7 @@ function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'tasks', 'settings'];
+      const validTabs = ['dashboard', 'products', 'pricing', 'bundles', 'features', 'reports', 'marketing', 'tasks', 'settings'];
       if (validTabs.includes(hash)) {
         setPageTransition(true);
         setTimeout(() => {
@@ -1142,6 +1195,26 @@ function App() {
           />
           </div>
         )}
+        {activeTab === 'marketing' && (
+          <div role="tabpanel" id="panel-marketing" aria-labelledby="tab-marketing">
+          <MarketingHub
+            marketingData={marketingData}
+            setMarketingData={setMarketingData}
+            products={visibleProducts}
+            suppliers={suppliers}
+            costs={costs}
+            pricingData={pricingData}
+            finalPrices={finalPrices}
+            exchangeRate={exchangeRate}
+            durations={durations}
+            coupons={coupons}
+            bundles={bundles}
+            appSettings={appSettings}
+            agencyData={agencyData}
+            setAgencyData={setAgencyData}
+          />
+          </div>
+        )}
         {activeTab === 'tasks' && (
           <div role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks">
           <OperationsHub
@@ -1182,6 +1255,8 @@ function App() {
             onLogoChange={setCustomLogo}
             appSettings={appSettings}
             onAppSettingsChange={setAppSettings}
+            agencyData={agencyData}
+            setAgencyData={setAgencyData}
           />
           </div>
         )}
