@@ -310,6 +310,16 @@ function ProductFeatures({ products, setProducts, durations, suppliers, exchange
     }
   }, [product?.id]);
 
+  useEffect(() => {
+    if (activeSubTab === 'editor' && editorRef.current && product?.description != null && !isFocusedRef.current) {
+      const currentHtml = editorRef.current.innerHTML;
+      if (currentHtml !== product.description) {
+        editorRef.current.innerHTML = product.description;
+        pushHistory(product.description);
+      }
+    }
+  }, [product?.description, activeSubTab, pushHistory]);
+
   const updateFormats = useCallback(() => {
     try {
       setEditorFormats({

@@ -204,3 +204,5 @@ export const CheckAllIcon = (p) => I(<><polyline points="1 11 5 15 12 6"/><polyl
 export const Trash2Icon = (p) => I(<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>, p);
 
 export const VolumeIcon = (p) => I(<><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/></>, p);
+
+export const CodeBracketIcon = (p) => I(<><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></>, p);

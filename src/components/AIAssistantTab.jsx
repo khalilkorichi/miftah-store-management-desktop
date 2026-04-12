@@ -3,10 +3,11 @@ import {
   SparklesIcon, SendIcon, RefreshIcon, CopyIcon, CheckCircleIcon,
   SettingsIcon, XIcon, ZapIcon, AlertTriangleIcon, KeyIcon,
   ChevronDownIcon, PackageIcon, PlusIcon, TrashIcon, ClockIcon,
-  FileTextIcon, TagIcon, ListIcon,
+  FileTextIcon, TagIcon, ListIcon, CodeBracketIcon,
 } from './Icons';
 import { callAI } from '../utils/aiProvider';
 import MarkdownRenderer from './MarkdownRenderer';
+import mdToQuillHTML from '../utils/mdToQuillHTML';
 
 /* ─── Conversation persistence helpers ──────────────────────────────────── */
 const CHATS_KEY = 'miftah_ai_chats';
@@ -257,23 +258,70 @@ function parseActionFromText(text) {
 
 function textToHtml(text) {
   if (!text) return '';
-  return text
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line)
-    .map(line => `<p>${line}</p>`)
-    .join('');
+  let html = '';
+  const lines = text.split('\n');
+  let inList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    if (!line) {
+      if (inList) { html += '</ul>'; inList = false; }
+      continue;
+    }
+
+    line = line.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    line = line.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    line = line.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    line = line.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+    line = line.replace(/~~(.+?)~~/g, '<s>$1</s>');
+    line = line.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    const rawLine = lines[i].trim();
+    if (rawLine.match(/^#{1,6}\s/)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      const level = rawLine.match(/^(#{1,6})\s/)[1].length;
+      const content = line.replace(/^#{1,6}\s+/, '');
+      html += `<h${level}>${content}</h${level}>`;
+    } else if (rawLine.match(/^[-*•]\s/)) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      const content = line.replace(/^[-*•]\s+/, '');
+      html += `<li>${content}</li>`;
+    } else if (rawLine.match(/^\d+\.\s/)) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      const content = line.replace(/^\d+\.\s+/, '');
+      html += `<li>${content}</li>`;
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += `<p>${line}</p>`;
+    }
+  }
+
+  if (inList) html += '</ul>';
+  return html;
 }
 
 /* ─── MessageBubble ─────────────────────────────────────────────────────── */
 function MessageBubble({ msg, onApplyDescription, product }) {
-  const [copied, setCopied] = useState(false);
+  const [copiedType, setCopiedType] = useState(null);
   const isAI = msg.role === 'assistant';
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(msg.displayContent || msg.content).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const rawText = msg.displayContent || msg.content;
+
+  const handleCopyMD = () => {
+    navigator.clipboard.writeText(rawText).then(() => {
+      setCopiedType('md');
+      setTimeout(() => setCopiedType(null), 2000);
+    });
+  };
+
+  const handleCopyQuill = () => {
+    const quillHtml = mdToQuillHTML(rawText);
+    const blob = new Blob([quillHtml], { type: 'text/html' });
+    const item = new ClipboardItem({ 'text/html': blob, 'text/plain': new Blob([quillHtml], { type: 'text/plain' }) });
+    navigator.clipboard.write([item]).then(() => {
+      setCopiedType('quill');
+      setTimeout(() => setCopiedType(null), 2000);
     });
   };
 
@@ -287,15 +335,19 @@ function MessageBubble({ msg, onApplyDescription, product }) {
       <div className="ai-message-bubble">
         <div className="ai-message-content">
           {isAI
-            ? <MarkdownRenderer content={msg.displayContent || msg.content} />
-            : <p className="md-p">{msg.displayContent || msg.content}</p>
+            ? <MarkdownRenderer content={rawText} />
+            : <p className="md-p">{rawText}</p>
           }
         </div>
         {isAI && (
           <div className="ai-message-actions">
-            <button className="ai-msg-btn" onClick={handleCopy} title="نسخ">
-              {copied ? <CheckCircleIcon className="icon-xs" /> : <CopyIcon className="icon-xs" />}
-              {copied ? 'تم النسخ' : 'نسخ'}
+            <button className="ai-msg-btn" onClick={handleCopyMD} title="نسخ النص الخام (Markdown)">
+              {copiedType === 'md' ? <CheckCircleIcon className="icon-xs" /> : <FileTextIcon className="icon-xs" />}
+              {copiedType === 'md' ? 'تم النسخ' : 'نسخ MD'}
+            </button>
+            <button className="ai-msg-btn ai-msg-btn-quill" onClick={handleCopyQuill} title="نسخ HTML متوافق مع محرر سلة">
+              {copiedType === 'quill' ? <CheckCircleIcon className="icon-xs" /> : <CodeBracketIcon className="icon-xs" />}
+              {copiedType === 'quill' ? 'تم النسخ' : 'نسخ HTML سلة'}
             </button>
             {onApplyDescription && product && (
               msg.action?.type === 'updateDescription' ||
@@ -574,10 +626,14 @@ function AIAssistantTab({
     }
   };
 
+  const [applySuccess, setApplySuccess] = useState(false);
+
   const handleApplyDescription = (text) => {
     if (!product) return;
     const html = textToHtml(text);
     updateProduct(product.id, { description: html });
+    setApplySuccess(true);
+    setTimeout(() => setApplySuccess(false), 3000);
   };
 
   const handleConfirmAction = () => {
@@ -1055,6 +1111,13 @@ function AIAssistantTab({
                   {prompt}
                 </button>
               ))}
+            </div>
+          )}
+
+          {applySuccess && (
+            <div className="ai-apply-success">
+              <CheckCircleIcon className="icon-xs" />
+              تم تطبيق الوصف على المنتج بنجاح
             </div>
           )}
 
